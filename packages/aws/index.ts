@@ -1,1 +1,1 @@
-export const aws = () => 'AWS package';
+export const aws = () => 'AWS package - updated';

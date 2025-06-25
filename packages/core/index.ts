@@ -1,1 +1,1 @@
-export const core = () => console.log('Core package')
+export const core = () => 'Core package';
