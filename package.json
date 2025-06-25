@@ -1,0 +1,13 @@
+{
+  "name": "nueink",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:flesherj/nueink.git",
+  "author": "James Flesher <james@luminatehealth.com>",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
