@@ -9,5 +9,9 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "ios": "yarn workspace native ios",
+    "web": "yarn workspace web web"
+  }
 }
