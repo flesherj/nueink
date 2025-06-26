@@ -31,7 +31,11 @@ export const Button = ({
   const textSizeStyle = textSizeStyles[size];
 
   return (
-    <TouchableOpacity accessibilityRole="button" activeOpacity={0.6} onPress={onPress}>
+    <TouchableOpacity
+      accessibilityRole="button"
+      activeOpacity={0.6}
+      onPress={onPress}
+    >
       <View
         style={[
           styles.button,

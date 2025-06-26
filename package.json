@@ -12,6 +12,11 @@
   ],
   "scripts": {
     "ios": "yarn workspace native ios",
-    "web": "yarn workspace web web"
+    "web": "yarn workspace web web",
+    "format": "prettier --write .",
+    "lint": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "3.6.1"
   }
 }
