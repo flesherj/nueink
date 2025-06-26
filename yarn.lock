@@ -1147,7 +1147,7 @@
     "@babel/code-frame" "~7.10.4"
     json5 "^2.2.3"
 
-"@expo/metro-config@0.20.15", "@expo/metro-config@~0.20.15":
+"@expo/metro-config@0.20.15", "@expo/metro-config@~0.20.0", "@expo/metro-config@~0.20.15":
   version "0.20.15"
   resolved "https://registry.yarnpkg.com/@expo/metro-config/-/metro-config-0.20.15.tgz#4faba22ca4427c6b1c703fcb48de7dcb54e55a1c"
   integrity sha512-m8i58IQ7I8iOdVRfOhFmhPMHuhgeTVfQp1+mxW7URqPZaeVbuDVktPqOiNoHraKBoGPLKMUSsD+qdUuJVL3wMg==
@@ -2003,7 +2003,7 @@
     invariant "^2.2.4"
     nullthrows "^1.1.1"
 
-"@react-native/virtualized-lists@0.80.0":
+"@react-native/virtualized-lists@0.80.0", "@react-native/virtualized-lists@^0.80.0":
   version "0.80.0"
   resolved "https://registry.yarnpkg.com/@react-native/virtualized-lists/-/virtualized-lists-0.80.0.tgz#6f2dc00a3e86f4bc9b34be538c18ca92c5b42dcb"
   integrity sha512-d9zZdPS/ZRexVAkxo1eRp85U7XnnEpXA1ZpSomRKxBuStYKky1YohfEX5YD5MhphemKK24tT7JR4UhaLlmeX8Q==

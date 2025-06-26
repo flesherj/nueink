@@ -8,8 +8,10 @@
     "ios": "npx expo run:ios"
   },
   "dependencies": {
+    "@expo/metro-config": "~0.20.0",
     "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^14.1.0",
+    "@react-native/virtualized-lists": "^0.80.0",
     "expo": "^53.0.12",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.6",
