@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "native",
-    "slug": "native",
+    "name": "nueink",
+    "slug": "nueink",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,18 +14,31 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.lh-jdf.native"
+      "bundleIdentifier": "com.nueink.native",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.nueink.native"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-font", "expo-router"]
+    "plugins": [
+      "expo-font",
+      "expo-router"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5aeff9d7-80a2-4d29-a63e-6f381cbc8936"
+      }
+    }
   }
 }

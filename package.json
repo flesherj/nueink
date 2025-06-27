@@ -27,6 +27,14 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "aws-amplify": "^6.15.1"
+    "@aws-amplify/react-native": "^1.1.10",
+    "@aws-amplify/rtn-web-browser": "^1.1.4",
+    "@aws-amplify/ui-react-native": "^2.5.3",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/netinfo": "^11.4.1",
+    "aws-amplify": "^6.15.1",
+    "react-native-get-random-values": "^1.11.0",
+    "react-native-safe-area-context": "^5.5.0",
+    "react-native-url-polyfill": "^2.0.0"
   }
 }

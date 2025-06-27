@@ -1,9 +1,22 @@
+import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react-native';
+
 import { Button } from '@nueink/ui';
 import { aws } from '@nueink/aws';
 import { core } from '@nueink/core';
-import { useEffect, useState } from 'react';
+
+import outputs from '../../amplify_outputs.json';
+import { Amplify } from 'aws-amplify';
+
+Amplify.configure(outputs);
+
+const SignOutButton = () => {
+  const { signOut } = useAuthenticator();
+
+  return <Button title="Sign Out" onPress={signOut} />;
+};
 
 export default function App() {
   const [bla, setBla] = useState<string>('no-set');
@@ -13,18 +26,23 @@ export default function App() {
     setCoreString(core());
   }, []);
   return (
-    <View style={styles.container}>
-      <Text>
-        Open up App.tsx to start working on your app!: {bla} - {coreString}
-      </Text>
-      <Button
-        title="Button"
-        onPress={() => {
-          console.log('Button pressed');
-        }}
-      />
-      <StatusBar style="auto" />
-    </View>
+    <Authenticator.Provider>
+      <Authenticator>
+        <View style={styles.container}>
+          <Text>
+            Open up App.tsx to start working on your app!: {bla} - {coreString}
+          </Text>
+          <Button
+            title="Button"
+            onPress={() => {
+              console.log('Button pressed');
+            }}
+          />
+          <SignOutButton />
+          <StatusBar style="auto" />
+        </View>
+      </Authenticator>
+    </Authenticator.Provider>
   );
 }
 
