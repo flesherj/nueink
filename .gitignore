@@ -3,7 +3,7 @@ node_modules
 .expo
 ios
 android
-AuthKey_3V9UVWF52T.p8
+AuthKey*.p8
 
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend

@@ -22,7 +22,7 @@ export default function App() {
 
   return (
     <Authenticator.Provider>
-      <Authenticator>
+      <Authenticator socialProviders={['apple']}>
         <View style={styles.container}>
           <Text>
             Open up App.tsx to start working on your app!: {bla} - {coreString}
