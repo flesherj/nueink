@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nueink.native",
+      "bundleIdentifier": "com.nueink.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -25,14 +25,14 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.nueink.native"
+      "package": "com.nueink.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font",
-      "expo-router"
+      "expo-router",
+      "expo-font"
     ],
     "extra": {
       "router": {},
