@@ -1,10 +1,16 @@
 import {defineAuth, secret} from '@aws-amplify/backend';
 
 export const Secrets = {
-    SIWA_TEAM_ID: 'SIWA_TEAM_ID',           // WDJ36R5M2D
-    SIWA_PRIVATE_KEY: 'SIWA_PRIVATE_KEY',   // AuthKey_NQM57RX58Z.p8
-    SIWA_KEY_ID: 'SIWA_KEY_ID',             // NQM57RX58Z
-    SIWA_CLIENT_ID: 'SIWA_CLIENT_ID',       // com.nueink.native.sid
+    SIWA_TEAM_ID: 'SIWA_TEAM_ID',
+    SIWA_PRIVATE_KEY: 'SIWA_PRIVATE_KEY',
+    SIWA_KEY_ID: 'SIWA_KEY_ID',
+    SIWA_CLIENT_ID: 'SIWA_CLIENT_ID',
+    GOOGLE_CLIENT_ID: 'GOOGLE_CLIENT_ID',
+    GOOGLE_CLIENT_SECRET: 'GOOGLE_CLIENT_SECRET',
+    AMAZON_CLIENT_ID: 'AMAZON_CLIENT_ID',
+    AMAZON_CLIENT_SECRET: 'AMAZON_CLIENT_SECRET',
+    FB_CLIENT_ID: 'FB_CLIENT_ID',
+    FB_CLIENT_SECRET: 'FB_CLIENT_SECRET',
 };
 
 const verificationEmailBody = (createCode:() => string) => {
@@ -28,6 +34,35 @@ export const auth = defineAuth({
         externalProviders: {
             callbackUrls: ['http://localhost:8081/', 'https://app.nueink.com/', 'nueink://login'],
             logoutUrls: ['http://localhost:8081/', 'https://app.nueink.com/', 'nueink://logout'],
+            facebook: {
+                clientId: secret(Secrets.FB_CLIENT_ID),
+                clientSecret: secret(Secrets.FB_CLIENT_SECRET),
+                scopes: ['email', 'public_profile'],
+                attributeMapping: {
+                    email: 'email',
+                    givenName: 'first_name',
+                    familyName: 'last_name',
+                    fullname: 'name',
+                    profilePicture: 'picture'
+                }
+            },
+            loginWithAmazon: {
+                clientId: secret(Secrets.AMAZON_CLIENT_ID),
+                clientSecret: secret(Secrets.AMAZON_CLIENT_SECRET),
+                scopes: ['profile'],
+            },
+            google: {
+                clientId: secret(Secrets.GOOGLE_CLIENT_ID),
+                clientSecret: secret(Secrets.GOOGLE_CLIENT_SECRET),
+                scopes: ['email', 'profile'],
+                attributeMapping: {
+                    email: 'email',
+                    givenName: 'given_name',
+                    familyName: 'family_name',
+                    fullname: 'name',
+                    profilePicture: 'picture'
+                }
+            },
             signInWithApple: {
                 keyId: secret(Secrets.SIWA_KEY_ID),
                 clientId: secret(Secrets.SIWA_CLIENT_ID),

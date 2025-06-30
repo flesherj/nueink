@@ -4,6 +4,7 @@ node_modules
 ios
 android
 AuthKey*.p8
+client_secret*
 
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend

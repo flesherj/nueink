@@ -1,5 +1,7 @@
 import { Stack } from 'expo-router';
 import { Authenticator } from '@aws-amplify/ui-react-native';
+import { SafeAreaView } from 'react-native';
+import { Amplify } from 'aws-amplify';
 import {
   Provider as PaperProvider,
   MD3DarkTheme,
@@ -7,8 +9,6 @@ import {
 } from 'react-native-paper';
 
 import outputs from '../../../amplify_outputs.json';
-import { Amplify } from 'aws-amplify';
-import { SafeAreaView } from 'react-native';
 
 Amplify.configure(outputs);
 
