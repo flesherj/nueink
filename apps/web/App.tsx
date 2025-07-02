@@ -1,51 +1,27 @@
-import { useEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react-native';
+import { Authenticator } from '@aws-amplify/ui-react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { Provider as PaperProvider } from 'react-native-paper';
+import { useColorScheme } from 'react-native';
 
-import { Button } from '@nueink/ui';
-import { aws } from '@nueink/aws';
-import { core } from '@nueink/core';
+import { NueInkDarkTheme, NueInkLightTheme } from '@nueink/ui';
 
-const SignOutButton = () => {
-  const { signOut } = useAuthenticator();
-  return <Button title="Sign Out" onPress={signOut} />;
-};
+import { WebScreenStack } from './components/screens/ScreenStack';
 
 export default function App() {
-  const [bla, setBla] = useState<string>('no-set');
-  const [coreString, setCoreString] = useState<string>('not-set');
-  useEffect(() => {
-    setBla(aws());
-    setCoreString(core());
-  }, []);
-
+  const colorScheme = useColorScheme();
   return (
     <Authenticator.Provider>
       <Authenticator>
-        <View style={styles.container}>
-          <Text>
-            Open up App.tsx to start working on your app!: {bla} - {coreString}
-          </Text>
-          <Button
-            title="Button"
-            onPress={() => {
-              console.log('Button pressed');
-            }}
-          />
-          <SignOutButton />
-          <StatusBar style="auto" />
-        </View>
+        <PaperProvider
+          theme={colorScheme === 'dark' ? NueInkDarkTheme : NueInkLightTheme}
+        >
+          <NavigationContainer
+            theme={colorScheme === 'dark' ? NueInkDarkTheme : NueInkLightTheme}
+          >
+            <WebScreenStack />
+          </NavigationContainer>
+        </PaperProvider>
       </Authenticator>
     </Authenticator.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
