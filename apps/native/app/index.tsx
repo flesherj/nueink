@@ -1,10 +1,12 @@
-import { useAuthenticator } from '@aws-amplify/ui-react-native';
 import { Surface, Text } from 'react-native-paper';
+
+import { useAuthenticator } from '@aws-amplify/ui-react-native';
 
 import { Button } from '@nueink/ui';
 
 const AppIndex = () => {
   const { user, signOut } = useAuthenticator();
+
   return (
     <Surface style={{ flex: 1, padding: 16 }}>
       <Text>UserName: {user.username}</Text>
