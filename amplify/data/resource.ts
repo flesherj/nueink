@@ -14,6 +14,7 @@ const schema = a.schema({
         createdAt: a.datetime(),
         lastLogin: a.datetime(),
         profileOwner: a.string(),
+        onboardCompleted: a.boolean(),
     }).authorization((allow) => [
         allow.ownerDefinedIn("profileOwner"),
     ])
