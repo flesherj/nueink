@@ -11,6 +11,7 @@
     "packages/*"
   ],
   "scripts": {
+    "sandbox:dev": "yarn workspace @nueink/aws ampx sandbox --profile solotech --identifier dev",
     "ios": "yarn workspace native ios",
     "web": "yarn workspace web web",
     "format": "prettier --write .",

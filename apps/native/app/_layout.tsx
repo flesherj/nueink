@@ -2,19 +2,16 @@ import { Stack } from 'expo-router';
 import { Authenticator } from '@aws-amplify/ui-react-native';
 import { SafeAreaView } from 'react-native';
 import { Amplify } from 'aws-amplify';
-import {
-  Provider as PaperProvider,
-  MD3DarkTheme,
-  Surface,
-} from 'react-native-paper';
+import { Provider as PaperProvider, Surface } from 'react-native-paper';
 
-import outputs from '../../../amplify_outputs.json';
+import { NueInkDarkTheme } from '@nueink/ui';
+import outputs from '../../../packages/aws/amplify_outputs.json';
 
 Amplify.configure(outputs);
 
 const RootLayout = () => {
   return (
-    <PaperProvider theme={MD3DarkTheme}>
+    <PaperProvider theme={NueInkDarkTheme}>
       <Authenticator.Provider>
         <Authenticator>
           <Surface style={{ flex: 1 }}>
