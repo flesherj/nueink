@@ -1,23 +1,26 @@
-import type { APIGatewayProxyHandler } from "aws-lambda";
 import {getAmplifyDataClientConfig} from '@aws-amplify/backend/function/runtime';
+import express from 'express';
+import cors from 'cors';
+import serverless from 'serverless-http';
+
 import { env } from "$amplify/env/nueink-api";
-import {NueInkAmplify} from "../../../index";
+
+import AccountRouter from './routers/AccountRouter';
+import {Amplify} from "aws-amplify";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
     env
 );
 
-const nueInk = new NueInkAmplify(resourceConfig, libraryOptions);
+Amplify.configure(resourceConfig, libraryOptions);
 
-export const handler: APIGatewayProxyHandler = async (event) => {
-    console.log("event", event);
-    return {
-        statusCode: 200,
-        // Modify the CORS settings below to match your specific requirements
-        headers: {
-            "Access-Control-Allow-Origin": "*", // Restrict this to domains you trust
-            "Access-Control-Allow-Headers": "*", // Specify only the headers you need to allow
-        },
-        body: JSON.stringify("Hello from myFunction!"),
-    };
+const app = express();
+app.use(express.json());
+app.use(cors());
+app.use(AccountRouter);
+
+const handleRequest = serverless(app);
+
+export const handler = async (event: any, context: any) => {
+    return await handleRequest(event, context);
 };

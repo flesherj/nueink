@@ -36,4 +36,9 @@ export class AccountService {
 
     return response.data as unknown as Account;
   };
+
+  public getAccounts = async () => {
+    const response = await this.dbClient.models.Account.list();
+    return response.data as unknown as Account[];
+  };
 }

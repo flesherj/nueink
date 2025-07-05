@@ -6,8 +6,27 @@ import { Provider as PaperProvider, Surface } from 'react-native-paper';
 
 import { NueInkDarkTheme } from '@nueink/ui';
 import outputs from '../../../packages/aws/amplify_outputs.json';
+import { parseAmplifyConfig } from 'aws-amplify/utils';
+const amplifyConfig = parseAmplifyConfig(outputs);
 
-Amplify.configure(outputs);
+Amplify.configure(
+  {
+    ...amplifyConfig,
+    API: {
+      ...amplifyConfig.API,
+      REST: outputs.custom.API,
+    },
+  },
+  {
+    API: {
+      REST: {
+        retryStrategy: {
+          strategy: 'no-retry', // Overrides default retry strategy
+        },
+      },
+    },
+  }
+);
 
 const RootLayout = () => {
   return (

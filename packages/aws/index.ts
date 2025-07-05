@@ -1,7 +1,10 @@
 import { Amplify } from 'aws-amplify';
 import { LibraryOptions, ResourcesConfig } from '@aws-amplify/core';
 import { generateClient } from 'aws-amplify/api';
-import { AmplifyOutputsUnknown } from '@aws-amplify/core/internals/utils';
+import {
+  AmplifyOutputsUnknown,
+  LegacyConfig,
+} from '@aws-amplify/core/internals/utils';
 
 import {
   AccountService,
@@ -19,26 +22,10 @@ export class NueInkAmplify {
   public readonly accountApi: AccountApi;
 
   constructor(
-    resourceConfig: ResourcesConfig & AmplifyOutputsUnknown,
+    resourceConfig: ResourcesConfig | LegacyConfig | AmplifyOutputsUnknown,
     libraryOptions?: LibraryOptions
   ) {
-    Amplify.configure(
-      {
-        ...resourceConfig,
-        API: {
-          ...resourceConfig.API,
-          REST: (resourceConfig.custom as any).API,
-        },
-      },
-      {
-        ...libraryOptions,
-        API: {
-          REST: {
-            retryStrategy: { strategy: 'no-retry' },
-          },
-        },
-      }
-    );
+    Amplify.configure(resourceConfig, libraryOptions);
     this.client = generateClient<Schema>();
     this.accounts = new AccountService(this.client);
     this.organizations = new OrganizationService(this.client);
