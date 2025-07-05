@@ -1,12 +1,19 @@
 import { Amplify } from 'aws-amplify';
 import { LibraryOptions, ResourcesConfig } from '@aws-amplify/core';
 import { generateClient } from 'aws-amplify/api';
-import { UserService } from './services/UserService';
+
+import {
+  AccountService,
+  OrganizationService,
+  MembershipService,
+} from './services';
 import type { Schema } from './amplify/data/resource';
 
 export class NueInkAmplify {
   private readonly client;
-  public readonly users: UserService;
+  public readonly accounts: AccountService;
+  public readonly organizations: OrganizationService;
+  public readonly memberships: MembershipService;
 
   constructor(
     resourceConfig: ResourcesConfig,
@@ -14,6 +21,8 @@ export class NueInkAmplify {
   ) {
     Amplify.configure(resourceConfig, libraryOptions);
     this.client = generateClient<Schema>();
-    this.users = new UserService(this.client);
+    this.accounts = new AccountService(this.client);
+    this.organizations = new OrganizationService(this.client);
+    this.memberships = new MembershipService(this.client);
   }
 }
