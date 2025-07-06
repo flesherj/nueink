@@ -6,13 +6,11 @@ import serverless from 'serverless-http';
 import { env } from "$amplify/env/nueink-api";
 
 import AccountRouter from './routers/AccountRouter';
-import {Amplify} from "aws-amplify";
+import {NueInkAmplifyBuilder} from "../../../index";
 
-const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
-    env
-);
+const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
 
-Amplify.configure(resourceConfig, libraryOptions);
+NueInkAmplifyBuilder.builder().withResourceConfig(resourceConfig).withLibraryOptions(libraryOptions).build();
 
 const app = express();
 app.use(express.json());

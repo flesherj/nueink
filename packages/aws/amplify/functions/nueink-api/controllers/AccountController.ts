@@ -1,22 +1,13 @@
 import {Request, Response} from 'express';
-import {generateClient} from "aws-amplify/api";
-import type {Schema} from "../../../data/resource";
-import {AccountService} from "../../../../services";
+import {NueInkServiceFactory} from "../../../../index";
 
-const AccountController = () => {
-    const getAccounts = async (req: Request, res: Response) => {
-        const client = generateClient<Schema>();
-        const accountService = new AccountService(client);
+class AccountController {
+    constructor(private readonly accountService = NueInkServiceFactory.getInstance().accountService()) {}
 
-        console.log('AccountController.getAccounts');
-        const accounts = await accountService.getAccounts();
-        console.log('THe accounts', accounts);
+    public getAccounts = async (_req: Request, res: Response) => {
+        const accounts = await this.accountService.getAccounts();
         res.status(200).send(accounts);
     }
+}
 
-    return {
-        getAccounts
-    };
-};
-
-export default AccountController();
+export default new AccountController();

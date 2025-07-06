@@ -1,29 +1,17 @@
+import { useState } from 'react';
 import { Surface, Text } from 'react-native-paper';
 import { useAuthenticator } from '@aws-amplify/ui-react-native';
 import { Button } from '@nueink/ui';
-import { get } from 'aws-amplify/api';
-import { useState } from 'react';
-import { Account } from '@nueink/aws/models';
+import { Account, AccountApi } from '@nueink/aws';
 
 export const MainScreen = () => {
   const { user, signOut } = useAuthenticator();
 
   const [accounts, setAccounts] = useState<Array<Account>>([]);
 
-  const getItems = async () => {
+  const getAccounts = async () => {
     try {
-      const restOperation = get({
-        apiName: 'nueInkRestApi',
-        path: 'account',
-        options: {
-          retryStrategy: {
-            strategy: 'no-retry', // Overrides default retry strategy
-          },
-        },
-      });
-      const response = await restOperation.response;
-      const accounts =
-        (await response.body.json()) as unknown as Array<Account>;
+      const accounts = await AccountApi.create().getAccounts();
       setAccounts(accounts);
     } catch (error) {
       console.log('GET call failed: ', error);
@@ -36,7 +24,7 @@ export const MainScreen = () => {
       <Text>Account Count: {accounts.length}</Text>
 
       <Button title="Sign Out" onPress={signOut} />
-      <Button title="Get Items" onPress={getItems} />
+      <Button title="Get Items" onPress={getAccounts} />
     </Surface>
   );
 };

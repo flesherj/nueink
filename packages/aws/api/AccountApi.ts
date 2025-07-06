@@ -1,16 +1,10 @@
-import { get } from 'aws-amplify/api';
+import { AwsAmplifyApiFactory, Account } from '../index';
 
 export class AccountApi {
-  public getItems = async () => {
-    try {
-      const restOperation = get({
-        apiName: 'nueInkRestApi',
-        path: '/items',
-      });
-      const response = await restOperation.response;
-      console.log('GET call succeeded: ', response);
-    } catch (ex) {
-      console.error('GET call failed: ', ex);
-    }
+  public static create = () => new AccountApi();
+  public getAccounts = async () => {
+    const response =
+      await AwsAmplifyApiFactory.getInstance().get('account').response;
+    return (await response.body.json()) as unknown as Array<Account>;
   };
 }
