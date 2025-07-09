@@ -9,7 +9,7 @@ const {resourceConfig, libraryOptions} = await getAmplifyDataClientConfig(env);
 NueInkAmplifyBuilder.builder().withResourceConfig(resourceConfig).withLibraryOptions(libraryOptions).build();
 
 export const handler: PostConfirmationTriggerHandler = async (event) => {
-    console.log('PostConfirmationTriggerHandler', event);
+    console.log('PostConfirmationTriggerHandler ', event);
 
     const accountService = NueInkServiceFactory.getInstance().accountService();
     const organizationService = NueInkServiceFactory.getInstance().organizationService();

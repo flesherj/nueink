@@ -15,5 +15,7 @@ export type Account = {
   provider: string;
   createdAt: Date;
   status: AccountStatus;
-  onboardingCompleted: boolean;
+  meta: {
+    onboardCompleted: boolean;
+  };
 };

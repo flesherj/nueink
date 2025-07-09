@@ -1,32 +1,14 @@
-import { useState } from 'react';
-import { Surface, Text } from 'react-native-paper';
 import { useAuthenticator } from '@aws-amplify/ui-react-native';
 
-import { Button } from '@nueink/ui';
-import { Account, AccountApi } from '@nueink/aws';
+import { useRouter } from 'expo-router';
 
 const AppIndex = () => {
-  const { user, signOut } = useAuthenticator();
-  const [accounts, setAccounts] = useState<Array<Account>>([]);
+  const { user } = useAuthenticator();
+  const router = useRouter();
 
-  const getItems = async () => {
-    try {
-      const accounts = await AccountApi.create().getAccounts();
-      setAccounts(accounts);
-    } catch (error) {
-      console.log('GET call failed: ', error);
-    }
-  };
-
-  return (
-    <Surface style={{ flex: 1, padding: 16 }}>
-      <Text>UserName: {user.username}</Text>
-      <Text>User Id: {user.userId}</Text>
-      <Text>Account Count: {accounts.length}</Text>
-      <Button title="Sign Out" onPress={signOut} />
-      <Button title="Get Items" onPress={getItems} />
-    </Surface>
-  );
+  if (user) {
+    router.navigate('onboard');
+  }
 };
 
 export default AppIndex;

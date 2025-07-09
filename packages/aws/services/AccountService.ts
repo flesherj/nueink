@@ -30,6 +30,9 @@ export class AccountService {
       createdAt: new Date().toISOString(),
       status: AccountStatus.Active,
       profileOwner: profileOwner,
+      meta: {
+        onboardCompleted: false,
+      },
     });
 
     console.log('Created Account: ', response);
@@ -40,5 +43,10 @@ export class AccountService {
   public getAccounts = async () => {
     const response = await this.dbClient.models.Account.list();
     return response.data as unknown as Account[];
+  };
+
+  public getAccount = async (accountId: string) => {
+    const response = await this.dbClient.models.Account.get({ accountId });
+    return response.data as unknown as Account;
   };
 }
