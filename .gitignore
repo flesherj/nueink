@@ -6,6 +6,8 @@ android
 AuthKey*.p8
 client_secret*
 
+openApiKey.txt
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*

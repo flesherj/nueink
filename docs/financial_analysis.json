@@ -1,0 +1,129 @@
+{
+  "timestamp": "2025-11-08T18:35:46.768Z",
+  "debt": {
+    "debtAccounts": [
+      {
+        "name": "Account – 1508",
+        "balance": 333612.93,
+        "type": "mortgage",
+        "accountId": "8a3d92c5-213b-47c0-ab05-baf868f5877d",
+        "estimatedAPR": 6.5
+      },
+      {
+        "name": "Loan – 7032",
+        "balance": 186926.85,
+        "type": "mortgage",
+        "accountId": "8c7a00a6-930d-49f5-ba18-0f09ae44a768",
+        "estimatedAPR": 6.5
+      },
+      {
+        "name": "Visa Signature cashRewards Plus – 6688",
+        "balance": 9161.02,
+        "type": "creditCard",
+        "accountId": "72eae9b0-bc1d-4d33-ac5b-17491108ffb9",
+        "estimatedAPR": 18.99
+      },
+      {
+        "name": "Customized Cash Rewards Visa Signature – 9802",
+        "balance": 6335.63,
+        "type": "creditCard",
+        "accountId": "1ea96021-3ef2-4cd3-a080-71d06cdfbff0",
+        "estimatedAPR": 18.99
+      },
+      {
+        "name": "Prime Store Card",
+        "balance": 2518.78,
+        "type": "creditCard",
+        "accountId": "8ac32d01-c28d-4e62-80c3-83f82d51d847",
+        "estimatedAPR": 18.99
+      },
+      {
+        "name": "CareCredit",
+        "balance": 2213.26,
+        "type": "creditCard",
+        "accountId": "a7d6db15-06cd-4feb-b1ae-2c7da360da1f",
+        "estimatedAPR": 18.99
+      },
+      {
+        "name": "Savor – 7589",
+        "balance": 533.81,
+        "type": "creditCard",
+        "accountId": "713d40c5-7079-4c59-946a-c3af346d926b",
+        "estimatedAPR": 18.99
+      },
+      {
+        "name": "Quicksilver – 4556",
+        "balance": 354.94,
+        "type": "creditCard",
+        "accountId": "0ec68696-3366-48d4-b634-65561a5645d6",
+        "estimatedAPR": 18.99
+      }
+    ],
+    "totalDebt": 541657.2200000001,
+    "totalMonthlyInterest": 3153.7739629999996
+  },
+  "spending": {
+    "spendingArray": [
+      {
+        "categoryName": "Uncategorized",
+        "total": 559477.2899999996,
+        "transactionCount": 282,
+        "percentage": 96.06967059558056
+      },
+      {
+        "categoryName": "Inflow: Ready to Assign",
+        "total": 22654.77,
+        "transactionCount": 7,
+        "percentage": 3.8901244612067134
+      },
+      {
+        "categoryName": "🍽️ Dining out",
+        "total": 234.14000000000001,
+        "transactionCount": 7,
+        "percentage": 0.04020494321270708
+      }
+    ],
+    "totalSpending": 582366.1999999997,
+    "averageMonthly": 194122.06666666656
+  },
+  "income": {
+    "totalIncome": 48340.63000000001,
+    "averageMonthly": 16113.543333333337,
+    "incomeBySource": {
+      "Starting Balance": 10495.4,
+      "Zelle Transfer": 85,
+      "Transfer From Checking": 350,
+      "Transfer from Checking 2533": 5580,
+      "Transfer from Savings 4003": 4897,
+      "Transfer From Shares Other": 350,
+      "Point of Sale Adjustment": 250.49,
+      "Transfer From Savings": 33.89,
+      "ADP Totalsource Check #9100001": 16549.510000000002,
+      "Dividend": 1.9100000000000001,
+      "Transfer from Checking 4320": 1262,
+      "Transfer from Savings 7053": 1800,
+      "Account Verification Deposit from Target Check #3110111": 0.16,
+      "Amazon": 82.08,
+      "Transfer from Checking 6382": 500.85,
+      "Transfer From Payton J Flesher": 275,
+      "Transfer From Payton J Fleshe Other": 20,
+      "CAPITAL ONE AUTOPAY PYMT": 358.74,
+      "Reward Redemption": 41.16,
+      "Target Check #9100001": 1035.36,
+      "NFCU Online Payment": 2045,
+      "Venmo": 662.05,
+      "Transfer from Checking 1449": 300,
+      "Deposit H K&k Fa Payroll Check #11301125": 619.24,
+      "BA Electronic": 500,
+      "Rewards Statement Credit": 11.36,
+      "Progressive Check #2100002": 234.43
+    }
+  },
+  "summary": {
+    "totalDebt": 541657.2200000001,
+    "monthlyIncome": 16113.543333333337,
+    "monthlySpending": 194122.06666666656,
+    "monthlyInterest": 3153.7739629999996,
+    "monthlySurplus": -178008.52333333323
+  }
+}
