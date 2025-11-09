@@ -22,7 +22,7 @@ export type FinancialAccountEntity = {
   currency: Currency;
   personId?: string; // FK to Person (for auto-assignment)
   status: FinancialAccountStatus;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   profileOwner?: string;
 };

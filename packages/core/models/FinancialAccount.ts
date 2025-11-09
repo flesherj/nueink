@@ -1,4 +1,4 @@
-import { FinancialProvider, FinancialAccountType, FinancialAccountStatus, Currency } from './types';
+import { FinancialProvider, FinancialAccountType, FinancialAccountSubtype, FinancialAccountStatus, Currency } from './types';
 
 /**
  * FinancialAccount domain model
@@ -14,7 +14,7 @@ export interface FinancialAccount {
   officialName?: string;
   mask?: string;                   // Last 4 digits
   type: FinancialAccountType;
-  subtype?: string;
+  subtype?: FinancialAccountSubtype;
   currentBalance?: number;
   availableBalance?: number;
   currency: Currency;

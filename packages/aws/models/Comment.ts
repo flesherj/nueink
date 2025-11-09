@@ -4,7 +4,7 @@ export type CommentEntity = {
   accountId: string; // FK to Account (who commented)
   organizationId: string;
   text: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   profileOwner?: string;
 };

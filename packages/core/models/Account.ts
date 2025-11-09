@@ -1,6 +1,10 @@
 import { AccountStatus } from './types';
 
-export type AccountEntity = {
+/**
+ * Account domain model
+ * Represents a user account
+ */
+export interface Account {
   accountId: string;
   defaultOrgId: string;
   email: string;
@@ -9,10 +13,10 @@ export type AccountEntity = {
   middleName?: string;
   lastName?: string;
   provider: string;
-  createdAt: string;
+  createdAt: Date;
   status: AccountStatus;
   meta?: {
     onboardCompleted?: boolean;
   };
-  profileOwner?: string;
-};
+  profileOwner: string;
+}

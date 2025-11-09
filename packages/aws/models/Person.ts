@@ -5,6 +5,6 @@ export type PersonEntity = {
   color?: string; // Hex color for UI (e.g., "#FF5733")
   avatarUrl?: string; // S3 URL for avatar
   sortOrder?: number; // Display order
-  createdAt: Date;
+  createdAt: string;
   profileOwner?: string;
 };

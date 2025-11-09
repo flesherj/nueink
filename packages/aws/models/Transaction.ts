@@ -8,8 +8,8 @@ export type TransactionEntity = {
   externalTransactionId?: string; // Provider's transaction ID
   amount: number;
   currency: Currency;
-  date: Date; // Transaction date (for sorting)
-  authorizedDate?: Date;
+  date: string; // Transaction date (for sorting)
+  authorizedDate?: string;
   merchantName?: string;
   name: string;
   category?: string[]; // Categories (array for flexibility)
@@ -17,7 +17,7 @@ export type TransactionEntity = {
   pending: boolean;
   personId?: string; // FK to Person (auto-assigned)
   receiptUrls?: string[]; // S3 keys for receipts (Phase 2)
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   profileOwner?: string;
 };

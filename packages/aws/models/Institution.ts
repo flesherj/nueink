@@ -9,7 +9,7 @@ export type InstitutionEntity = {
   name: string;
   logo?: string;
   status: InstitutionStatus;
-  lastSyncedAt?: Date;
-  createdAt: Date;
+  lastSyncedAt?: string;
+  createdAt: string;
   profileOwner?: string;
 };

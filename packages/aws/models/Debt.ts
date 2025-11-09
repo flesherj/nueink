@@ -12,7 +12,7 @@ export type DebtEntity = {
   minimumPayment?: number;
   dueDate?: number; // Day of month (1-31)
   status: DebtStatus;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   profileOwner?: string;
 };

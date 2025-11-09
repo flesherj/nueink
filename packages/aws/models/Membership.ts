@@ -5,6 +5,6 @@ export type MembershipEntity = {
   orgId: string;
   role: MembershipRole;
   status: MembershipStatus;
-  joinedAt: Date;
+  joinedAt: string;
   profileOwner?: string;
 };

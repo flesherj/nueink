@@ -1,4 +1,7 @@
 export * from './types';
+export * from './Account';
+export * from './Organization';
+export * from './Membership';
 export * from './Institution';
 export * from './FinancialAccount';
 export * from './Transaction';

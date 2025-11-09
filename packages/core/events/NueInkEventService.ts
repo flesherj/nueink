@@ -1,0 +1,34 @@
+import { EventBridgePublisher } from '@nueink/aws';
+import { EventBridgeConverter, PublishEvent } from './EventBridgeConverter';
+
+/**
+ * NueInk Event Service
+ * Provides a domain-level API for publishing events
+ * Handles conversion from domain events to infrastructure events
+ */
+export class NueInkEventService {
+  private converter: EventBridgeConverter;
+
+  constructor(
+    private publisher: EventBridgePublisher,
+    private eventBusName?: string
+  ) {
+    this.converter = new EventBridgeConverter();
+  }
+
+  /**
+   * Publish a single domain event
+   */
+  async publish<T>(event: PublishEvent<T>): Promise<void> {
+    const ebEvent = this.converter.convert(event, this.eventBusName);
+    await this.publisher.publish(ebEvent as any);
+  }
+
+  /**
+   * Publish multiple domain events in a batch
+   */
+  async publishBatch<T>(events: PublishEvent<T>[]): Promise<void> {
+    const ebEvents = this.converter.convertBatch(events, this.eventBusName);
+    await this.publisher.publishBatch(ebEvents as any);
+  }
+}
