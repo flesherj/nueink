@@ -1,5 +1,5 @@
 import { generateClient } from 'aws-amplify/data';
-import { type Schema } from '../amplify/data/resource';
+import { type Schema } from '../../../backend/data/resource';
 import { CommentEntity } from '../models';
 import { CommentRepository } from './CommentRepository';
 import { PaginationResult } from './BaseRepository';

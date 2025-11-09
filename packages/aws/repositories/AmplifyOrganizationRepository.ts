@@ -1,7 +1,7 @@
 import { generateClient } from 'aws-amplify/data';
 import { v4 as uuid } from 'uuid';
 
-import { type Schema } from '../amplify/data/resource';
+import { type Schema } from '../../../backend/data/resource';
 import { OrganizationEntity, OrganizationType } from '../models';
 import { OrganizationRepository } from './OrganizationRepository';
 

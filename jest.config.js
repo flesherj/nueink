@@ -1,11 +1,37 @@
 module.exports = {
-  preset: 'jest-expo',
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/packages'],
+  testMatch: ['**/__tests__/**/*.+(ts|tsx|js)', '**/?(*.)+(spec|test).+(ts|tsx|js)'],
   transform: {
-    '^.+\.tsx?$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': 'ts-jest',
   },
-  testMatch: ['**/?(*.)+(spec|test).[jt]s?(x)'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)',
+  collectCoverageFrom: [
+    'packages/**/repositories/**/*.ts',
+    'packages/**/services/**/*.ts',
+    '!packages/**/repositories/**/*.spec.ts',
+    '!packages/**/repositories/**/*.test.ts',
+    '!packages/**/repositories/__tests__/**',
+    '!packages/**/services/**/*.spec.ts',
+    '!packages/**/services/**/*.test.ts',
+    '!packages/**/services/__tests__/**',
+    '!packages/**/models/**/*.ts',
+    '!packages/**/index.ts',
+    '!**/node_modules/**',
   ],
+  coverageThreshold: {
+    global: {
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      statements: 100,
+    },
+  },
+  coverageReporters: ['text', 'lcov', 'html'],
+  moduleNameMapper: {
+    '^@nueink/aws$': '<rootDir>/packages/aws/index.ts',
+    '^@nueink/core$': '<rootDir>/packages/core/index.ts',
+    '^@nueink/ui$': '<rootDir>/packages/ui/index.ts',
+  },
 };

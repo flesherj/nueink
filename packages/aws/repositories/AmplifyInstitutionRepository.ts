@@ -1,5 +1,5 @@
 import { generateClient } from 'aws-amplify/data';
-import { type Schema } from '../amplify/data/resource';
+import { type Schema } from '../../../backend/data/resource';
 import { InstitutionEntity } from '../models';
 import { InstitutionRepository } from './InstitutionRepository';
 

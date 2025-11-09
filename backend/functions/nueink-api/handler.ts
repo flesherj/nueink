@@ -6,7 +6,7 @@ import serverless from 'serverless-http';
 import { env } from "$amplify/env/nueink-api";
 
 import AccountRouter from './routers/AccountRouter';
-import {NueInkAmplifyBuilder} from "../../../index";
+import {NueInkAmplifyBuilder} from "@nueink/aws";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
 

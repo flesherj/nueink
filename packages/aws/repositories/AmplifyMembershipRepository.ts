@@ -1,6 +1,6 @@
 import { generateClient } from 'aws-amplify/data';
 
-import { type Schema } from '../amplify/data/resource';
+import { type Schema } from '../../../backend/data/resource';
 import { MembershipEntity, MembershipRole, MembershipStatus } from '../models';
 import { MembershipRepository } from './MembershipRepository';
 

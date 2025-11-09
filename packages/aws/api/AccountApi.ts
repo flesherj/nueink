@@ -1,4 +1,4 @@
-import { AwsAmplifyApiFactory, Account } from '../index';
+import { AwsAmplifyApiFactory, AccountEntity } from '../index';
 
 export class AccountApi {
   public static create = () => new AccountApi();
@@ -6,13 +6,13 @@ export class AccountApi {
   public getAccounts = async () => {
     const response =
       await AwsAmplifyApiFactory.getInstance().get('account').response;
-    return (await response.body.json()) as unknown as Array<Account>;
+    return (await response.body.json()) as unknown as Array<AccountEntity>;
   };
 
   public getAccount = async (id: string) => {
     const response = await AwsAmplifyApiFactory.getInstance().get(
       `account/${id}`
     ).response;
-    return (await response.body.json()) as unknown as Account;
+    return (await response.body.json()) as unknown as AccountEntity;
   };
 }

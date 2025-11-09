@@ -34,5 +34,17 @@ amplifytools.xcconfig
 amplify_outputs*
 amplifyconfiguration*
 
+# backend amplify outputs
+backend/.amplify
+backend/amplify_outputs*
+backend/amplifyconfiguration*
+backend/node_modules
+backend/.amplify-*
+
+# test coverage
+coverage
+.nyc_output
+*.lcov
+
 *storybook.log
 storybook-static

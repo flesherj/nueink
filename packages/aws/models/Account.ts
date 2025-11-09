@@ -11,8 +11,8 @@ export type AccountEntity = {
   provider: string;
   createdAt: Date;
   status: AccountStatus;
-  meta: {
-    onboardCompleted: boolean;
+  meta?: {
+    onboardCompleted?: boolean;
   };
   profileOwner?: string;
 };

@@ -11,13 +11,15 @@
     "packages/*"
   ],
   "scripts": {
-    "sandbox:dev": "yarn workspace @nueink/aws ampx sandbox --profile solotech --identifier dev",
-    "sandbox:dev:delete": "yarn workspace @nueink/aws ampx sandbox delete --profile solotech --identifier dev",
+    "sandbox:dev": "cd backend && npx ampx sandbox --profile solotech --identifier dev",
+    "sandbox:dev:delete": "cd backend && npx ampx sandbox delete --profile solotech --identifier dev",
     "ios": "yarn workspace native ios",
     "web": "yarn workspace web web",
     "format": "prettier --write .",
     "lint": "prettier --check .",
-    "android": "expo run:android"
+    "android": "expo run:android",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "devDependencies": {
     "@aws-amplify/backend": "^1.16.1",
@@ -25,10 +27,13 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.840.0",
     "@types/amplify": "^1.1.28",
     "@types/aws-lambda": "^8.10.150",
+    "@types/jest": "^29.5.0",
     "aws-cdk-lib": "^2.189.1",
     "constructs": "^10.4.2",
     "esbuild": "^0.25.5",
+    "jest": "^29.7.0",
     "prettier": "3.6.1",
+    "ts-jest": "^29.1.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },

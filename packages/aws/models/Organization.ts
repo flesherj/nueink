@@ -4,7 +4,7 @@ export type OrganizationEntity = {
   orgId: string;
   name: string;
   type: OrganizationType;
-  parentOrgId: string;
+  parentOrgId?: string;
   createdByAccountId: string;
   createdAt: Date;
   status: OrganizationStatus;
