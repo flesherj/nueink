@@ -3,6 +3,7 @@ import { auth } from './auth/resource';
 import { data } from './data/resource';
 import {postConfirmation} from "./auth/post-confirmation/resource";
 import {nueInkApiFunction} from "./functions/nueink-api/resource";
+import {createEventBus} from "./events/resource";
 import {Policy, PolicyStatement} from "aws-cdk-lib/aws-iam";
 import {
   AuthorizationType,
@@ -25,6 +26,9 @@ const backend = defineBackend({
 
 // create a new API stack
 const apiStack = backend.createStack("nueink-api-stack");
+
+// create EventBridge event bus
+const eventBus = createEventBus(apiStack);
 
 // create a new REST API
 const nueInkRestApi = new RestApi(apiStack, "RestApi", {
