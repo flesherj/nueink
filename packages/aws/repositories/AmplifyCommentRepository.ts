@@ -1,7 +1,8 @@
 import { generateClient } from 'aws-amplify/data';
 import { type Schema } from '../amplify/data/resource';
 import { CommentEntity } from '../models';
-import { CommentRepository, PaginationResult } from './CommentRepository';
+import { CommentRepository } from './CommentRepository';
+import { PaginationResult } from './BaseRepository';
 
 export class AmplifyCommentRepository implements CommentRepository {
   constructor(private dbClient = generateClient<Schema>()) {}

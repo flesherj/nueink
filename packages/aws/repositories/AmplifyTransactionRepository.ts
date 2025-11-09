@@ -1,7 +1,8 @@
 import { generateClient } from 'aws-amplify/data';
 import { type Schema } from '../amplify/data/resource';
 import { TransactionEntity } from '../models';
-import { TransactionRepository, PaginationResult } from './TransactionRepository';
+import { TransactionRepository } from './TransactionRepository';
+import { PaginationResult } from './BaseRepository';
 
 export class AmplifyTransactionRepository implements TransactionRepository {
   constructor(private dbClient = generateClient<Schema>()) {}
