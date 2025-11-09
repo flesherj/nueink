@@ -1,10 +1,8 @@
 import { generateClient } from 'aws-amplify/data';
 import { type Schema } from '../amplify/data/resource';
 import { FinancialAccountEntity } from '../models';
-import {
-  FinancialAccountRepository,
-  PaginationResult,
-} from './FinancialAccountRepository';
+import { FinancialAccountRepository } from './FinancialAccountRepository';
+import { PaginationResult } from './BaseRepository';
 
 export class AmplifyFinancialAccountRepository
   implements FinancialAccountRepository
