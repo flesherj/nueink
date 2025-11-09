@@ -134,8 +134,8 @@ const schema = a.schema({
             externalTransactionId: a.string(),          // Provider's transaction ID
             amount: a.float().required(),               // Transaction amount
             currency: a.string().required(),            // USD|EUR|GBP|CAD|AUD|JPY
-            date: a.date().required(),                  // Transaction date (for sorting)
-            authorizedDate: a.date(),                   // Authorization date
+            date: a.datetime().required(),              // Transaction date (for sorting)
+            authorizedDate: a.datetime(),               // Authorization date
             merchantName: a.string(),                   // Merchant name
             name: a.string().required(),                // Transaction name/description
             category: a.string().array(),               // Categories (array for flexibility)
@@ -193,8 +193,8 @@ const schema = a.schema({
             category: a.string().required(),            // Budget category
             amount: a.float().required(),               // Budgeted amount
             period: a.string().required(),              // monthly|weekly|yearly
-            startDate: a.date().required(),             // Budget period start
-            endDate: a.date().required(),               // Budget period end
+            startDate: a.datetime().required(),         // Budget period start
+            endDate: a.datetime().required(),           // Budget period end
             spent: a.float(),                           // Auto-calculated spent amount
             remaining: a.float(),                       // Auto-calculated remaining
             status: a.string().required(),              // active|inactive

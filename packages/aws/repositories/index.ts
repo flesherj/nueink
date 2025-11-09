@@ -9,11 +9,18 @@ export * from './AmplifyOrganizationRepository';
 export * from './MembershipRepository';
 export * from './AmplifyMembershipRepository';
 
-// Financial repositories (interfaces only - implementations pending)
+// Financial repositories
 export * from './InstitutionRepository';
+export * from './AmplifyInstitutionRepository';
 export * from './FinancialAccountRepository';
+export * from './AmplifyFinancialAccountRepository';
 export * from './TransactionRepository';
+export * from './AmplifyTransactionRepository';
 export * from './CommentRepository';
+export * from './AmplifyCommentRepository';
 export * from './PersonRepository';
+export * from './AmplifyPersonRepository';
 export * from './BudgetRepository';
+export * from './AmplifyBudgetRepository';
 export * from './DebtRepository';
+export * from './AmplifyDebtRepository';

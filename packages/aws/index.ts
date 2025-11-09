@@ -5,4 +5,4 @@ export * from './repositories';
 export * from './AwsAmplifyApiFactory';
 export * from './NueInkAmplifyBuilder';
 export * from './NueInkDataClientBuilder';
-export * from './NueInkServiceFactory';
+export * from './NueInkRepositoryFactory';
