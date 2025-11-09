@@ -1,10 +1,11 @@
-import { Transaction } from '../models';
+import { TransactionEntity } from '../models';
 import { BaseRepository, PaginationResult } from './BaseRepository';
 
 /**
  * Transaction repository interface
  */
-export interface TransactionRepository extends BaseRepository<Transaction> {
+export interface TransactionRepository
+  extends BaseRepository<TransactionEntity> {
   /**
    * Find all transactions for an organization (paginated)
    */
@@ -12,7 +13,7 @@ export interface TransactionRepository extends BaseRepository<Transaction> {
     organizationId: string,
     limit?: number,
     cursor?: string
-  ): Promise<PaginationResult<Transaction>>;
+  ): Promise<PaginationResult<TransactionEntity>>;
 
   /**
    * Find all transactions for a financial account (paginated)
@@ -21,7 +22,7 @@ export interface TransactionRepository extends BaseRepository<Transaction> {
     financialAccountId: string,
     limit?: number,
     cursor?: string
-  ): Promise<PaginationResult<Transaction>>;
+  ): Promise<PaginationResult<TransactionEntity>>;
 
   /**
    * Find all transactions assigned to a person (paginated)
@@ -30,20 +31,26 @@ export interface TransactionRepository extends BaseRepository<Transaction> {
     personId: string,
     limit?: number,
     cursor?: string
-  ): Promise<PaginationResult<Transaction>>;
+  ): Promise<PaginationResult<TransactionEntity>>;
 
   /**
    * Find transactions by date range
    */
-  findByDateRange(organizationId: string, startDate: Date, endDate: Date): Promise<Transaction[]>;
+  findByDateRange(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<TransactionEntity[]>;
 
   /**
    * Find transaction by external transaction ID
    */
-  findByExternalTransactionId(externalTransactionId: string): Promise<Transaction | null>;
+  findByExternalTransactionId(
+    externalTransactionId: string
+  ): Promise<TransactionEntity | null>;
 
   /**
    * Find recent transactions for organization (for feed, not paginated)
    */
-  findRecent(organizationId: string, limit: number): Promise<Transaction[]>;
+  findRecent(organizationId: string, limit: number): Promise<TransactionEntity[]>;
 }

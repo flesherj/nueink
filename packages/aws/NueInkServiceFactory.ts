@@ -1,8 +1,8 @@
 import {
   NueInkDataClientBuilder,
-  AccountService,
-  MembershipService,
-  OrganizationService,
+  AmplifyAccountRepository,
+  AmplifyMembershipRepository,
+  AmplifyOrganizationRepository,
 } from './index';
 
 export class NueInkServiceFactory {
@@ -20,15 +20,16 @@ export class NueInkServiceFactory {
     return this._instance;
   }
 
-  public accountService() {
-    return new AccountService(this._dataClient);
+  public accountRepository() {
+    return new AmplifyAccountRepository(this._dataClient);
   }
 
-  public organizationService() {
-    return new OrganizationService(this._dataClient);
+  public organizationRepository() {
+    return new AmplifyOrganizationRepository(this._dataClient);
   }
 
-  public membershipService() {
-    return new MembershipService(this._dataClient);
+  public membershipRepository() {
+    return new AmplifyMembershipRepository(this._dataClient);
   }
 }
+

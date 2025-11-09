@@ -1,27 +1,12 @@
-export enum OrganizationStatus {
-  Active = 'active',
-  Inactive = 'inactive',
-  Disabled = 'disabled',
-}
+import { OrganizationStatus, OrganizationType } from './types';
 
-export enum OrganizationType {
-  Individual = 'individual',
-  Family = 'family',
-  Company = 'company',
-  Enterprise = 'enterprise',
-  Government = 'government',
-  Educational = 'educational',
-  NonProfit = 'nonprofit',
-  Partner = 'partner',
-  Sandbox = 'sandbox',
-}
-
-export type Organization = {
+export type OrganizationEntity = {
   orgId: string;
   name: string;
-  type: string;
+  type: OrganizationType;
   parentOrgId: string;
   createdByAccountId: string;
   createdAt: Date;
   status: OrganizationStatus;
+  profileOwner?: string;
 };

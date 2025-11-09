@@ -1,10 +1,6 @@
-export enum AccountStatus {
-  Active = 'active',
-  Invited = 'invited',
-  Disabled = 'disabled',
-}
+import { AccountStatus } from './types';
 
-export type Account = {
+export type AccountEntity = {
   accountId: string;
   defaultOrgId: string;
   email: string;
@@ -18,4 +14,5 @@ export type Account = {
   meta: {
     onboardCompleted: boolean;
   };
+  profileOwner?: string;
 };
