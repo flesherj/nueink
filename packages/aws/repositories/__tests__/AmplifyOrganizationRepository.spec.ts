@@ -43,7 +43,7 @@ describe('AmplifyOrganizationRepository', () => {
         type: 'family',
         parentOrgId: 'parent-1',
         createdByAccountId: 'acc-1',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
         status: 'active',
         profileOwner: 'user-1',
       });
@@ -132,7 +132,7 @@ describe('AmplifyOrganizationRepository', () => {
         type: 'family',
         parentOrgId: 'parent-1',
         createdByAccountId: 'acc-1',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
         status: 'active',
         profileOwner: 'user-1',
       };
@@ -140,7 +140,7 @@ describe('AmplifyOrganizationRepository', () => {
       mockDbClient.models.Organization.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
+          createdAt: entity.createdAt,
         })
       );
 
@@ -165,14 +165,14 @@ describe('AmplifyOrganizationRepository', () => {
         name: 'Test Org',
         type: 'individual',
         createdByAccountId: 'acc-1',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
         status: 'active',
       };
 
       mockDbClient.models.Organization.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
+          createdAt: entity.createdAt,
         })
       );
 
@@ -264,7 +264,7 @@ describe('AmplifyOrganizationRepository', () => {
     });
   });
 
-  describe('findByParentOrg', () => {
+  describe('findByParentOrgId', () => {
     it('should return child organizations', async () => {
       const mockData = [
         {
@@ -291,7 +291,7 @@ describe('AmplifyOrganizationRepository', () => {
         createMockListResponse(mockData)
       );
 
-      const result = await repository.findByParentOrg('parent-1');
+      const result = await repository.findByParentOrgId('parent-1');
 
       expect(mockDbClient.models.Organization.listOrganizationByParentOrgId).toHaveBeenCalledWith({
         parentOrgId: 'parent-1',
@@ -306,14 +306,14 @@ describe('AmplifyOrganizationRepository', () => {
         createMockListResponse([])
       );
 
-      const result = await repository.findByParentOrg('parent-1');
+      const result = await repository.findByParentOrgId('parent-1');
 
       expect(result).toEqual([]);
     });
   });
 
   describe('findByName', () => {
-    it('should return organization when found by name', async () => {
+    it('should return organizations when found by name', async () => {
       const mockData = [
         {
           orgId: 'org-1',
@@ -334,18 +334,18 @@ describe('AmplifyOrganizationRepository', () => {
       expect(mockDbClient.models.Organization.listOrganizationByName).toHaveBeenCalledWith({
         name: 'Test Org',
       });
-      expect(result).not.toBeNull();
-      expect(result?.name).toBe('Test Org');
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Test Org');
     });
 
-    it('should return null when name not found', async () => {
+    it('should return empty array when name not found', async () => {
       mockDbClient.models.Organization.listOrganizationByName.mockResolvedValue(
         createMockListResponse([])
       );
 
       const result = await repository.findByName('Nonexistent Org');
 
-      expect(result).toBeNull();
+      expect(result).toEqual([]);
     });
   });
 });

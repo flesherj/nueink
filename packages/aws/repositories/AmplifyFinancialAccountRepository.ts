@@ -1,5 +1,4 @@
-import { generateClient } from 'aws-amplify/data';
-import { type Schema } from '../../../backend/data/resource';
+import type { AmplifyDataClient } from './types';
 import { FinancialAccountEntity } from '../models';
 import { FinancialAccountRepository } from './FinancialAccountRepository';
 import { PaginationResult } from './BaseRepository';
@@ -7,7 +6,7 @@ import { PaginationResult } from './BaseRepository';
 export class AmplifyFinancialAccountRepository
   implements FinancialAccountRepository
 {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<FinancialAccountEntity | null> {
     const response = await this.dbClient.models.FinancialAccount.get({
@@ -20,8 +19,8 @@ export class AmplifyFinancialAccountRepository
   }
 
   async findAll(): Promise<FinancialAccountEntity[]> {
-    const response = await this.dbClient.models.FinancialAccount.list();
-    return response.data.map((item) => this.toFinancialAccount(item));
+    const response = await this.dbClient.models.FinancialAccount.list({});
+    return response.data.map((item: any) => this.toFinancialAccount(item));
   }
 
   async save(entity: FinancialAccountEntity): Promise<FinancialAccountEntity> {
@@ -41,12 +40,15 @@ export class AmplifyFinancialAccountRepository
       currency: entity.currency,
       personId: entity.personId,
       status: entity.status,
-      createdAt: entity.createdAt.toISOString(),
-      updatedAt: entity.updatedAt.toISOString(),
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
       profileOwner: entity.profileOwner,
     });
 
-    return this.toFinancialAccount(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create FinancialAccount: response.data is null');
+    }
+    return this.toFinancialAccount(response.data);
   }
 
   async update(
@@ -66,10 +68,13 @@ export class AmplifyFinancialAccountRepository
     if (entity.personId !== undefined) updates.personId = entity.personId;
     if (entity.status !== undefined) updates.status = entity.status;
     if (entity.updatedAt !== undefined)
-      updates.updatedAt = entity.updatedAt.toISOString();
+      updates.updatedAt = entity.updatedAt;
 
     const response = await this.dbClient.models.FinancialAccount.update(updates);
-    return this.toFinancialAccount(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to update FinancialAccount: response.data is null');
+    }
+    return this.toFinancialAccount(response.data);
   }
 
   async delete(id: string): Promise<void> {
@@ -95,7 +100,7 @@ export class AmplifyFinancialAccountRepository
       );
 
     return {
-      items: response.data.map((item) => this.toFinancialAccount(item)),
+      items: response.data.map((item: any) => this.toFinancialAccount(item)),
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
@@ -108,7 +113,7 @@ export class AmplifyFinancialAccountRepository
           institutionId,
         }
       );
-    return response.data.map((item) => this.toFinancialAccount(item));
+    return response.data.map((item: any) => this.toFinancialAccount(item));
   }
 
   async findByExternalAccountId(
@@ -130,7 +135,7 @@ export class AmplifyFinancialAccountRepository
     // Note: This requires filtering - fetch all and filter client-side
     // For better performance, consider adding a GSI on personId in the future
     const allAccounts = await this.findAll();
-    return allAccounts.filter((account) => account.personId === personId);
+    return allAccounts.filter((account: any) => account.personId === personId);
   }
 
   /**
@@ -153,8 +158,8 @@ export class AmplifyFinancialAccountRepository
       currency: data.currency,
       personId: data.personId ?? undefined,
       status: data.status,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt),
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
   }

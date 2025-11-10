@@ -1,12 +1,11 @@
-import { generateClient } from 'aws-amplify/data';
 import { v4 as uuid } from 'uuid';
 
-import { type Schema } from '../../../backend/data/resource';
+import type { AmplifyDataClient } from './types';
 import { OrganizationEntity, OrganizationType } from '../models';
 import { OrganizationRepository } from './OrganizationRepository';
 
 export class AmplifyOrganizationRepository implements OrganizationRepository {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<OrganizationEntity | null> {
     const response = await this.dbClient.models.Organization.get({ orgId: id });
@@ -17,8 +16,8 @@ export class AmplifyOrganizationRepository implements OrganizationRepository {
   }
 
   async findAll(): Promise<OrganizationEntity[]> {
-    const response = await this.dbClient.models.Organization.list();
-    return response.data.map((item) => this.toOrganization(item));
+    const response = await this.dbClient.models.Organization.list({});
+    return response.data.map((item: any) => this.toOrganization(item));
   }
 
   async save(entity: OrganizationEntity): Promise<OrganizationEntity> {
@@ -28,15 +27,22 @@ export class AmplifyOrganizationRepository implements OrganizationRepository {
       type: entity.type,
       parentOrgId: entity.parentOrgId,
       createdByAccountId: entity.createdByAccountId,
-      createdAt: entity.createdAt.toISOString(),
+      createdAt: entity.createdAt,
       status: entity.status,
       profileOwner: entity.profileOwner,
     });
 
-    return this.toOrganization(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create organization: response.data is null');
+    }
+
+    return this.toOrganization(response.data);
   }
 
-  async update(id: string, entity: Partial<OrganizationEntity>): Promise<OrganizationEntity> {
+  async update(
+    id: string,
+    entity: Partial<OrganizationEntity>
+  ): Promise<OrganizationEntity> {
     const updates: any = { orgId: id };
 
     if (entity.name !== undefined) updates.name = entity.name;
@@ -46,7 +52,12 @@ export class AmplifyOrganizationRepository implements OrganizationRepository {
     if (entity.status !== undefined) updates.status = entity.status;
 
     const response = await this.dbClient.models.Organization.update(updates);
-    return this.toOrganization(response.data!);
+
+    if (!response.data) {
+      throw new Error('Failed to update organization: response.data is null');
+    }
+
+    return this.toOrganization(response.data);
   }
 
   async delete(id: string): Promise<void> {
@@ -58,13 +69,13 @@ export class AmplifyOrganizationRepository implements OrganizationRepository {
       await this.dbClient.models.Organization.listOrganizationByParentOrgId({
         parentOrgId,
       });
-    return response.data.map((item) => this.toOrganization(item));
+    return response.data.map((item: any) => this.toOrganization(item));
   }
 
   async findByName(name: string): Promise<OrganizationEntity[]> {
     const response =
       await this.dbClient.models.Organization.listOrganizationByName({ name });
-    return response.data.map((item) => this.toOrganization(item));
+    return response.data.map((item: any) => this.toOrganization(item));
   }
 
   /**
@@ -83,8 +94,8 @@ export class AmplifyOrganizationRepository implements OrganizationRepository {
       name,
       type,
       createdByAccountId,
-      parentOrgId: parentOrgId ?? '',
-      createdAt: new Date(),
+      parentOrgId,
+      createdAt: new Date().toISOString(),
       status: 'active',
       profileOwner,
     });
@@ -100,7 +111,7 @@ export class AmplifyOrganizationRepository implements OrganizationRepository {
       type: data.type,
       parentOrgId: data.parentOrgId,
       createdByAccountId: data.createdByAccountId,
-      createdAt: new Date(data.createdAt),
+      createdAt: data.createdAt,
       status: data.status,
       profileOwner: data.profileOwner,
     };

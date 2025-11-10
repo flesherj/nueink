@@ -1,26 +1,17 @@
 import type { PostConfirmationTriggerHandler } from 'aws-lambda';
-import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 import { env } from '$amplify/env/post-confirmation';
+import { NueInkRepositoryFactory } from '@nueink/aws';
+import { initializeAmplifyClient } from '../../shared/initializeClient';
 
-import { NueInkAmplifyBuilder, NueInkRepositoryFactory } from '@nueink/aws';
-
-const { resourceConfig, libraryOptions } =
-  await getAmplifyDataClientConfig(env);
-
-NueInkAmplifyBuilder.builder()
-  .withResourceConfig(resourceConfig)
-  .withLibraryOptions(libraryOptions)
-  .build();
+const client = await initializeAmplifyClient(env);
 
 export const handler: PostConfirmationTriggerHandler = async (event) => {
   console.log('PostConfirmationTriggerHandler ', event);
 
-  const accountService =
-    NueInkRepositoryFactory.getInstance().repository('account');
-  const organizationService =
-    NueInkRepositoryFactory.getInstance().repository('organization');
-  const membershipService =
-    NueInkRepositoryFactory.getInstance().repository('membership');
+  const factory = NueInkRepositoryFactory.getInstance(client);
+  const accountService = factory.repository('account');
+  const organizationService = factory.repository('organization');
+  const membershipService = factory.repository('membership');
 
   const provider = event.request.userAttributes.identities
     ? JSON.parse(event.request.userAttributes.identities)[0].providerName
@@ -29,11 +20,14 @@ export const handler: PostConfirmationTriggerHandler = async (event) => {
   const lastName = event.request.userAttributes.family_name;
   const username = event.userName;
   const accountId = event.request.userAttributes.sub;
+  const email = event.request.userAttributes.email;
   const profileOwner = `${accountId}::${username}`;
+
+  console.log('creating account ');
 
   const account = await accountService.create(
     provider,
-    event.request.userAttributes.email,
+    email,
     username,
     accountId,
     profileOwner,
@@ -42,9 +36,13 @@ export const handler: PostConfirmationTriggerHandler = async (event) => {
     undefined,
     lastName
   );
+  console.log('Account created', account);
 
   const possibleOrgName = `${firstName ?? ''} ${lastName ?? ''}`.trim();
   const orgName = possibleOrgName.length > 0 ? possibleOrgName : username;
+
+  console.log('creating organization');
+
   const organization = await organizationService.create(
     orgName,
     'individual',
@@ -52,13 +50,18 @@ export const handler: PostConfirmationTriggerHandler = async (event) => {
     profileOwner,
     account.defaultOrgId
   );
+  console.log('organization created', organization);
 
-  await membershipService.create(
+  console.log('creating membership');
+
+  const membership = await membershipService.create(
     accountId,
     organization.orgId,
     'owner',
     profileOwner
   );
+
+  console.log('membership created', membership);
 
   return event;
 };

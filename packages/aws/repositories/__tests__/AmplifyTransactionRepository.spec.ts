@@ -56,8 +56,8 @@ describe('AmplifyTransactionRepository', () => {
         externalTransactionId: 'ext-1',
         amount: -50.25,
         currency: 'USD',
-        date: new Date('2025-01-15T10:30:00.000Z'),
-        authorizedDate: new Date('2025-01-14T09:00:00.000Z'),
+        date: '2025-01-15T10:30:00.000Z',
+        authorizedDate: '2025-01-14T09:00:00.000Z',
         merchantName: 'Coffee Shop',
         name: 'Coffee Shop Purchase',
         category: ['Food and Drink', 'Restaurants', 'Coffee'],
@@ -65,8 +65,8 @@ describe('AmplifyTransactionRepository', () => {
         pending: false,
         personId: 'person-1',
         receiptUrls: ['s3://bucket/receipt.pdf'],
-        createdAt: new Date('2025-01-15T12:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-15T12:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       });
     });
@@ -171,8 +171,8 @@ describe('AmplifyTransactionRepository', () => {
         externalTransactionId: 'ext-1',
         amount: -50.25,
         currency: 'USD',
-        date: new Date('2025-01-15T10:30:00.000Z'),
-        authorizedDate: new Date('2025-01-14T09:00:00.000Z'),
+        date: '2025-01-15T10:30:00.000Z',
+        authorizedDate: '2025-01-14T09:00:00.000Z',
         merchantName: 'Coffee Shop',
         name: 'Coffee Shop Purchase',
         category: ['Food and Drink'],
@@ -180,18 +180,18 @@ describe('AmplifyTransactionRepository', () => {
         pending: false,
         personId: 'person-1',
         receiptUrls: ['s3://bucket/receipt.pdf'],
-        createdAt: new Date('2025-01-15T12:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-15T12:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       };
 
       mockDbClient.models.Transaction.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          date: entity.date.toISOString(),
-          authorizedDate: entity.authorizedDate?.toISOString(),
-          createdAt: entity.createdAt.toISOString(),
-          updatedAt: entity.updatedAt.toISOString(),
+          date: entity.date,
+          authorizedDate: entity.authorizedDate,
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
         })
       );
 
@@ -466,8 +466,8 @@ describe('AmplifyTransactionRepository', () => {
         createMockListResponse(mockData)
       );
 
-      const startDate = new Date('2025-01-10T00:00:00.000Z');
-      const endDate = new Date('2025-01-31T23:59:59.999Z');
+      const startDate = '2025-01-10T00:00:00.000Z';
+      const endDate = '2025-01-31T23:59:59.999Z';
 
       const result = await repository.findByDateRange('org-1', startDate, endDate);
 

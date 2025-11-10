@@ -49,8 +49,8 @@ describe('AmplifyInstitutionRepository', () => {
         name: 'Chase Bank',
         logo: 'https://plaid.com/logos/chase.png',
         status: 'active',
-        lastSyncedAt: new Date('2025-01-15T12:00:00.000Z'),
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        lastSyncedAt: '2025-01-15T12:00:00.000Z',
+        createdAt: '2025-01-01T00:00:00.000Z',
         profileOwner: 'user-1',
       });
     });
@@ -100,16 +100,16 @@ describe('AmplifyInstitutionRepository', () => {
         name: 'Chase Bank',
         logo: 'https://plaid.com/logos/chase.png',
         status: 'active',
-        lastSyncedAt: new Date('2025-01-15T12:00:00.000Z'),
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        lastSyncedAt: '2025-01-15T12:00:00.000Z',
+        createdAt: '2025-01-01T00:00:00.000Z',
         profileOwner: 'user-1',
       };
 
       mockDbClient.models.Institution.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          lastSyncedAt: entity.lastSyncedAt?.toISOString(),
-          createdAt: entity.createdAt.toISOString(),
+          lastSyncedAt: entity.lastSyncedAt,
+          createdAt: entity.createdAt,
         })
       );
 
@@ -136,7 +136,7 @@ describe('AmplifyInstitutionRepository', () => {
     it('should update institution with partial data', async () => {
       const updates = {
         status: 'error' as const,
-        lastSyncedAt: new Date('2025-01-16T10:00:00.000Z'),
+        lastSyncedAt: '2025-01-16T10:00:00.000Z',
       };
 
       const mockUpdated = {

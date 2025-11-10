@@ -38,8 +38,8 @@ export interface TransactionRepository
    */
   findByDateRange(
     organizationId: string,
-    startDate: Date,
-    endDate: Date
+    startDate: string,
+    endDate: string
   ): Promise<TransactionEntity[]>;
 
   /**

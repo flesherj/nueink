@@ -1,10 +1,9 @@
-import { generateClient } from 'aws-amplify/data';
-import { type Schema } from '../../../backend/data/resource';
+import type { AmplifyDataClient } from './types';
 import { InstitutionEntity } from '../models';
 import { InstitutionRepository } from './InstitutionRepository';
 
 export class AmplifyInstitutionRepository implements InstitutionRepository {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<InstitutionEntity | null> {
     const response = await this.dbClient.models.Institution.get({
@@ -17,8 +16,8 @@ export class AmplifyInstitutionRepository implements InstitutionRepository {
   }
 
   async findAll(): Promise<InstitutionEntity[]> {
-    const response = await this.dbClient.models.Institution.list();
-    return response.data.map((item) => this.toInstitution(item));
+    const response = await this.dbClient.models.Institution.list({});
+    return response.data.map((item: any) => this.toInstitution(item));
   }
 
   async save(entity: InstitutionEntity): Promise<InstitutionEntity> {
@@ -31,12 +30,15 @@ export class AmplifyInstitutionRepository implements InstitutionRepository {
       name: entity.name,
       logo: entity.logo,
       status: entity.status,
-      lastSyncedAt: entity.lastSyncedAt?.toISOString(),
-      createdAt: entity.createdAt.toISOString(),
+      lastSyncedAt: entity.lastSyncedAt,
+      createdAt: entity.createdAt,
       profileOwner: entity.profileOwner,
     });
 
-    return this.toInstitution(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create Institution: response.data is null');
+    }
+    return this.toInstitution(response.data);
   }
 
   async update(
@@ -49,10 +51,13 @@ export class AmplifyInstitutionRepository implements InstitutionRepository {
     if (entity.logo !== undefined) updates.logo = entity.logo;
     if (entity.status !== undefined) updates.status = entity.status;
     if (entity.lastSyncedAt !== undefined)
-      updates.lastSyncedAt = entity.lastSyncedAt.toISOString();
+      updates.lastSyncedAt = entity.lastSyncedAt;
 
     const response = await this.dbClient.models.Institution.update(updates);
-    return this.toInstitution(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to update Institution: response.data is null');
+    }
+    return this.toInstitution(response.data);
   }
 
   async delete(id: string): Promise<void> {
@@ -64,7 +69,7 @@ export class AmplifyInstitutionRepository implements InstitutionRepository {
       await this.dbClient.models.Institution.listInstitutionByOrganizationId({
         organizationId,
       });
-    return response.data.map((item) => this.toInstitution(item));
+    return response.data.map((item: any) => this.toInstitution(item));
   }
 
   async findByExternalItemId(
@@ -86,7 +91,7 @@ export class AmplifyInstitutionRepository implements InstitutionRepository {
   ): Promise<InstitutionEntity[]> {
     // Note: This requires filtering - fetch all for org and filter client-side
     const allInstitutions = await this.findByOrganization(organizationId);
-    return allInstitutions.filter((inst) => inst.provider === provider);
+    return allInstitutions.filter((inst: any) => inst.provider === provider);
   }
 
   /**
@@ -102,8 +107,8 @@ export class AmplifyInstitutionRepository implements InstitutionRepository {
       name: data.name,
       logo: data.logo ?? undefined,
       status: data.status,
-      lastSyncedAt: data.lastSyncedAt ? new Date(data.lastSyncedAt) : undefined,
-      createdAt: new Date(data.createdAt),
+      lastSyncedAt: data.lastSyncedAt ?? undefined,
+      createdAt: data.createdAt,
       profileOwner: data.profileOwner ?? undefined,
     };
   }

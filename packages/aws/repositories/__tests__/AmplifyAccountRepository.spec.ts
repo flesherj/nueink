@@ -146,7 +146,7 @@ describe('AmplifyAccountRepository', () => {
         middleName: 'M',
         lastName: 'User',
         provider: 'cognito',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
         status: 'active',
         profileOwner: 'user-1',
       };
@@ -154,7 +154,7 @@ describe('AmplifyAccountRepository', () => {
       mockDbClient.models.Account.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
+          createdAt: entity.createdAt,
         })
       );
 
@@ -183,14 +183,14 @@ describe('AmplifyAccountRepository', () => {
         email: 'test@example.com',
         username: 'testuser',
         provider: 'cognito',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
         status: 'active',
       };
 
       mockDbClient.models.Account.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
+          createdAt: entity.createdAt,
         })
       );
 

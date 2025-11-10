@@ -15,7 +15,7 @@ describe('AmplifyMembershipRepository', () => {
     jest.clearAllMocks();
   });
 
-  describe('findById', () => {
+  describe('findByAccountAndOrganization', () => {
     it('should return membership when found', async () => {
       const mockData = {
         accountId: 'acc-1',
@@ -30,7 +30,7 @@ describe('AmplifyMembershipRepository', () => {
         createMockResponse(mockData)
       );
 
-      const result = await repository.findById('acc-1#org-1');
+      const result = await repository.findByAccountAndOrganization('acc-1', 'org-1');
 
       expect(mockDbClient.models.Membership.get).toHaveBeenCalledWith({
         accountId: 'acc-1',
@@ -41,7 +41,7 @@ describe('AmplifyMembershipRepository', () => {
         orgId: 'org-1',
         role: 'owner',
         status: 'active',
-        joinedAt: new Date('2025-01-01T00:00:00.000Z'),
+        joinedAt: '2025-01-01T00:00:00.000Z',
         profileOwner: 'user-1',
       });
     });
@@ -51,7 +51,7 @@ describe('AmplifyMembershipRepository', () => {
         createMockResponse(null)
       );
 
-      const result = await repository.findById('acc-1#org-1');
+      const result = await repository.findByAccountAndOrganization('acc-1', 'org-1');
 
       expect(result).toBeNull();
     });
@@ -69,7 +69,7 @@ describe('AmplifyMembershipRepository', () => {
         createMockResponse(mockData)
       );
 
-      const result = await repository.findById('acc-1#org-1');
+      const result = await repository.findByAccountAndOrganization('acc-1', 'org-1');
 
       expect(result?.profileOwner).toBeUndefined();
     });
@@ -124,14 +124,14 @@ describe('AmplifyMembershipRepository', () => {
         orgId: 'org-1',
         role: 'owner',
         status: 'active',
-        joinedAt: new Date('2025-01-01T00:00:00.000Z'),
+        joinedAt: '2025-01-01T00:00:00.000Z',
         profileOwner: 'user-1',
       };
 
       mockDbClient.models.Membership.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          joinedAt: entity.joinedAt.toISOString(),
+          joinedAt: entity.joinedAt,
         })
       );
 
@@ -154,13 +154,13 @@ describe('AmplifyMembershipRepository', () => {
         orgId: 'org-1',
         role: 'member',
         status: 'active',
-        joinedAt: new Date('2025-01-01T00:00:00.000Z'),
+        joinedAt: '2025-01-01T00:00:00.000Z',
       };
 
       mockDbClient.models.Membership.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          joinedAt: entity.joinedAt.toISOString(),
+          joinedAt: entity.joinedAt,
         })
       );
 
@@ -178,9 +178,9 @@ describe('AmplifyMembershipRepository', () => {
     });
   });
 
-  describe('update', () => {
+  describe('updateByCompositeKey', () => {
     it('should update membership with partial data', async () => {
-      const updates = {
+      const updates: Partial<MembershipEntity> = {
         role: 'admin' as const,
         status: 'pending' as const,
       };
@@ -197,7 +197,7 @@ describe('AmplifyMembershipRepository', () => {
         createMockResponse(mockUpdated)
       );
 
-      const result = await repository.update('acc-1#org-1', updates);
+      const result = await repository.updateByCompositeKey('acc-1', 'org-1', updates);
 
       expect(mockDbClient.models.Membership.update).toHaveBeenCalledWith({
         accountId: 'acc-1',
@@ -210,7 +210,7 @@ describe('AmplifyMembershipRepository', () => {
     });
 
     it('should only include defined fields in update', async () => {
-      const updates = {
+      const updates: Partial<MembershipEntity> = {
         role: 'admin' as const,
       };
 
@@ -226,7 +226,7 @@ describe('AmplifyMembershipRepository', () => {
         createMockResponse(mockUpdated)
       );
 
-      await repository.update('acc-1#org-1', updates);
+      await repository.updateByCompositeKey('acc-1', 'org-1', updates);
 
       expect(mockDbClient.models.Membership.update).toHaveBeenCalledWith({
         accountId: 'acc-1',
@@ -236,13 +236,13 @@ describe('AmplifyMembershipRepository', () => {
     });
   });
 
-  describe('delete', () => {
+  describe('deleteByCompositeKey', () => {
     it('should delete membership by composite id', async () => {
       mockDbClient.models.Membership.delete.mockResolvedValue(
         createMockResponse(null)
       );
 
-      await repository.delete('acc-1#org-1');
+      await repository.deleteByCompositeKey('acc-1', 'org-1');
 
       expect(mockDbClient.models.Membership.delete).toHaveBeenCalledWith({
         accountId: 'acc-1',
@@ -295,61 +295,4 @@ describe('AmplifyMembershipRepository', () => {
     });
   });
 
-  describe('findActiveByOrganization', () => {
-    it('should return only active memberships', async () => {
-      const mockData = [
-        {
-          accountId: 'acc-1',
-          orgId: 'org-1',
-          role: 'owner',
-          status: 'active',
-          joinedAt: '2025-01-01T00:00:00.000Z',
-        },
-        {
-          accountId: 'acc-2',
-          orgId: 'org-1',
-          role: 'member',
-          status: 'pending',
-          joinedAt: '2025-01-02T00:00:00.000Z',
-        },
-        {
-          accountId: 'acc-3',
-          orgId: 'org-1',
-          role: 'member',
-          status: 'active',
-          joinedAt: '2025-01-03T00:00:00.000Z',
-        },
-      ];
-
-      mockDbClient.models.Membership.listMembershipByOrgId.mockResolvedValue(
-        createMockListResponse(mockData)
-      );
-
-      const result = await repository.findActiveByOrganization('org-1');
-
-      expect(result).toHaveLength(2);
-      expect(result.every((m) => m.status === 'active')).toBe(true);
-      expect(result.find((m) => m.accountId === 'acc-2')).toBeUndefined();
-    });
-
-    it('should return empty array when no active memberships exist', async () => {
-      const mockData = [
-        {
-          accountId: 'acc-1',
-          orgId: 'org-1',
-          role: 'member',
-          status: 'pending',
-          joinedAt: '2025-01-01T00:00:00.000Z',
-        },
-      ];
-
-      mockDbClient.models.Membership.listMembershipByOrgId.mockResolvedValue(
-        createMockListResponse(mockData)
-      );
-
-      const result = await repository.findActiveByOrganization('org-1');
-
-      expect(result).toEqual([]);
-    });
-  });
 });

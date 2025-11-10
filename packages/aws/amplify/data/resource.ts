@@ -21,7 +21,10 @@ const schema = a.schema({
             }),
         })
             .identifier(['accountId'])
-            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey().to(['create'])
+            ])
             .secondaryIndexes(index => [index('email'), index('username')]),
         Organization: a.model({
             orgId: a.id().required(),
@@ -35,7 +38,10 @@ const schema = a.schema({
             contact: a.ref('Contact'),
         })
             .identifier(['orgId'])
-            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey().to(['create'])
+            ])
             .secondaryIndexes(index => [index('parentOrgId'), index('name')]),
 
         Membership: a.model({
@@ -47,7 +53,10 @@ const schema = a.schema({
             profileOwner: a.string(),
         })
             .identifier(['accountId', 'orgId'])
-            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey().to(['create'])
+            ])
             .secondaryIndexes(index => [index('orgId')]),
         Contact: a.customType({
             addresses: a.ref('Address').array(),

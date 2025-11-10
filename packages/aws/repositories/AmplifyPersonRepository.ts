@@ -1,10 +1,9 @@
-import { generateClient } from 'aws-amplify/data';
-import { type Schema } from '../../../backend/data/resource';
+import type { AmplifyDataClient } from './types';
 import { PersonEntity } from '../models';
 import { PersonRepository } from './PersonRepository';
 
 export class AmplifyPersonRepository implements PersonRepository {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<PersonEntity | null> {
     const response = await this.dbClient.models.Person.get({ personId: id });
@@ -15,8 +14,8 @@ export class AmplifyPersonRepository implements PersonRepository {
   }
 
   async findAll(): Promise<PersonEntity[]> {
-    const response = await this.dbClient.models.Person.list();
-    return response.data.map((item) => this.toPerson(item));
+    const response = await this.dbClient.models.Person.list({});
+    return response.data.map((item: any) => this.toPerson(item));
   }
 
   async save(entity: PersonEntity): Promise<PersonEntity> {
@@ -27,11 +26,14 @@ export class AmplifyPersonRepository implements PersonRepository {
       color: entity.color,
       avatarUrl: entity.avatarUrl,
       sortOrder: entity.sortOrder,
-      createdAt: entity.createdAt.toISOString(),
+      createdAt: entity.createdAt,
       profileOwner: entity.profileOwner,
     });
 
-    return this.toPerson(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create Person: response.data is null');
+    }
+    return this.toPerson(response.data);
   }
 
   async update(id: string, entity: Partial<PersonEntity>): Promise<PersonEntity> {
@@ -43,7 +45,10 @@ export class AmplifyPersonRepository implements PersonRepository {
     if (entity.sortOrder !== undefined) updates.sortOrder = entity.sortOrder;
 
     const response = await this.dbClient.models.Person.update(updates);
-    return this.toPerson(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to update Person: response.data is null');
+    }
+    return this.toPerson(response.data);
   }
 
   async delete(id: string): Promise<void> {
@@ -54,7 +59,7 @@ export class AmplifyPersonRepository implements PersonRepository {
     const response = await this.dbClient.models.Person.listPersonByOrganizationId({
       organizationId,
     });
-    return response.data.map((item) => this.toPerson(item));
+    return response.data.map((item: any) => this.toPerson(item));
   }
 
   /**
@@ -68,7 +73,7 @@ export class AmplifyPersonRepository implements PersonRepository {
       color: data.color ?? undefined,
       avatarUrl: data.avatarUrl ?? undefined,
       sortOrder: data.sortOrder ?? undefined,
-      createdAt: new Date(data.createdAt),
+      createdAt: data.createdAt,
       profileOwner: data.profileOwner ?? undefined,
     };
   }

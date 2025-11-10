@@ -48,3 +48,9 @@ coverage
 
 *storybook.log
 storybook-static
+
+# TypeScript compiled output
+packages/**/*.js
+packages/**/*.js.map
+packages/**/*.d.ts
+!packages/**/jest.config.js

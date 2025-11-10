@@ -6,13 +6,13 @@ export interface GetAccountRequestParams {
 }
 
 class AccountController {
-  constructor(
-    private readonly accountRepository = NueInkRepositoryFactory.getInstance().repository(
-      'account'
-    )
-  ) {}
+  // Lazy-load repository to avoid initialization order issues
+  private get accountRepository() {
+    return NueInkRepositoryFactory.getInstance().repository('account');
+  }
 
   public getAccounts = async (_req: Request, res: Response) => {
+    console.log('getAccounts', {_req, res});
     const accounts = await this.accountRepository.findAll();
     res.status(200).send(accounts);
   };

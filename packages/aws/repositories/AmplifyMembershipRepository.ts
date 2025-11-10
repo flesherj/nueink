@@ -1,11 +1,9 @@
-import { generateClient } from 'aws-amplify/data';
-
-import { type Schema } from '../../../backend/data/resource';
+import type { AmplifyDataClient } from './types';
 import { MembershipEntity, MembershipRole, MembershipStatus } from '../models';
 import { MembershipRepository } from './MembershipRepository';
 
 export class AmplifyMembershipRepository implements MembershipRepository {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<MembershipEntity | null> {
     // Note: MembershipEntity uses composite key (accountId + orgId)
@@ -14,8 +12,8 @@ export class AmplifyMembershipRepository implements MembershipRepository {
   }
 
   async findAll(): Promise<MembershipEntity[]> {
-    const response = await this.dbClient.models.Membership.list();
-    return response.data.map((item) => this.toMembership(item));
+    const response = await this.dbClient.models.Membership.list({});
+    return response.data.map((item: any) => this.toMembership(item));
   }
 
   async save(entity: MembershipEntity): Promise<MembershipEntity> {
@@ -24,11 +22,14 @@ export class AmplifyMembershipRepository implements MembershipRepository {
       orgId: entity.orgId,
       role: entity.role,
       status: entity.status,
-      joinedAt: entity.joinedAt.toISOString(),
+      joinedAt: entity.joinedAt,
       profileOwner: entity.profileOwner,
     });
 
-    return this.toMembership(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create Membership: response.data is null');
+    }
+    return this.toMembership(response.data);
   }
 
   async update(id: string, entity: Partial<MembershipEntity>): Promise<MembershipEntity> {
@@ -44,13 +45,13 @@ export class AmplifyMembershipRepository implements MembershipRepository {
   async findByOrganization(orgId: string): Promise<MembershipEntity[]> {
     const response =
       await this.dbClient.models.Membership.listMembershipByOrgId({ orgId });
-    return response.data.map((item) => this.toMembership(item));
+    return response.data.map((item: any) => this.toMembership(item));
   }
 
   async findByAccount(accountId: string): Promise<MembershipEntity[]> {
     // Note: This might not have a GSI - may need to scan or add index
     const allMemberships = await this.findAll();
-    return allMemberships.filter((m) => m.accountId === accountId);
+    return allMemberships.filter((m: any) => m.accountId === accountId);
   }
 
   async findByAccountAndOrganization(
@@ -82,7 +83,7 @@ export class AmplifyMembershipRepository implements MembershipRepository {
       orgId,
       role,
       status,
-      joinedAt: new Date(),
+      joinedAt: new Date().toISOString(),
       profileOwner,
     });
   };
@@ -111,7 +112,10 @@ export class AmplifyMembershipRepository implements MembershipRepository {
     if (entity.status !== undefined) updates.status = entity.status;
 
     const response = await this.dbClient.models.Membership.update(updates);
-    return this.toMembership(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to update Membership: response.data is null');
+    }
+    return this.toMembership(response.data);
   };
 
   /**
@@ -123,7 +127,7 @@ export class AmplifyMembershipRepository implements MembershipRepository {
       orgId: data.orgId,
       role: data.role,
       status: data.status,
-      joinedAt: new Date(data.joinedAt),
+      joinedAt: data.joinedAt,
       profileOwner: data.profileOwner,
     };
   }

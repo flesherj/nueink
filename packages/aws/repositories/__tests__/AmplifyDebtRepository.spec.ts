@@ -55,8 +55,8 @@ describe('AmplifyDebtRepository', () => {
         minimumPayment: 350.0,
         dueDate: 15,
         status: 'active',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       });
     });
@@ -112,16 +112,16 @@ describe('AmplifyDebtRepository', () => {
         minimumPayment: 350.0,
         dueDate: 15,
         status: 'active',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       };
 
       mockDbClient.models.Debt.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
-          updatedAt: entity.updatedAt.toISOString(),
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
         })
       );
 
@@ -155,15 +155,15 @@ describe('AmplifyDebtRepository', () => {
         originalBalance: 10000.0,
         currentBalance: 7500.0,
         status: 'active',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
       };
 
       mockDbClient.models.Debt.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
-          updatedAt: entity.updatedAt.toISOString(),
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
         })
       );
 
@@ -178,7 +178,7 @@ describe('AmplifyDebtRepository', () => {
       const updates = {
         currentBalance: 34500.0,
         minimumPayment: 360.0,
-        updatedAt: new Date('2025-02-01T12:00:00.000Z'),
+        updatedAt: '2025-02-01T12:00:00.000Z',
       };
 
       const mockUpdated = {
@@ -214,7 +214,7 @@ describe('AmplifyDebtRepository', () => {
       const updates = {
         currentBalance: 0.0,
         status: 'paid_off' as const,
-        updatedAt: new Date('2025-06-01T12:00:00.000Z'),
+        updatedAt: '2025-06-01T12:00:00.000Z',
       };
 
       const mockUpdated = {
@@ -363,11 +363,11 @@ describe('AmplifyDebtRepository', () => {
         },
       ];
 
-      mockDbClient.models.Debt.listDebtByOrganizationId.mockResolvedValue(
+      mockDbClient.models.Debt.list.mockResolvedValue(
         createMockListResponse(mockData)
       );
 
-      const result = await repository.findByFinancialAccount('org-1', 'facc-1');
+      const result = await repository.findByFinancialAccount('facc-1');
 
       expect(result).not.toBeNull();
       expect(result?.financialAccountId).toBe('facc-1');
@@ -389,11 +389,11 @@ describe('AmplifyDebtRepository', () => {
         },
       ];
 
-      mockDbClient.models.Debt.listDebtByOrganizationId.mockResolvedValue(
+      mockDbClient.models.Debt.list.mockResolvedValue(
         createMockListResponse(mockData)
       );
 
-      const result = await repository.findByFinancialAccount('org-1', 'facc-1');
+      const result = await repository.findByFinancialAccount('facc-1');
 
       expect(result).toBeNull();
     });

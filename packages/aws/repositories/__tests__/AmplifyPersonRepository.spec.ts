@@ -44,7 +44,7 @@ describe('AmplifyPersonRepository', () => {
         color: '#FF5733',
         avatarUrl: 's3://bucket/avatar.png',
         sortOrder: 1,
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
         profileOwner: 'user-1',
       });
     });
@@ -89,14 +89,14 @@ describe('AmplifyPersonRepository', () => {
         color: '#FF5733',
         avatarUrl: 's3://bucket/avatar.png',
         sortOrder: 1,
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
         profileOwner: 'user-1',
       };
 
       mockDbClient.models.Person.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
+          createdAt: entity.createdAt,
         })
       );
 
@@ -120,13 +120,13 @@ describe('AmplifyPersonRepository', () => {
         personId: 'person-1',
         organizationId: 'org-1',
         name: 'James',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
       };
 
       mockDbClient.models.Person.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
+          createdAt: entity.createdAt,
         })
       );
 

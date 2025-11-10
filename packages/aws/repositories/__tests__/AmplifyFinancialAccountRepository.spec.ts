@@ -63,8 +63,8 @@ describe('AmplifyFinancialAccountRepository', () => {
         currency: 'USD',
         personId: 'person-1',
         status: 'active',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       });
     });
@@ -128,16 +128,16 @@ describe('AmplifyFinancialAccountRepository', () => {
         currency: 'USD',
         personId: 'person-1',
         status: 'active',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       };
 
       mockDbClient.models.FinancialAccount.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
-          updatedAt: entity.updatedAt.toISOString(),
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
         })
       );
 
@@ -172,7 +172,7 @@ describe('AmplifyFinancialAccountRepository', () => {
       const updates = {
         currentBalance: 1600.0,
         availableBalance: 8400.0,
-        updatedAt: new Date('2025-01-16T10:00:00.000Z'),
+        updatedAt: '2025-01-16T10:00:00.000Z',
       };
 
       const mockUpdated = {

@@ -1,12 +1,10 @@
-import { generateClient } from 'aws-amplify/data';
 import { v4 as uuid } from 'uuid';
-
-import { type Schema } from '../../../backend/data/resource';
 import { AccountEntity } from '../models';
 import { AccountRepository } from './AccountRepository';
+import type { AmplifyDataClient } from './types';
 
 export class AmplifyAccountRepository implements AccountRepository {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<AccountEntity | null> {
     const response = await this.dbClient.models.Account.get({ accountId: id });
@@ -17,8 +15,8 @@ export class AmplifyAccountRepository implements AccountRepository {
   }
 
   async findAll(): Promise<AccountEntity[]> {
-    const response = await this.dbClient.models.Account.list();
-    return response.data.map((item) => this.toAccount(item));
+    const response = await this.dbClient.models.Account.list({});
+    return response.data.map((item: any) => this.toAccount(item));
   }
 
   async save(entity: AccountEntity): Promise<AccountEntity> {
@@ -31,29 +29,37 @@ export class AmplifyAccountRepository implements AccountRepository {
       middleName: entity.middleName,
       lastName: entity.lastName,
       provider: entity.provider,
-      createdAt: entity.createdAt.toISOString(),
+      createdAt: entity.createdAt,
       status: entity.status,
       profileOwner: entity.profileOwner,
       meta: entity.meta,
     });
 
-    return this.toAccount(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create Account: response.data is null');
+    }
+    return this.toAccount(response.data);
   }
 
-  async update(id: string, entity: Partial<AccountEntity>): Promise<AccountEntity> {
+  async update(
+    id: string,
+    entity: Partial<AccountEntity>
+  ): Promise<AccountEntity> {
     const updates: any = { accountId: id };
 
     if (entity.email !== undefined) updates.email = entity.email;
     if (entity.username !== undefined) updates.username = entity.username;
     if (entity.firstName !== undefined) updates.firstName = entity.firstName;
-    if (entity.middleName !== undefined)
-      updates.middleName = entity.middleName;
+    if (entity.middleName !== undefined) updates.middleName = entity.middleName;
     if (entity.lastName !== undefined) updates.lastName = entity.lastName;
     if (entity.status !== undefined) updates.status = entity.status;
     if (entity.meta !== undefined) updates.meta = entity.meta;
 
     const response = await this.dbClient.models.Account.update(updates);
-    return this.toAccount(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to update Account: response.data is null');
+    }
+    return this.toAccount(response.data);
   }
 
   async delete(id: string): Promise<void> {
@@ -61,8 +67,9 @@ export class AmplifyAccountRepository implements AccountRepository {
   }
 
   async findByEmail(email: string): Promise<AccountEntity | null> {
-    const response =
-      await this.dbClient.models.Account.listAccountByEmail({ email });
+    const response = await this.dbClient.models.Account.listAccountByEmail({
+      email,
+    });
     if (response.data.length === 0) {
       return null;
     }
@@ -102,7 +109,7 @@ export class AmplifyAccountRepository implements AccountRepository {
       middleName,
       lastName,
       provider,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
       status: 'active',
       meta: {
         onboardCompleted: false,
@@ -124,7 +131,7 @@ export class AmplifyAccountRepository implements AccountRepository {
       middleName: data.middleName ?? undefined,
       lastName: data.lastName ?? undefined,
       provider: data.provider,
-      createdAt: new Date(data.createdAt),
+      createdAt: data.createdAt,
       status: data.status,
       meta: data.meta,
       profileOwner: data.profileOwner,

@@ -1,11 +1,10 @@
-import { generateClient } from 'aws-amplify/data';
-import { type Schema } from '../../../backend/data/resource';
+import type { AmplifyDataClient } from './types';
 import { CommentEntity } from '../models';
 import { CommentRepository } from './CommentRepository';
 import { PaginationResult } from './BaseRepository';
 
 export class AmplifyCommentRepository implements CommentRepository {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<CommentEntity | null> {
     const response = await this.dbClient.models.Comment.get({ commentId: id });
@@ -16,8 +15,8 @@ export class AmplifyCommentRepository implements CommentRepository {
   }
 
   async findAll(): Promise<CommentEntity[]> {
-    const response = await this.dbClient.models.Comment.list();
-    return response.data.map((item) => this.toComment(item));
+    const response = await this.dbClient.models.Comment.list({});
+    return response.data.map((item: any) => this.toComment(item));
   }
 
   async save(entity: CommentEntity): Promise<CommentEntity> {
@@ -27,12 +26,15 @@ export class AmplifyCommentRepository implements CommentRepository {
       accountId: entity.accountId,
       organizationId: entity.organizationId,
       text: entity.text,
-      createdAt: entity.createdAt.toISOString(),
-      updatedAt: entity.updatedAt.toISOString(),
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
       profileOwner: entity.profileOwner,
     });
 
-    return this.toComment(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create Comment: response.data is null');
+    }
+    return this.toComment(response.data);
   }
 
   async update(id: string, entity: Partial<CommentEntity>): Promise<CommentEntity> {
@@ -40,10 +42,13 @@ export class AmplifyCommentRepository implements CommentRepository {
 
     if (entity.text !== undefined) updates.text = entity.text;
     if (entity.updatedAt !== undefined)
-      updates.updatedAt = entity.updatedAt.toISOString();
+      updates.updatedAt = entity.updatedAt;
 
     const response = await this.dbClient.models.Comment.update(updates);
-    return this.toComment(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to update Comment: response.data is null');
+    }
+    return this.toComment(response.data);
   }
 
   async delete(id: string): Promise<void> {
@@ -55,7 +60,7 @@ export class AmplifyCommentRepository implements CommentRepository {
       await this.dbClient.models.Comment.listCommentByTransactionIdAndCreatedAt({
         transactionId,
       });
-    return response.data.map((item) => this.toComment(item));
+    return response.data.map((item: any) => this.toComment(item));
   }
 
   async findByOrganization(
@@ -75,7 +80,7 @@ export class AmplifyCommentRepository implements CommentRepository {
       );
 
     return {
-      items: response.data.map((item) => this.toComment(item)),
+      items: response.data.map((item: any) => this.toComment(item)),
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
@@ -85,7 +90,7 @@ export class AmplifyCommentRepository implements CommentRepository {
     // Note: This requires filtering - fetch all and filter client-side
     // For better performance, consider adding a GSI on accountId in the future
     const allComments = await this.findAll();
-    return allComments.filter((comment) => comment.accountId === accountId);
+    return allComments.filter((comment: any) => comment.accountId === accountId);
   }
 
   /**
@@ -98,8 +103,8 @@ export class AmplifyCommentRepository implements CommentRepository {
       accountId: data.accountId,
       organizationId: data.organizationId,
       text: data.text,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt),
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
   }

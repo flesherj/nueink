@@ -1,10 +1,9 @@
-import { generateClient } from 'aws-amplify/data';
-import { type Schema } from '../../../backend/data/resource';
+import type { AmplifyDataClient } from './types';
 import { DebtEntity } from '../models';
 import { DebtRepository } from './DebtRepository';
 
 export class AmplifyDebtRepository implements DebtRepository {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<DebtEntity | null> {
     const response = await this.dbClient.models.Debt.get({ debtId: id });
@@ -15,8 +14,8 @@ export class AmplifyDebtRepository implements DebtRepository {
   }
 
   async findAll(): Promise<DebtEntity[]> {
-    const response = await this.dbClient.models.Debt.list();
-    return response.data.map((item) => this.toDebt(item));
+    const response = await this.dbClient.models.Debt.list({});
+    return response.data.map((item: any) => this.toDebt(item));
   }
 
   async save(entity: DebtEntity): Promise<DebtEntity> {
@@ -32,12 +31,15 @@ export class AmplifyDebtRepository implements DebtRepository {
       minimumPayment: entity.minimumPayment,
       dueDate: entity.dueDate,
       status: entity.status,
-      createdAt: entity.createdAt.toISOString(),
-      updatedAt: entity.updatedAt.toISOString(),
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
       profileOwner: entity.profileOwner,
     });
 
-    return this.toDebt(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create Debt: response.data is null');
+    }
+    return this.toDebt(response.data);
   }
 
   async update(id: string, entity: Partial<DebtEntity>): Promise<DebtEntity> {
@@ -53,10 +55,13 @@ export class AmplifyDebtRepository implements DebtRepository {
     if (entity.dueDate !== undefined) updates.dueDate = entity.dueDate;
     if (entity.status !== undefined) updates.status = entity.status;
     if (entity.updatedAt !== undefined)
-      updates.updatedAt = entity.updatedAt.toISOString();
+      updates.updatedAt = entity.updatedAt;
 
     const response = await this.dbClient.models.Debt.update(updates);
-    return this.toDebt(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to update Debt: response.data is null');
+    }
+    return this.toDebt(response.data);
   }
 
   async delete(id: string): Promise<void> {
@@ -67,12 +72,12 @@ export class AmplifyDebtRepository implements DebtRepository {
     const response = await this.dbClient.models.Debt.listDebtByOrganizationId({
       organizationId,
     });
-    return response.data.map((item) => this.toDebt(item));
+    return response.data.map((item: any) => this.toDebt(item));
   }
 
   async findActiveByOrganization(organizationId: string): Promise<DebtEntity[]> {
     const allDebts = await this.findByOrganization(organizationId);
-    return allDebts.filter((debt) => debt.status === 'active');
+    return allDebts.filter((debt: any) => debt.status === 'active');
   }
 
   async findByFinancialAccount(
@@ -81,7 +86,7 @@ export class AmplifyDebtRepository implements DebtRepository {
     // Note: This requires filtering - may want to add GSI in future
     const allDebts = await this.findAll();
     const found = allDebts.find(
-      (debt) => debt.financialAccountId === financialAccountId
+      (debt: any) => debt.financialAccountId === financialAccountId
     );
     return found ?? null;
   }
@@ -102,8 +107,8 @@ export class AmplifyDebtRepository implements DebtRepository {
       minimumPayment: data.minimumPayment ?? undefined,
       dueDate: data.dueDate ?? undefined,
       status: data.status,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt),
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
   }

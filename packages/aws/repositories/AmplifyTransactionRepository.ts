@@ -1,11 +1,10 @@
-import { generateClient } from 'aws-amplify/data';
-import { type Schema } from '../../../backend/data/resource';
+import type { AmplifyDataClient } from './types';
 import { TransactionEntity } from '../models';
 import { TransactionRepository } from './TransactionRepository';
 import { PaginationResult } from './BaseRepository';
 
 export class AmplifyTransactionRepository implements TransactionRepository {
-  constructor(private dbClient = generateClient<Schema>()) {}
+  constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<TransactionEntity | null> {
     const response = await this.dbClient.models.Transaction.get({
@@ -18,8 +17,8 @@ export class AmplifyTransactionRepository implements TransactionRepository {
   }
 
   async findAll(): Promise<TransactionEntity[]> {
-    const response = await this.dbClient.models.Transaction.list();
-    return response.data.map((item) => this.toTransaction(item));
+    const response = await this.dbClient.models.Transaction.list({});
+    return response.data.map((item: any) => this.toTransaction(item));
   }
 
   async save(entity: TransactionEntity): Promise<TransactionEntity> {
@@ -31,8 +30,8 @@ export class AmplifyTransactionRepository implements TransactionRepository {
       externalTransactionId: entity.externalTransactionId,
       amount: entity.amount,
       currency: entity.currency,
-      date: entity.date.toISOString(),
-      authorizedDate: entity.authorizedDate?.toISOString(),
+      date: entity.date,
+      authorizedDate: entity.authorizedDate,
       merchantName: entity.merchantName,
       name: entity.name,
       category: entity.category,
@@ -40,12 +39,15 @@ export class AmplifyTransactionRepository implements TransactionRepository {
       pending: entity.pending,
       personId: entity.personId,
       receiptUrls: entity.receiptUrls,
-      createdAt: entity.createdAt.toISOString(),
-      updatedAt: entity.updatedAt.toISOString(),
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
       profileOwner: entity.profileOwner,
     });
 
-    return this.toTransaction(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to create Transaction: response.data is null');
+    }
+    return this.toTransaction(response.data);
   }
 
   async update(
@@ -56,9 +58,9 @@ export class AmplifyTransactionRepository implements TransactionRepository {
 
     if (entity.amount !== undefined) updates.amount = entity.amount;
     if (entity.date !== undefined)
-      updates.date = entity.date.toISOString();
+      updates.date = entity.date;
     if (entity.authorizedDate !== undefined)
-      updates.authorizedDate = entity.authorizedDate.toISOString();
+      updates.authorizedDate = entity.authorizedDate;
     if (entity.merchantName !== undefined)
       updates.merchantName = entity.merchantName;
     if (entity.name !== undefined) updates.name = entity.name;
@@ -70,10 +72,13 @@ export class AmplifyTransactionRepository implements TransactionRepository {
     if (entity.receiptUrls !== undefined)
       updates.receiptUrls = entity.receiptUrls;
     if (entity.updatedAt !== undefined)
-      updates.updatedAt = entity.updatedAt.toISOString();
+      updates.updatedAt = entity.updatedAt;
 
     const response = await this.dbClient.models.Transaction.update(updates);
-    return this.toTransaction(response.data!);
+    if (!response.data) {
+      throw new Error('Failed to update Transaction: response.data is null');
+    }
+    return this.toTransaction(response.data);
   }
 
   async delete(id: string): Promise<void> {
@@ -97,7 +102,7 @@ export class AmplifyTransactionRepository implements TransactionRepository {
       );
 
     return {
-      items: response.data.map((item) => this.toTransaction(item)),
+      items: response.data.map((item: any) => this.toTransaction(item)),
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
@@ -120,7 +125,7 @@ export class AmplifyTransactionRepository implements TransactionRepository {
       );
 
     return {
-      items: response.data.map((item) => this.toTransaction(item)),
+      items: response.data.map((item: any) => this.toTransaction(item)),
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
@@ -143,7 +148,7 @@ export class AmplifyTransactionRepository implements TransactionRepository {
       );
 
     return {
-      items: response.data.map((item) => this.toTransaction(item)),
+      items: response.data.map((item: any) => this.toTransaction(item)),
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
@@ -151,15 +156,15 @@ export class AmplifyTransactionRepository implements TransactionRepository {
 
   async findByDateRange(
     organizationId: string,
-    startDate: Date,
-    endDate: Date
+    startDate: string,
+    endDate: string
   ): Promise<TransactionEntity[]> {
     // Note: DynamoDB range queries work on sort keys
     // We'll fetch all for the org and filter client-side
     // For better performance, consider using query with date range filter
     const allTransactions = await this.findByOrganization(organizationId);
     return allTransactions.items.filter(
-      (txn) => txn.date >= startDate && txn.date <= endDate
+      (txn: any) => txn.date >= startDate && txn.date <= endDate
     );
   }
 
@@ -192,7 +197,7 @@ export class AmplifyTransactionRepository implements TransactionRepository {
         }
       );
 
-    return response.data.map((item) => this.toTransaction(item));
+    return response.data.map((item: any) => this.toTransaction(item));
   }
 
   /**
@@ -207,10 +212,8 @@ export class AmplifyTransactionRepository implements TransactionRepository {
       externalTransactionId: data.externalTransactionId ?? undefined,
       amount: data.amount,
       currency: data.currency,
-      date: new Date(data.date),
-      authorizedDate: data.authorizedDate
-        ? new Date(data.authorizedDate)
-        : undefined,
+      date: data.date,
+      authorizedDate: data.authorizedDate ?? undefined,
       merchantName: data.merchantName ?? undefined,
       name: data.name,
       category: data.category ?? [],
@@ -218,8 +221,8 @@ export class AmplifyTransactionRepository implements TransactionRepository {
       pending: data.pending,
       personId: data.personId ?? undefined,
       receiptUrls: data.receiptUrls ?? [],
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt),
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
   }

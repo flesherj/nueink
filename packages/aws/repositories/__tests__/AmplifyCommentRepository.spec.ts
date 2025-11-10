@@ -43,8 +43,8 @@ describe('AmplifyCommentRepository', () => {
         accountId: 'acc-1',
         organizationId: 'org-1',
         text: 'This is a test comment',
-        createdAt: new Date('2025-01-15T12:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-15T12:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       });
     });
@@ -68,16 +68,16 @@ describe('AmplifyCommentRepository', () => {
         accountId: 'acc-1',
         organizationId: 'org-1',
         text: 'This is a test comment',
-        createdAt: new Date('2025-01-15T12:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-15T12:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       };
 
       mockDbClient.models.Comment.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          createdAt: entity.createdAt.toISOString(),
-          updatedAt: entity.updatedAt.toISOString(),
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
         })
       );
 
@@ -101,7 +101,7 @@ describe('AmplifyCommentRepository', () => {
     it('should update comment text', async () => {
       const updates = {
         text: 'Updated comment',
-        updatedAt: new Date('2025-01-15T13:00:00.000Z'),
+        updatedAt: '2025-01-15T13:00:00.000Z',
       };
 
       const mockUpdated = {

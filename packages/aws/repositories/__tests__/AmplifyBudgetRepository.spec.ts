@@ -48,13 +48,13 @@ describe('AmplifyBudgetRepository', () => {
         category: 'Food and Drink',
         amount: 500.0,
         period: 'monthly',
-        startDate: new Date('2025-01-01T00:00:00.000Z'),
-        endDate: new Date('2025-01-31T23:59:59.999Z'),
+        startDate: '2025-01-01T00:00:00.000Z',
+        endDate: '2025-01-31T23:59:59.999Z',
         spent: 234.56,
         remaining: 265.44,
         status: 'active',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       });
     });
@@ -103,23 +103,23 @@ describe('AmplifyBudgetRepository', () => {
         category: 'Food and Drink',
         amount: 500.0,
         period: 'monthly',
-        startDate: new Date('2025-01-01T00:00:00.000Z'),
-        endDate: new Date('2025-01-31T23:59:59.999Z'),
+        startDate: '2025-01-01T00:00:00.000Z',
+        endDate: '2025-01-31T23:59:59.999Z',
         spent: 234.56,
         remaining: 265.44,
         status: 'active',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2025-01-15T12:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
       };
 
       mockDbClient.models.Budget.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          startDate: entity.startDate.toISOString(),
-          endDate: entity.endDate.toISOString(),
-          createdAt: entity.createdAt.toISOString(),
-          updatedAt: entity.updatedAt.toISOString(),
+          startDate: entity.startDate,
+          endDate: entity.endDate,
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
         })
       );
 
@@ -150,20 +150,20 @@ describe('AmplifyBudgetRepository', () => {
         category: 'Transportation',
         amount: 300.0,
         period: 'monthly',
-        startDate: new Date('2025-01-01T00:00:00.000Z'),
-        endDate: new Date('2025-01-31T23:59:59.999Z'),
+        startDate: '2025-01-01T00:00:00.000Z',
+        endDate: '2025-01-31T23:59:59.999Z',
         status: 'active',
-        createdAt: new Date('2025-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2025-01-01T00:00:00.000Z'),
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
       };
 
       mockDbClient.models.Budget.create.mockResolvedValue(
         createMockResponse({
           ...entity,
-          startDate: entity.startDate.toISOString(),
-          endDate: entity.endDate.toISOString(),
-          createdAt: entity.createdAt.toISOString(),
-          updatedAt: entity.updatedAt.toISOString(),
+          startDate: entity.startDate,
+          endDate: entity.endDate,
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
         })
       );
 
@@ -178,7 +178,7 @@ describe('AmplifyBudgetRepository', () => {
       const updates = {
         spent: 350.0,
         remaining: 150.0,
-        updatedAt: new Date('2025-01-20T12:00:00.000Z'),
+        updatedAt: '2025-01-20T12:00:00.000Z',
       };
 
       const mockUpdated = {
