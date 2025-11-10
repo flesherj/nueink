@@ -1,4 +1,5 @@
-import { AwsAmplifyApiFactory, AccountEntity } from '../index';
+import { AccountEntity } from '../index';
+import { AwsAmplifyApiFactory } from './AwsAmplifyApiFactory';
 
 export class AccountApi {
   public static create = () => new AccountApi();

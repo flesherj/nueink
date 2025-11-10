@@ -1,5 +1,8 @@
 // Base repository
 export * from './BaseRepository';
+export * from './NueInkDataClientBuilder';
+export * from './NueInkRepositoryFactory';
+export * from './types';
 
 // Account/Organization/Membership repositories
 export * from './AccountRepository';

@@ -1,5 +1,5 @@
 import { generateClient } from 'aws-amplify/api';
-import type { Schema } from './amplify/data/resource';
+import { Schema } from '../amplify/data/resource';
 
 export class NueInkDataClientBuilder {
   public static builder = () => new NueInkDataClientBuilder();

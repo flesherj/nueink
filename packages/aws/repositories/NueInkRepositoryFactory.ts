@@ -1,4 +1,3 @@
-import { NueInkDataClientBuilder } from './NueInkDataClientBuilder';
 import {
   AmplifyAccountRepository,
   AmplifyMembershipRepository,
@@ -10,7 +9,8 @@ import {
   AmplifyPersonRepository,
   AmplifyBudgetRepository,
   AmplifyDebtRepository,
-} from './repositories';
+  AmplifyDataClient,
+} from '.';
 
 /**
  * Repository type mapping for type-safe factory method
@@ -38,21 +38,29 @@ export type RepositoryType = keyof RepositoryMap;
  * All repositories share the same Amplify client instance
  *
  * @example
- * const factory = NueInkRepositoryFactory.getInstance();
+ * const client = await initializeAmplifyClient(env);
+ * const factory = NueInkRepositoryFactory.getInstance(client);
  * const accountRepo = factory.repository('account');
  * const transactionRepo = factory.repository('transaction');
  */
 export class NueInkRepositoryFactory {
   private static _instance: NueInkRepositoryFactory;
-  private _dataClient: any;
+  private _dataClient: AmplifyDataClient;
 
-  private constructor() {
-    this._dataClient = NueInkDataClientBuilder.builder().build();
+  private constructor(dataClient: AmplifyDataClient) {
+    this._dataClient = dataClient;
   }
 
-  public static getInstance(): NueInkRepositoryFactory {
+  public static getInstance(
+    dataClient?: AmplifyDataClient
+  ): NueInkRepositoryFactory {
+    if (!this._instance && dataClient) {
+      this._instance = new NueInkRepositoryFactory(dataClient);
+    }
     if (!this._instance) {
-      this._instance = new NueInkRepositoryFactory();
+      throw new Error(
+        'NueInkRepositoryFactory must be initialized with a data client first'
+      );
     }
     return this._instance;
   }
@@ -82,4 +90,3 @@ export class NueInkRepositoryFactory {
     return repositories[type]();
   }
 }
-
