@@ -108,3 +108,56 @@ const Dark = deepmerge(MD3DarkTheme, {
 export type NueInkTheme = typeof Light;
 export const NueInkLightTheme = merge(LightTheme, Light);
 export const NueInkDarkTheme = merge(DarkTheme, Dark);
+
+/**
+ * Converts NueInk Paper theme to Amplify UI theme format
+ * This ensures consistent theming across Amplify Authenticator and the rest of the app
+ */
+export const createAmplifyTheme = (paperTheme: NueInkTheme) => {
+  const { colors } = paperTheme;
+
+  return {
+    tokens: {
+      colors: {
+        background: {
+          primary: colors.background,
+          secondary: colors.elevation.level1,
+          tertiary: colors.elevation.level2,
+        },
+        font: {
+          primary: colors.onBackground,
+          secondary: colors.onSurfaceVariant,
+          tertiary: colors.outline,
+          interactive: colors.primary,
+        },
+        border: {
+          primary: colors.outlineVariant,
+          secondary: colors.outline,
+          tertiary: colors.onSurfaceVariant,
+        },
+        primary: {
+          10: colors.onPrimaryContainer,
+          20: colors.primaryContainer,
+          40: colors.primary,
+          60: colors.primary, // Material 3 doesn't have all shades, reusing
+          80: colors.inversePrimary,
+          90: colors.primaryContainer,
+          100: colors.onPrimary,
+        },
+        secondary: {
+          10: colors.onSecondaryContainer,
+          20: colors.secondaryContainer,
+          40: colors.secondary,
+          60: colors.secondary,
+          80: colors.secondary,
+          90: colors.secondaryContainer,
+          100: colors.onSecondary,
+        },
+      },
+    },
+  };
+};
+
+// Pre-created Amplify themes for convenience
+export const NueInkAmplifyDarkTheme = createAmplifyTheme(NueInkDarkTheme);
+export const NueInkAmplifyLightTheme = createAmplifyTheme(NueInkLightTheme);
