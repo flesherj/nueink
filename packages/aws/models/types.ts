@@ -37,25 +37,32 @@ export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY';
 
 export type InstitutionStatus = 'active' | 'disconnected' | 'error';
 
+/**
+ * Financial account types
+ *
+ * Granular account types that users understand.
+ * No abstraction layers - we display exactly what the account is.
+ */
 export type FinancialAccountType =
-  | 'depository'
-  | 'credit'
-  | 'loan'
-  | 'investment';
-
-export type FinancialAccountSubtype =
+  // Asset accounts (money you own)
   | 'checking'
   | 'savings'
-  | 'credit_card'
-  | 'mortgage'
-  | 'auto'
-  | 'student'
-  | 'personal'
-  | 'commercial'
+  | 'cash'
   | 'brokerage'
   | '401k'
   | 'ira'
-  | 'roth';
+  | 'roth'
+  | 'investment'
+  | 'asset'
+  // Liability accounts (money you owe)
+  | 'credit_card'
+  | 'line_of_credit'
+  | 'mortgage'
+  | 'auto_loan'
+  | 'student_loan'
+  | 'personal_loan'
+  | 'medical_debt'
+  | 'liability';
 
 export type FinancialAccountStatus = 'active' | 'inactive' | 'closed';
 

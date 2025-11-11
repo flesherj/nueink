@@ -27,7 +27,11 @@ export class TransactionService {
     limit?: number,
     cursor?: string
   ): Promise<PaginationResult<Transaction>> {
-    const result = await this.repository.findByOrganization(organizationId, limit, cursor);
+    const result = await this.repository.findByOrganization(
+      organizationId,
+      limit,
+      cursor
+    );
     return {
       items: result.items.map((entity) => this.converter.toDomain(entity)),
       nextCursor: result.nextCursor,
@@ -40,7 +44,11 @@ export class TransactionService {
     limit?: number,
     cursor?: string
   ): Promise<PaginationResult<Transaction>> {
-    const result = await this.repository.findByFinancialAccount(financialAccountId, limit, cursor);
+    const result = await this.repository.findByFinancialAccount(
+      financialAccountId,
+      limit,
+      cursor
+    );
     return {
       items: result.items.map((entity) => this.converter.toDomain(entity)),
       nextCursor: result.nextCursor,
@@ -66,16 +74,26 @@ export class TransactionService {
     startDate: Date,
     endDate: Date
   ): Promise<Transaction[]> {
-    const entities = await this.repository.findByDateRange(organizationId, startDate, endDate);
+    const entities = await this.repository.findByDateRange(
+      organizationId,
+      startDate.toISOString(),
+      endDate.toISOString()
+    );
     return entities.map((entity) => this.converter.toDomain(entity));
   }
 
-  async findByExternalTransactionId(externalId: string): Promise<Transaction | null> {
-    const entity = await this.repository.findByExternalTransactionId(externalId);
+  async findByExternalTransactionId(
+    externalId: string
+  ): Promise<Transaction | null> {
+    const entity =
+      await this.repository.findByExternalTransactionId(externalId);
     return entity ? this.converter.toDomain(entity) : null;
   }
 
-  async findRecent(organizationId: string, limit: number): Promise<Transaction[]> {
+  async findRecent(
+    organizationId: string,
+    limit: number
+  ): Promise<Transaction[]> {
     const entities = await this.repository.findRecent(organizationId, limit);
     return entities.map((entity) => this.converter.toDomain(entity));
   }
@@ -86,7 +104,10 @@ export class TransactionService {
     return this.converter.toDomain(saved);
   }
 
-  async update(id: string, updates: Partial<Transaction>): Promise<Transaction> {
+  async update(
+    id: string,
+    updates: Partial<Transaction>
+  ): Promise<Transaction> {
     const entityUpdates = this.converter.toEntity(updates as Transaction);
     const updated = await this.repository.update(id, entityUpdates);
     return this.converter.toDomain(updated);

@@ -20,8 +20,7 @@ describe('FinancialAccountConverter', () => {
         name: 'Chase Checking',
         officialName: 'Chase Bank Checking Account',
         mask: '1234',
-        type: 'depository',
-        subtype: 'checking',
+        type: 'checking',
         currentBalance: 5000.50,
         availableBalance: 4500.25,
         currency: 'USD',
@@ -43,8 +42,7 @@ describe('FinancialAccountConverter', () => {
         name: 'Chase Checking',
         officialName: 'Chase Bank Checking Account',
         mask: '1234',
-        type: 'depository',
-        subtype: 'checking',
+        type: 'checking',
         currentBalance: 5000.50,
         availableBalance: 4500.25,
         currency: 'USD',
@@ -63,7 +61,7 @@ describe('FinancialAccountConverter', () => {
         organizationId: 'org-789',
         provider: 'manual',
         name: 'Cash Account',
-        type: 'depository',
+        type: 'cash',
         currency: 'USD',
         status: 'active',
         createdAt: new Date('2024-01-15T10:00:00Z'),
@@ -76,7 +74,6 @@ describe('FinancialAccountConverter', () => {
       expect(entity.externalAccountId).toBeUndefined();
       expect(entity.officialName).toBeUndefined();
       expect(entity.mask).toBeUndefined();
-      expect(entity.subtype).toBeUndefined();
       expect(entity.currentBalance).toBeUndefined();
       expect(entity.availableBalance).toBeUndefined();
       expect(entity.personId).toBeUndefined();
@@ -94,8 +91,7 @@ describe('FinancialAccountConverter', () => {
         name: 'Amex Gold Card',
         officialName: 'American Express Gold Card',
         mask: '5678',
-        type: 'credit',
-        subtype: 'credit_card',
+        type: 'credit_card',
         currentBalance: -2500.75,
         availableBalance: 7500.00,
         currency: 'USD',
@@ -117,8 +113,7 @@ describe('FinancialAccountConverter', () => {
         name: 'Amex Gold Card',
         officialName: 'American Express Gold Card',
         mask: '5678',
-        type: 'credit',
-        subtype: 'credit_card',
+        type: 'credit_card',
         currentBalance: -2500.75,
         availableBalance: 7500.00,
         currency: 'USD',
@@ -142,8 +137,7 @@ describe('FinancialAccountConverter', () => {
         name: 'Investment Account',
         officialName: 'Vanguard Brokerage Account',
         mask: '9012',
-        type: 'investment',
-        subtype: 'brokerage',
+        type: 'brokerage',
         currentBalance: 50000,
         availableBalance: 48000,
         currency: 'USD',

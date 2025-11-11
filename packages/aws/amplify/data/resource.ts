@@ -116,10 +116,9 @@ const schema = a.schema({
             name: a.string().required(),                // Account name (e.g., "Chase Freedom")
             officialName: a.string(),                   // Official account name from bank
             mask: a.string(),                           // Last 4 digits (e.g., "1234")
-            type: a.string().required(),                // depository|credit|loan|investment
-            subtype: a.string(),                        // checking|savings|credit_card|mortgage
-            currentBalance: a.float(),                  // Current balance
-            availableBalance: a.float(),                // Available balance
+            type: a.string().required(),                // checking|savings|credit_card|mortgage|etc (granular types)
+            currentBalance: a.float(),                  // Current balance in cents
+            availableBalance: a.float(),                // Available balance in cents
             currency: a.string().required(),            // USD|EUR|etc
             personId: a.string(),                       // FK to Person (for auto-assignment)
             status: a.string().required(),              // active|inactive|closed

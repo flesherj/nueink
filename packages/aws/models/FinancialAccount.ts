@@ -2,10 +2,15 @@ import {
   FinancialProvider,
   Currency,
   FinancialAccountType,
-  FinancialAccountSubtype,
   FinancialAccountStatus,
 } from './types';
 
+/**
+ * FinancialAccount AWS Entity
+ *
+ * Note: All monetary amounts are stored as integers in cents (or smallest currency unit).
+ * Example: $10.50 is stored as 1050
+ */
 export type FinancialAccountEntity = {
   financialAccountId: string;
   institutionId: string;
@@ -16,9 +21,8 @@ export type FinancialAccountEntity = {
   officialName?: string;
   mask?: string; // Last 4 digits
   type: FinancialAccountType;
-  subtype?: FinancialAccountSubtype;
-  currentBalance?: number;
-  availableBalance?: number;
+  currentBalance?: number; // In cents (1050 = $10.50)
+  availableBalance?: number; // In cents (1050 = $10.50)
   currency: Currency;
   personId?: string; // FK to Person (for auto-assignment)
   status: FinancialAccountStatus;
