@@ -1,5 +1,6 @@
 import {defineAuth, secret} from '@aws-amplify/backend';
 import {postConfirmation} from "./post-confirmation/resource";
+import {postAuthentication} from "./post-authentication/resource";
 
 export const Secrets = {
     SIWA_TEAM_ID: 'SIWA_TEAM_ID',
@@ -78,5 +79,6 @@ export const auth = defineAuth({
     },
     triggers: {
         postConfirmation,
+        postAuthentication,
     },
 });
