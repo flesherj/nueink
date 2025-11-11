@@ -5,10 +5,7 @@
   "license": "MIT",
   "types": "index.ts",
   "dependencies": {
-    "react": "19.0.0",
-    "react-native": "^0.80.0",
-    "react-native-paper": "^5.14.5",
-    "react-native-web": "^0.20.0"
+    "react-native-paper": "^5.14.5"
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",

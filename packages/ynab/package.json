@@ -1,0 +1,11 @@
+{
+  "name": "@nueink/ynab",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "license": "MIT",
+  "types": "index.ts",
+  "dependencies": {
+    "@nueink/core": "1.0.0",
+    "ynab": "^1.36.0"
+  }
+}
