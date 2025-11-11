@@ -4,6 +4,10 @@
   "main": "index.ts",
   "license": "MIT",
   "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@nueink/core": "1.0.0",
     "ynab": "^1.36.0"

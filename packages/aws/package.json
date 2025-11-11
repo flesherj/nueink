@@ -5,6 +5,10 @@
   "license": "MIT",
   "types": "index.ts",
   "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.712.0"
   }

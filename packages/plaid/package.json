@@ -7,5 +7,9 @@
   "dependencies": {
     "@nueink/core": "1.0.0",
     "plaid": "^28.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   }
 }

@@ -1,16 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { NueInkEvent, NueInkEventType } from './types';
-
-/**
- * AWS EventBridge event entry format (minimal type definition to avoid importing AWS SDK in core)
- */
-export interface EventBridgeEntry {
-  EventBusName?: string;
-  Source: string;
-  DetailType: string;
-  Detail: string;
-  Time?: Date;
-}
+import { PublishableEvent } from './EventPublisher';
 
 /**
  * Event to be published (before enrichment)
@@ -41,30 +31,29 @@ export class EventBridgeConverter {
   }
 
   /**
-   * Convert NueInkEvent to AWS EventBridge entry format
+   * Convert NueInkEvent to platform-agnostic publishable event format
    */
-  public toEventBridgeEntry<T>(event: NueInkEvent<T>, eventBusName?: string): EventBridgeEntry {
+  public toPublishableEvent<T>(event: NueInkEvent<T>, eventBusName?: string): PublishableEvent {
     return {
-      EventBusName: eventBusName,
-      Source: event.source,
-      DetailType: event.eventType,
-      Detail: JSON.stringify(event),
-      Time: new Date(event.timestamp),
+      eventBusName,
+      source: event.source,
+      detailType: event.eventType,
+      detail: JSON.stringify(event),
     };
   }
 
   /**
    * Convenience method: enrich and convert in one step
    */
-  public convert<T>(event: PublishEvent<T>, eventBusName?: string): EventBridgeEntry {
+  public convert<T>(event: PublishEvent<T>, eventBusName?: string): PublishableEvent {
     const enrichedEvent = this.enrichEvent(event);
-    return this.toEventBridgeEntry(enrichedEvent, eventBusName);
+    return this.toPublishableEvent(enrichedEvent, eventBusName);
   }
 
   /**
    * Convert multiple events
    */
-  public convertBatch<T>(events: PublishEvent<T>[], eventBusName?: string): EventBridgeEntry[] {
+  public convertBatch<T>(events: PublishEvent<T>[], eventBusName?: string): PublishableEvent[] {
     return events.map(event => this.convert(event, eventBusName));
   }
 }

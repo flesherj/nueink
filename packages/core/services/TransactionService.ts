@@ -1,6 +1,7 @@
 import { Transaction } from '../models';
-import { TransactionRepository, PaginationResult } from '@nueink/aws';
 import { TransactionConverter } from '../converters';
+import { TransactionRepository, PaginationResult } from '../repositories';
+import { TransactionEntity } from '@nueink/aws';
 
 /**
  * Transaction service - handles business logic for transaction operations
@@ -8,7 +9,7 @@ import { TransactionConverter } from '../converters';
 export class TransactionService {
   private converter: TransactionConverter;
 
-  constructor(private repository: TransactionRepository) {
+  constructor(private repository: TransactionRepository<TransactionEntity>) {
     this.converter = new TransactionConverter();
   }
 

@@ -7,7 +7,7 @@ export type BudgetEntity = {
   amount: number; // Budgeted amount
   period: BudgetPeriod;
   startDate: string; // Budget period start
-  endDate: string; // Budget period end
+  endDate?: string; // Budget period end
   spent?: number; // Auto-calculated spent amount
   remaining?: number; // Auto-calculated remaining
   status: BudgetStatus;

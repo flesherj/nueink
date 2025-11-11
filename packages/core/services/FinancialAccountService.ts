@@ -1,6 +1,7 @@
 import { FinancialAccount } from '../models';
-import { FinancialAccountRepository, PaginationResult } from '@nueink/aws';
 import { FinancialAccountConverter } from '../converters';
+import { FinancialAccountRepository, PaginationResult } from '../repositories';
+import { FinancialAccountEntity } from '@nueink/aws';
 
 /**
  * Financial account service - handles business logic for financial account operations
@@ -8,7 +9,7 @@ import { FinancialAccountConverter } from '../converters';
 export class FinancialAccountService {
   private converter: FinancialAccountConverter;
 
-  constructor(private repository: FinancialAccountRepository) {
+  constructor(private repository: FinancialAccountRepository<FinancialAccountEntity>) {
     this.converter = new FinancialAccountConverter();
   }
 

@@ -11,7 +11,7 @@ export interface Budget {
   amount: number;
   period: BudgetPeriod;
   startDate: Date;
-  endDate: Date;
+  endDate?: Date;  // Optional for recurring budgets
   spent?: number;                  // Auto-calculated
   remaining?: number;              // Auto-calculated
   status: BudgetStatus;

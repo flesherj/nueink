@@ -1,6 +1,7 @@
 import { Comment } from '../models';
-import { CommentRepository, PaginationResult } from '@nueink/aws';
 import { CommentConverter } from '../converters';
+import { CommentRepository, PaginationResult } from '../repositories';
+import { CommentEntity } from '@nueink/aws';
 
 /**
  * Comment service - handles business logic for comment operations
@@ -8,7 +9,7 @@ import { CommentConverter } from '../converters';
 export class CommentService {
   private converter: CommentConverter;
 
-  constructor(private repository: CommentRepository) {
+  constructor(private repository: CommentRepository<CommentEntity>) {
     this.converter = new CommentConverter();
   }
 

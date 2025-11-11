@@ -1,6 +1,7 @@
 import { Organization } from '../models';
-import { OrganizationRepository } from '@nueink/aws';
 import { OrganizationConverter } from '../converters';
+import { OrganizationRepository } from '../repositories';
+import { OrganizationEntity } from '@nueink/aws';
 
 /**
  * Organization service - handles business logic for organization operations
@@ -8,7 +9,7 @@ import { OrganizationConverter } from '../converters';
 export class OrganizationService {
   private converter: OrganizationConverter;
 
-  constructor(private repository: OrganizationRepository) {
+  constructor(private repository: OrganizationRepository<OrganizationEntity>) {
     this.converter = new OrganizationConverter();
   }
 

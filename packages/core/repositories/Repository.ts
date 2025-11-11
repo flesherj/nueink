@@ -1,16 +1,18 @@
 /**
  * Pagination result for cursor-based pagination
+ * Generic type works with any entity
  */
 export interface PaginationResult<T> {
   items: T[];
-  nextCursor?: string; // Opaque token for next page (DynamoDB nextToken)
+  nextCursor?: string; // Opaque token for next page (e.g., DynamoDB nextToken)
   hasMore: boolean;
 }
 
 /**
- * Base repository interface
+ * Base repository interface with generic type
  * Provides common CRUD operations for all repositories
- * @template T - The entity type (domain model or entity)
+ *
+ * @template T - The entity type (can be Amplify-generated or any other)
  */
 export interface Repository<T> {
   /**
@@ -40,15 +42,17 @@ export interface Repository<T> {
 }
 
 /**
- * Repository interface for entities that support pagination
- * @template T - The entity type (domain model or entity)
+ * Repository with pagination support
+ * Extends base repository with paginated queries
+ *
+ * @template T - The entity type
  */
 export interface PaginatedRepository<T> extends Repository<T> {
   /**
-   * Find entities with pagination support
+   * Find all entities with pagination
    */
-  findPaginated(
-    limit?: number,
+  findAllPaginated(
+    limit: number,
     cursor?: string
   ): Promise<PaginationResult<T>>;
 }

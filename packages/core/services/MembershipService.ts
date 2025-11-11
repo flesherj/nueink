@@ -1,6 +1,7 @@
 import { Membership } from '../models';
-import { MembershipRepository } from '@nueink/aws';
 import { MembershipConverter } from '../converters';
+import { MembershipRepository } from '../repositories';
+import { MembershipEntity } from '@nueink/aws';
 
 /**
  * Membership service - handles business logic for membership operations
@@ -8,7 +9,7 @@ import { MembershipConverter } from '../converters';
 export class MembershipService {
   private converter: MembershipConverter;
 
-  constructor(private repository: MembershipRepository) {
+  constructor(private repository: MembershipRepository<MembershipEntity>) {
     this.converter = new MembershipConverter();
   }
 

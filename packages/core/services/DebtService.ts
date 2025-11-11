@@ -1,6 +1,7 @@
 import { Debt } from '../models';
-import { DebtRepository } from '@nueink/aws';
 import { DebtConverter } from '../converters';
+import { DebtRepository } from '../repositories';
+import { DebtEntity } from '@nueink/aws';
 
 /**
  * Debt service - handles business logic for debt operations
@@ -8,7 +9,7 @@ import { DebtConverter } from '../converters';
 export class DebtService {
   private converter: DebtConverter;
 
-  constructor(private repository: DebtRepository) {
+  constructor(private repository: DebtRepository<DebtEntity>) {
     this.converter = new DebtConverter();
   }
 

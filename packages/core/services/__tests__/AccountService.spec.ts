@@ -1,10 +1,11 @@
 import { AccountService } from '../AccountService';
 import { Account } from '../../models';
-import { AccountRepository, Account as AccountEntity } from '@nueink/aws';
+import { AccountRepository } from '../../repositories';
+import { AccountEntity } from '@nueink/aws';
 
 describe('AccountService', () => {
   let service: AccountService;
-  let mockRepository: jest.Mocked<AccountRepository>;
+  let mockRepository: jest.Mocked<AccountRepository<AccountEntity>>;
 
   const mockAccountEntity: AccountEntity = {
     accountId: 'acc-123',

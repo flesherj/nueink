@@ -136,7 +136,7 @@ describe('BudgetConverter', () => {
         original.startDate.toISOString().split('T')[0]
       );
       expect(roundTrip.endDate?.toISOString().split('T')[0]).toBe(
-        original.endDate.toISOString().split('T')[0]
+        original.endDate?.toISOString().split('T')[0]
       );
     });
   });

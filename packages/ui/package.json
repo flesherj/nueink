@@ -4,6 +4,10 @@
   "main": "index.ts",
   "license": "MIT",
   "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "react-native-paper": "^5.14.5"
   },

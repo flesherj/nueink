@@ -1,7 +1,13 @@
-// Base repository interfaces
-export * from './Repository';
+/**
+ * Repository interfaces
+ * Platform-agnostic contracts for data access
+ *
+ * Implementations:
+ * - AmplifyRepository (packages/aws/repositories) - Uses AWS Amplify GraphQL
+ * - Future: SQLiteRepository for offline support
+ */
 
-// Domain repository interfaces
+export * from './Repository';
 export * from './AccountRepository';
 export * from './OrganizationRepository';
 export * from './MembershipRepository';

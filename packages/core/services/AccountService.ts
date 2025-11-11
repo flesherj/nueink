@@ -1,6 +1,7 @@
 import { Account } from '../models';
-import { AccountRepository } from '@nueink/aws';
 import { AccountConverter } from '../converters';
+import { AccountRepository } from '../repositories';
+import { AccountEntity } from '@nueink/aws';
 
 /**
  * Account service - handles business logic for account operations
@@ -8,7 +9,7 @@ import { AccountConverter } from '../converters';
 export class AccountService {
   private converter: AccountConverter;
 
-  constructor(private repository: AccountRepository) {
+  constructor(private repository: AccountRepository<AccountEntity>) {
     this.converter = new AccountConverter();
   }
 

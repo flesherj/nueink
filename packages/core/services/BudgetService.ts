@@ -1,6 +1,7 @@
 import { Budget } from '../models';
-import { BudgetRepository } from '@nueink/aws';
 import { BudgetConverter } from '../converters';
+import { BudgetRepository } from '../repositories';
+import { BudgetEntity } from '@nueink/aws';
 
 /**
  * Budget service - handles business logic for budget operations
@@ -8,7 +9,7 @@ import { BudgetConverter } from '../converters';
 export class BudgetService {
   private converter: BudgetConverter;
 
-  constructor(private repository: BudgetRepository) {
+  constructor(private repository: BudgetRepository<BudgetEntity>) {
     this.converter = new BudgetConverter();
   }
 

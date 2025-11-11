@@ -1,6 +1,5 @@
 import {type ClientSchema, a, defineData} from '@aws-amplify/backend';
 import {postConfirmation} from '../auth/post-confirmation/resource';
-import {nueInkApiFunction} from "../functions/nueink-api/resource";
 
 const schema = a.schema({
         Account: a.model({
@@ -234,7 +233,7 @@ const schema = a.schema({
             .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
             .secondaryIndexes(index => [index('organizationId')]),
     })
-        .authorization((allow) => [allow.resource(postConfirmation), allow.resource(nueInkApiFunction)])
+        .authorization((allow) => [allow.resource(postConfirmation)])
 ;
 
 export type Schema = ClientSchema<typeof schema>;

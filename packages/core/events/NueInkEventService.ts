@@ -1,4 +1,4 @@
-import { EventBridgePublisher } from '@nueink/aws';
+import { EventPublisher } from './EventPublisher';
 import { EventBridgeConverter, PublishEvent } from './EventBridgeConverter';
 
 /**
@@ -10,7 +10,7 @@ export class NueInkEventService {
   private converter: EventBridgeConverter;
 
   constructor(
-    private publisher: EventBridgePublisher,
+    private publisher: EventPublisher,
     private eventBusName?: string
   ) {
     this.converter = new EventBridgeConverter();
@@ -21,7 +21,7 @@ export class NueInkEventService {
    */
   async publish<T>(event: PublishEvent<T>): Promise<void> {
     const ebEvent = this.converter.convert(event, this.eventBusName);
-    await this.publisher.publish(ebEvent as any);
+    await this.publisher.publish(ebEvent);
   }
 
   /**
@@ -29,6 +29,6 @@ export class NueInkEventService {
    */
   async publishBatch<T>(events: PublishEvent<T>[]): Promise<void> {
     const ebEvents = this.converter.convertBatch(events, this.eventBusName);
-    await this.publisher.publishBatch(ebEvents as any);
+    await this.publisher.publishBatch(ebEvents);
   }
 }

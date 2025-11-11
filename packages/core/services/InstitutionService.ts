@@ -1,6 +1,7 @@
 import { Institution } from '../models';
-import { InstitutionRepository } from '@nueink/aws';
 import { InstitutionConverter } from '../converters';
+import { InstitutionRepository } from '../repositories';
+import { InstitutionEntity } from '@nueink/aws';
 
 /**
  * Institution service - handles business logic for institution operations
@@ -8,7 +9,7 @@ import { InstitutionConverter } from '../converters';
 export class InstitutionService {
   private converter: InstitutionConverter;
 
-  constructor(private repository: InstitutionRepository) {
+  constructor(private repository: InstitutionRepository<InstitutionEntity>) {
     this.converter = new InstitutionConverter();
   }
 

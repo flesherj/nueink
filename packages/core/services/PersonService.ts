@@ -1,6 +1,7 @@
 import { Person } from '../models';
-import { PersonRepository } from '@nueink/aws';
 import { PersonConverter } from '../converters';
+import { PersonRepository } from '../repositories';
+import { PersonEntity } from '@nueink/aws';
 
 /**
  * Person service - handles business logic for person operations
@@ -8,7 +9,7 @@ import { PersonConverter } from '../converters';
 export class PersonService {
   private converter: PersonConverter;
 
-  constructor(private repository: PersonRepository) {
+  constructor(private repository: PersonRepository<PersonEntity>) {
     this.converter = new PersonConverter();
   }
 
