@@ -1,9 +1,10 @@
+import { TransactionRepository, PaginationResult } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { TransactionEntity } from '../models';
-import { TransactionRepository } from './TransactionRepository';
-import { PaginationResult } from './BaseRepository';
 
-export class AmplifyTransactionRepository implements TransactionRepository {
+export class AmplifyTransactionRepository
+  implements TransactionRepository<TransactionEntity>
+{
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<TransactionEntity | null> {

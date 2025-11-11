@@ -1,9 +1,10 @@
+import { CommentRepository, PaginationResult } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { CommentEntity } from '../models';
-import { CommentRepository } from './CommentRepository';
-import { PaginationResult } from './BaseRepository';
 
-export class AmplifyCommentRepository implements CommentRepository {
+export class AmplifyCommentRepository
+  implements CommentRepository<CommentEntity>
+{
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<CommentEntity | null> {

@@ -1,8 +1,8 @@
+import { DebtRepository } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { DebtEntity } from '../models';
-import { DebtRepository } from './DebtRepository';
 
-export class AmplifyDebtRepository implements DebtRepository {
+export class AmplifyDebtRepository implements DebtRepository<DebtEntity> {
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<DebtEntity | null> {

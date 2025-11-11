@@ -1,10 +1,11 @@
 import { v4 as uuid } from 'uuid';
-
+import { OrganizationRepository } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { OrganizationEntity, OrganizationType } from '../models';
-import { OrganizationRepository } from './OrganizationRepository';
 
-export class AmplifyOrganizationRepository implements OrganizationRepository {
+export class AmplifyOrganizationRepository
+  implements OrganizationRepository<OrganizationEntity>
+{
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<OrganizationEntity | null> {

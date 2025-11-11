@@ -1,8 +1,8 @@
+import { BudgetRepository } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { BudgetEntity } from '../models';
-import { BudgetRepository } from './BudgetRepository';
 
-export class AmplifyBudgetRepository implements BudgetRepository {
+export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<BudgetEntity | null> {

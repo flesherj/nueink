@@ -1,9 +1,9 @@
 import { v4 as uuid } from 'uuid';
+import { AccountRepository } from '@nueink/core';
 import { AccountEntity } from '../models';
-import { AccountRepository } from './AccountRepository';
 import type { AmplifyDataClient } from './types';
 
-export class AmplifyAccountRepository implements AccountRepository {
+export class AmplifyAccountRepository implements AccountRepository<AccountEntity> {
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<AccountEntity | null> {

@@ -1,8 +1,8 @@
+import { PersonRepository } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { PersonEntity } from '../models';
-import { PersonRepository } from './PersonRepository';
 
-export class AmplifyPersonRepository implements PersonRepository {
+export class AmplifyPersonRepository implements PersonRepository<PersonEntity> {
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<PersonEntity | null> {

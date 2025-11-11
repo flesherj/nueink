@@ -1,10 +1,9 @@
+import { FinancialAccountRepository, PaginationResult } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { FinancialAccountEntity } from '../models';
-import { FinancialAccountRepository } from './FinancialAccountRepository';
-import { PaginationResult } from './BaseRepository';
 
 export class AmplifyFinancialAccountRepository
-  implements FinancialAccountRepository
+  implements FinancialAccountRepository<FinancialAccountEntity>
 {
   constructor(private dbClient: AmplifyDataClient) {}
 

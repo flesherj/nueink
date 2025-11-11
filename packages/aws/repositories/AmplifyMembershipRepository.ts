@@ -1,8 +1,10 @@
+import { MembershipRepository } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { MembershipEntity, MembershipRole, MembershipStatus } from '../models';
-import { MembershipRepository } from './MembershipRepository';
 
-export class AmplifyMembershipRepository implements MembershipRepository {
+export class AmplifyMembershipRepository
+  implements MembershipRepository<MembershipEntity>
+{
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<MembershipEntity | null> {

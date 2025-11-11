@@ -1,8 +1,10 @@
+import { InstitutionRepository } from '@nueink/core';
 import type { AmplifyDataClient } from './types';
 import { InstitutionEntity } from '../models';
-import { InstitutionRepository } from './InstitutionRepository';
 
-export class AmplifyInstitutionRepository implements InstitutionRepository {
+export class AmplifyInstitutionRepository
+  implements InstitutionRepository<InstitutionEntity>
+{
   constructor(private dbClient: AmplifyDataClient) {}
 
   async findById(id: string): Promise<InstitutionEntity | null> {

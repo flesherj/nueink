@@ -8,6 +8,15 @@
 
 ## 📚 Documentation Index
 
+### 🎯 Current Development
+
+0. **[TASKS.md](./TASKS.md)** 🚀 **START HERE FOR CURRENT STATUS**
+   - Master task list for all development work
+   - Phase-by-phase roadmap (Architecture → MVP → Launch)
+   - Current sprint tracking and progress
+   - Architectural decisions and context
+   - **Living document - updated continuously**
+
 ### Strategic Analysis
 
 1. **[NUEINK_ASSESSMENT.md](./NUEINK_ASSESSMENT.md)** ⭐ **START HERE**
