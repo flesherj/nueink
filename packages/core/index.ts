@@ -14,3 +14,6 @@ export * from './converters';
 
 // Services
 export * from './services';
+
+// Metrics configuration (platform-agnostic)
+export * from './config/metrics';

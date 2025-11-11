@@ -7,6 +7,8 @@ import type {
   FinancialIntegrationFactory,
   IntegrationConfig,
 } from './FinancialIntegrationFactory';
+import type { MetricsService } from './MetricsService';
+import { STANDARD_DIMENSIONS } from '../config/metrics';
 
 /**
  * Result of syncing financial data
@@ -49,13 +51,15 @@ export interface SyncResult {
  */
 export class FinancialService {
   private factory: FinancialIntegrationFactory;
+  private metrics?: MetricsService;
 
   // In-memory storage (replace with DynamoDB in production)
   private accounts: Map<string, FinancialAccount[]> = new Map();
   private transactions: Map<string, Transaction[]> = new Map();
 
-  constructor(factory: FinancialIntegrationFactory) {
+  constructor(factory: FinancialIntegrationFactory, metrics?: MetricsService) {
     this.factory = factory;
+    this.metrics = metrics;
   }
 
   /**
@@ -73,6 +77,8 @@ export class FinancialService {
     config: IntegrationConfig
   ): Promise<SyncResult> => {
     const startTime = Date.now();
+    const userId = config.profileOwner;
+    const provider = config.provider;
 
     try {
       // Create integration
@@ -81,11 +87,26 @@ export class FinancialService {
       // Check status
       const status = await integration.getStatus();
       if (!status.connected) {
+        const durationMs = Date.now() - startTime;
+
+        // Record failure metric
+        this.metrics?.record('SYNC_FAILURE', 1, {
+          UserId: userId,
+          Provider: provider,
+          Status: STANDARD_DIMENSIONS.STATUS.FAILURE,
+          ErrorType: 'NotConnected',
+        });
+
+        this.metrics?.record('SYNC_DURATION', durationMs, {
+          UserId: userId,
+          Provider: provider,
+        });
+
         return {
           success: false,
           accountsCount: 0,
           transactionsCount: 0,
-          durationMs: Date.now() - startTime,
+          durationMs,
           error: status.error || 'Integration not connected',
         };
       }
@@ -107,22 +128,92 @@ export class FinancialService {
       this.accounts.set(config.organizationId, accounts);
       this.transactions.set(config.organizationId, transactions);
 
+      const durationMs = Date.now() - startTime;
+
+      // Record success metrics
+      this.metrics?.record('SYNC_SUCCESS', 1, {
+        UserId: userId,
+        Provider: provider,
+        Status: STANDARD_DIMENSIONS.STATUS.SUCCESS,
+      });
+
+      this.metrics?.record('SYNC_DURATION', durationMs, {
+        UserId: userId,
+        Provider: provider,
+      });
+
+      this.metrics?.record('ACCOUNTS_SYNCED', accounts.length, {
+        UserId: userId,
+        Provider: provider,
+      });
+
+      this.metrics?.record('TRANSACTIONS_SYNCED', transactions.length, {
+        UserId: userId,
+        Provider: provider,
+      });
+
       return {
         success: true,
         accountsCount: accounts.length,
         transactionsCount: transactions.length,
-        durationMs: Date.now() - startTime,
+        durationMs,
       };
     } catch (error) {
+      const durationMs = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Record failure metrics
+      this.metrics?.record('SYNC_FAILURE', 1, {
+        UserId: userId,
+        Provider: provider,
+        Status: STANDARD_DIMENSIONS.STATUS.FAILURE,
+        ErrorType: this.categorizeError(errorMessage),
+      }, {
+        error: errorMessage,
+      });
+
+      this.metrics?.record('SYNC_DURATION', durationMs, {
+        UserId: userId,
+        Provider: provider,
+      });
+
       return {
         success: false,
         accountsCount: 0,
         transactionsCount: 0,
-        durationMs: Date.now() - startTime,
-        error: error instanceof Error ? error.message : String(error),
+        durationMs,
+        error: errorMessage,
       };
     }
   };
+
+  /**
+   * Categorize error for metrics
+   */
+  private categorizeError(error: string): string {
+    const errorLower = error.toLowerCase();
+
+    if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
+      return 'Timeout';
+    }
+    if (errorLower.includes('unauthorized') || errorLower.includes('401')) {
+      return 'Unauthorized';
+    }
+    if (errorLower.includes('forbidden') || errorLower.includes('403')) {
+      return 'Forbidden';
+    }
+    if (errorLower.includes('not found') || errorLower.includes('404')) {
+      return 'NotFound';
+    }
+    if (errorLower.includes('rate limit') || errorLower.includes('429')) {
+      return 'RateLimit';
+    }
+    if (errorLower.includes('network') || errorLower.includes('connection')) {
+      return 'Network';
+    }
+
+    return 'Unknown';
+  }
 
   /**
    * Get cached accounts for organization

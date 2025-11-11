@@ -165,6 +165,144 @@
 - ✅ Services return domain models (not entities)
 - ✅ Repository pattern with generic interfaces
 - ✅ AWS SDK packages not in React Native bundle
+- ✅ Type-safe metrics across all platforms (Lambda, iOS, Android, Web)
+
+### 0.0 Metrics Infrastructure (Foundational - Do First)
+
+**Goal:** Type-safe, platform-agnostic metrics for investor visibility and operational monitoring
+
+**Why:**
+- Investor metrics from day 1: signups, logins, DAU/MAU, retention, platform breakdown
+- Environment separation: dev vs staging vs prod data (clean investor dashboards)
+- Operational visibility: performance, errors, data quality
+- Foundation before adding auth metrics to Lambdas
+
+**Architecture Decisions (Nov 11, 2025):**
+- Metric definitions in `@nueink/core` (platform-agnostic, shared types)
+- MetricsService interface in `@nueink/core` (contract for all implementations)
+- CloudWatchMetricsService in `@nueink/aws` (Lambda implementation with EMF)
+- Future: AmplitudeMetricsService for mobile, WebMetricsService for web
+- Platform auto-detection in constructor (lambda, ios, android, web)
+- Environment auto-detection from Amplify env (dev, staging, prod)
+- Separate CloudWatch namespaces per environment (nueink-dev, nueink-prod)
+- Session tracking: SessionId dimension for user journey analysis
+- User properties: Auto-added metadata for segmentation
+- Context tracking: Screen/Feature dimensions for all metrics
+
+**Dimensions Strategy:**
+- **Static** (set in constructor): Platform, Environment, AppVersion
+- **Per-session** (setSessionId): SessionId
+- **Per-user** (setUserProperties): UserId, SignupDate, HasPartner, etc.
+- **Per-screen** (setContext): Screen, Feature, Flow
+- **Per-metric** (record call): Metric-specific dimensions
+
+**Metrics Categories:**
+1. **Auth**: USER_SIGNUP, USER_LOGIN, SIGNUP_DURATION, SIGNUP_FAILURE
+2. **Sync**: SYNC_SUCCESS, SYNC_FAILURE, SYNC_DURATION, ACCOUNTS_SYNCED, TRANSACTIONS_SYNCED
+3. **Engagement**: SCREEN_VIEWED, SESSION_DURATION, FEATURE_USED, DAILY_ACTIVE_USER
+4. **Funnel**: ONBOARDING_STEP_COMPLETED, TIME_TO_FIRST_VALUE, INTEGRATION_CONNECTED
+5. **Social**: COMMENT_POSTED, TRANSACTION_DISCUSSED, MENTION_USED, FAMILY_MEMBER_INVITED
+6. **Operational**: API_LATENCY, ERROR_OCCURRED, LAMBDA_COLD_START
+
+- [ ] **Create type-safe metric definitions**
+  - File: `packages/core/config/metrics.ts`
+  - Types:
+    - `MetricDefinition<TName, TDimensions, TUnit>` interface
+    - `MetricUnit = 'Count' | 'Milliseconds' | 'Percent' | 'Bytes'`
+    - Helper: `defineMetric()` for type inference
+  - Exports:
+    - `METRIC_DEFINITIONS` object (all metrics)
+    - `STANDARD_DIMENSIONS` object (PLATFORM, ENVIRONMENT, PROVIDER, etc.)
+    - Type helpers: `MetricKey`, `MetricDimensions<K>`, `MetricDimensionsObject<K>`
+  - Initial metrics: Auth (4), Sync (5), Engagement (4), Funnel (3), Social (4)
+  - Acceptance: Full TypeScript autocomplete, no runtime dependencies
+
+- [ ] **Create MetricsService interface**
+  - File: `packages/core/services/MetricsService.ts`
+  - Interface methods:
+    - `record<K extends MetricKey>()` - Type-safe metric recording
+    - `recordBatch()` - Bulk operations
+    - `setSessionId(sessionId: string)` - Session tracking
+    - `setUserProperties(properties: UserProperties)` - User segmentation
+    - `setContext(context: { screen?, feature?, flow? })` - Screen/feature context
+    - `startOperation(name, dimensions)` - Returns Operation helper
+  - Types:
+    - `UserProperties` interface
+    - `MetricContext` interface
+    - `Operation` interface (succeed/fail methods)
+  - Acceptance: Contract defines all platform implementations
+
+- [ ] **Refactor CloudWatchMetricsService**
+  - File: `packages/aws/services/CloudWatchMetricsService.ts`
+  - Implement: `MetricsService` interface from core
+  - Constructor:
+    - Auto-detect environment from `process.env.AWS_BRANCH`, `AMPLIFY_ENVIRONMENT`
+    - Set namespace: `${baseNamespace}-${environment}` (e.g., "nueink-dev")
+    - Set default dimensions: `{ Platform: 'lambda', Environment: environment }`
+  - State management:
+    - `sessionId?: string` (for operation tracking)
+    - `userProperties: Record<string, any>` (metadata)
+    - `context: Record<string, string>` (screen/feature)
+  - Implement all interface methods
+  - Keep EMF format (console.log JSON)
+  - Remove old methods: `recordSyncSuccess()`, `recordSyncFailure()`, etc.
+  - Acceptance: Implements interface, environment separation works
+
+- [ ] **Add Operation helper**
+  - Class: `CloudWatchOperation implements Operation`
+  - Methods:
+    - `succeed(metadata?)` - Records *_COMPLETED + *_DURATION
+    - `fail(error)` - Records *_FAILED + *_DURATION + ErrorType
+  - Usage: `const op = metrics.startOperation('sync', { Provider: 'ynab' })`
+  - Acceptance: Tracks start/end/duration automatically
+
+- [ ] **Update FinancialService usage**
+  - File: `packages/core/services/FinancialService.ts`
+  - Update: Use new `record()` API instead of old methods
+  - Example: `metrics.record('SYNC_SUCCESS', 1, { UserId, Provider, Status })`
+  - Add: Operation tracking for sync operations
+  - Acceptance: All metrics calls updated, compiles without errors
+
+- [ ] **Export from packages**
+  - File: `packages/core/index.ts`
+    - Export: `METRIC_DEFINITIONS`, `STANDARD_DIMENSIONS`
+    - Export: `MetricsService` interface
+    - Export: Type helpers
+  - File: `packages/aws/index.ts`
+    - Export: `CloudWatchMetricsService` (NOT default export)
+    - Document: "Lambda-only, do not import in React Native"
+  - Acceptance: Can import from correct packages
+
+- [ ] **Test in sandbox**
+  - Update: Post-confirmation Lambda to use new metrics (quick test)
+  - Deploy: `yarn sandbox:dev`
+  - Trigger: User signup (create test account)
+  - Verify: CloudWatch Logs show EMF format
+  - Verify: Metrics in CloudWatch console
+  - Check: Namespace = "nueink-dev"
+  - Check: Dimensions include Platform="lambda", Environment="dev"
+  - Acceptance: End-to-end flow works
+
+- [ ] **Create CloudWatch dashboard**
+  - Create: Dev dashboard in CloudWatch console
+  - Widgets:
+    - User Signups (by Provider)
+    - User Logins (by Provider)
+    - Sync Success Rate
+    - Sync Duration P95
+  - Save: Dashboard JSON for version control
+  - Acceptance: Can view metrics in dashboard
+
+- [ ] **Commit metrics infrastructure**
+  - Message: "Add type-safe metrics infrastructure with platform/environment detection"
+  - Files:
+    - `packages/core/config/metrics.ts`
+    - `packages/core/services/MetricsService.ts`
+    - `packages/aws/services/CloudWatchMetricsService.ts` (refactored)
+    - Updated: FinancialService usage
+    - Updated: Package exports
+  - Document: Architecture decision in commit body
+  - Acceptance: Clean commit with all changes
 
 ### 0.1 Repository Pattern Implementation
 
@@ -332,18 +470,39 @@
 
 ## 📋 Phase 1: Financial Data Sync (Weeks 1-2)
 
-**Goal:** EventBridge-driven background sync for YNAB/Plaid data
+**Goal:** Event-driven real-time sync for YNAB/Plaid data with AppSync subscriptions
 
-**Why:** Automated data fetching, scalable architecture, observable system
+**Why:** Real-time UX ("Instagram for Finances"), event-driven architecture learning, scalable foundation
+
+**Architecture Decisions (Nov 11, 2025):**
+- ✅ EventBridge for event routing (not SQS)
+- ✅ AppSync subscriptions for real-time updates (not custom WebSocket)
+- ✅ Direct to Transaction table (cache tables added later if needed)
+- ✅ MetricsService with CloudWatch EMF (free metrics, operational visibility)
+- ✅ User-triggered + scheduled background sync
 
 **Success Criteria:**
-- ✅ EventBridge triggers sync every 15 minutes
+- ✅ EventBridge triggers sync every 15 minutes (configurable)
 - ✅ Lambdas process users in parallel (auto-scale)
-- ✅ YNAB data syncs to DynamoDB cache
-- ✅ Metrics published to CloudWatch
-- ✅ Can view synced data in UI
+- ✅ YNAB data syncs to Transaction table directly
+- ✅ Metrics published to CloudWatch (EMF)
+- ✅ Real-time UI updates via AppSync (Transaction.onCreate subscription)
+- ✅ User sees transactions appear without pull-to-refresh
 
 ### 1.1 Data Models for Sync
+
+- [ ] **Review existing Transaction model**
+  - Check: `packages/core/models/Transaction.ts`
+  - Check: `packages/aws/models/Transaction.ts`
+  - Verify fields support sync: syncedAt, syncSource, externalId
+  - Acceptance: Know what needs to be added
+
+- [ ] **Extend Transaction model if needed**
+  - Add: syncedAt (timestamp of last sync)
+  - Add: syncSource (ynab, plaid, manual)
+  - Add: externalId (provider's transaction ID for deduplication)
+  - Update: Amplify schema
+  - Acceptance: Model supports sync metadata
 
 - [ ] **Create IntegrationConfig model**
   - File: `packages/aws/models/IntegrationConfig.ts`
@@ -351,25 +510,11 @@
   - Create entity type
   - Acceptance: TypeScript interface defined
 
-- [ ] **Create FinancialAccountCache model**
-  - File: `packages/aws/models/FinancialAccountCache.ts`
-  - Extends: FinancialAccount
-  - Additional fields: syncedAt, syncSource
-  - Acceptance: Entity type defined
-
-- [ ] **Create TransactionCache model**
-  - File: `packages/aws/models/TransactionCache.ts`
-  - Extends: Transaction
-  - Additional fields: syncedAt, syncSource
-  - Acceptance: Entity type defined
-
-- [ ] **Add models to Amplify schema**
+- [ ] **Add IntegrationConfig to Amplify schema**
   - File: `packages/aws/amplify/data/resource.ts`
   - Add IntegrationConfig model definition
-  - Add FinancialAccountCache model definition
-  - Add TransactionCache model definition
-  - Set authorization rules
-  - Add secondary indexes as needed
+  - Set authorization rules (owner-based)
+  - Add index: userId (for querying user's integrations)
   - Acceptance: Schema compiles
 
 - [ ] **Generate types**
@@ -378,7 +523,7 @@
   - Acceptance: No TypeScript errors
 
 - [ ] **Commit data models**
-  - Message: "Add DynamoDB models for financial sync"
+  - Message: "Add IntegrationConfig and extend Transaction for sync"
   - Include: Model files, schema updates
 
 ### 1.2 Lambda Integration Factory
@@ -521,7 +666,30 @@
 - [ ] **Commit EventBridge config**
   - Message: "Configure EventBridge for sync orchestration"
 
-### 1.7 Testing & Validation
+### 1.7 Real-Time Client Integration
+
+- [ ] **Add AppSync subscription to native app**
+  - File: `apps/native/app/(protected)/transactions/index.tsx` (or wherever)
+  - Subscribe: `client.models.Transaction.onCreate()`
+  - Filter: By organizationId
+  - Update: State to add new transactions at top
+  - Acceptance: Transactions appear in real-time
+
+- [ ] **Test real-time flow**
+  - Manually insert Transaction record
+  - Verify: Appears in app immediately (no refresh)
+  - Acceptance: Real-time updates work
+
+- [ ] **Add loading states**
+  - Show: "Syncing..." indicator when sync triggered
+  - Show: Success toast when sync completes
+  - Handle: Offline/error states
+  - Acceptance: Good UX
+
+- [ ] **Commit real-time UI**
+  - Message: "Add real-time transaction updates via AppSync"
+
+### 1.8 Testing & Validation
 
 - [ ] **Create YNAB test script**
   - File: `packages/ynab/scripts/test-integration.ts`
@@ -533,7 +701,7 @@
   - Log: Results to console
   - Acceptance: Script runs successfully
 
-- [ ] **Insert test data**
+- [ ] **Insert test IntegrationConfig**
   - Manually create IntegrationConfig in DynamoDB
   - Use your YNAB credentials
   - Enable: true
@@ -553,19 +721,25 @@
 
 - [ ] **Verify sync worker runs**
   - Check CloudWatch Logs for sync-user-data
-  - Verify: Data in cache tables
+  - Verify: Data in Transaction table
   - Verify: Metrics in CloudWatch
+  - Verify: Real-time update in app
   - Acceptance: End-to-end flow works
 
+- [ ] **Create CloudWatch dashboard**
+  - Metrics: Sync success rate, duration P95, error count by provider
+  - Graphs: 24hr, 7d, 30d views
+  - Acceptance: Operational visibility
+
 - [ ] **Verify data quality**
-  - Query FinancialAccountCache table
-  - Query TransactionCache table
+  - Query Transaction table
   - Verify: Amounts in cents
   - Verify: Dates correct
+  - Verify: No duplicates (externalId working)
   - Acceptance: Data looks correct
 
 - [ ] **Commit testing**
-  - Message: "Sync system tested and working"
+  - Message: "Sync system tested and working end-to-end"
   - Include: Test scripts, documentation
 
 - [ ] **Mark Phase 1 complete**
@@ -582,12 +756,20 @@
 
 **Reference:** [SOCIAL_FEED_ANALYSIS.md](./SOCIAL_FEED_ANALYSIS.md)
 
+**Architecture Decisions (Nov 11, 2025):**
+- ✅ Dedicated FeedItem table (not client-side aggregation of multiple tables)
+- ✅ DynamoDB Streams trigger Feed Generation Lambda
+- ✅ Single AppSync subscription: `FeedItem.onCreate()` and `FeedItem.onUpdate()`
+- ✅ Server-side aggregation (Lambda generates feed items from Transaction/Budget/etc events)
+- ✅ Feed-specific metadata (isRead, commentCount, reactions)
+
 **Success Criteria:**
 - ✅ Feed shows transactions, budget alerts, account updates, milestones
 - ✅ Can comment on any feed item
 - ✅ @mention support for family members
-- ✅ Real-time updates (or polling)
+- ✅ Real-time updates via AppSync subscriptions
 - ✅ Infinite scroll works smoothly
+- ✅ Comments and reactions appear instantly for all family members
 
 ### 2.1 Feed Data Models
 
@@ -1808,11 +1990,26 @@
 - Services return domain models, not entities
 - Converters bridge domain ↔ entities (can import from aws)
 
-**Financial Sync Architecture:**
+**Financial Sync Architecture (November 11, 2025):**
 - EventBridge scheduler (not SQS) for event distribution
+- AppSync subscriptions for real-time updates (not custom WebSocket management)
 - CloudWatch EMF (not PutMetricData) for free metrics
 - No DLQ - next scheduled sync handles failures
 - 15-minute sync interval (configurable per provider)
+- Direct to Transaction table (cache tables added later if needed)
+
+**Social Feed Architecture (November 11, 2025):**
+- Dedicated FeedItem table (not client-side aggregation)
+- DynamoDB Streams → Feed Generation Lambda → FeedItem records
+- Single AppSync subscription per client (FeedItem.onCreate/onUpdate)
+- Server-side aggregation and feed generation
+- Feed-specific metadata (isRead, reactions, commentCount)
+
+**Real-Time Strategy:**
+- AppSync built-in subscriptions (free tier: 1M connection-min/month)
+- No custom WebSocket infrastructure needed
+- Automatic reconnection, offline queueing, authentication
+- All CRUD events: onCreate, onUpdate, onDelete
 
 **Data Decisions:**
 - All amounts in cents (integers, not dollars)
