@@ -9,3 +9,5 @@ export * from './PersonService';
 export * from './BudgetService';
 export * from './DebtService';
 export * from './NueInkServiceFactory';
+export * from './FinancialIntegrationFactory';
+export * from './FinancialService';
