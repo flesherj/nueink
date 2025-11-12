@@ -9,6 +9,7 @@ import {
   AmplifyPersonRepository,
   AmplifyBudgetRepository,
   AmplifyDebtRepository,
+  AmplifyIntegrationConfigRepository,
   AmplifyDataClient,
 } from '.';
 
@@ -26,6 +27,7 @@ type RepositoryMap = {
   person: AmplifyPersonRepository;
   budget: AmplifyBudgetRepository;
   debt: AmplifyDebtRepository;
+  integrationConfig: AmplifyIntegrationConfigRepository;
 };
 
 /**
@@ -85,6 +87,8 @@ export class NueInkRepositoryFactory {
       person: () => new AmplifyPersonRepository(this._dataClient),
       budget: () => new AmplifyBudgetRepository(this._dataClient),
       debt: () => new AmplifyDebtRepository(this._dataClient),
+      integrationConfig: () =>
+        new AmplifyIntegrationConfigRepository(this._dataClient),
     };
 
     return repositories[type]();

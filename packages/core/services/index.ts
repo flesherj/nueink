@@ -8,6 +8,7 @@ export * from './CommentService';
 export * from './PersonService';
 export * from './BudgetService';
 export * from './DebtService';
+export * from './IntegrationConfigService';
 export * from './NueInkServiceFactory';
 export * from './FinancialIntegrationFactory';
 export * from './FinancialService';

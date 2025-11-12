@@ -9,3 +9,4 @@ export * from './CommentConverter';
 export * from './PersonConverter';
 export * from './BudgetConverter';
 export * from './DebtConverter';
+export * from './IntegrationConfigConverter';

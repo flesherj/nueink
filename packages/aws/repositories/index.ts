@@ -18,3 +18,4 @@ export * from './AmplifyCommentRepository';
 export * from './AmplifyPersonRepository';
 export * from './AmplifyBudgetRepository';
 export * from './AmplifyDebtRepository';
+export * from './AmplifyIntegrationConfigRepository';

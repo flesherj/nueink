@@ -18,3 +18,4 @@ export * from './CommentRepository';
 export * from './PersonRepository';
 export * from './BudgetRepository';
 export * from './DebtRepository';
+export * from './IntegrationConfigRepository';
