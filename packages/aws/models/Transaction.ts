@@ -17,6 +17,7 @@ export type TransactionEntity = {
   pending: boolean;
   personId?: string; // FK to Person (auto-assigned)
   receiptUrls?: string[]; // S3 keys for receipts (Phase 2)
+  syncedAt?: string; // Last sync timestamp from provider
   createdAt: string;
   updatedAt: string;
   profileOwner?: string;

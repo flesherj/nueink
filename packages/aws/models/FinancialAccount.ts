@@ -26,6 +26,7 @@ export type FinancialAccountEntity = {
   currency: Currency;
   personId?: string; // FK to Person (for auto-assignment)
   status: FinancialAccountStatus;
+  syncedAt?: string; // Last sync timestamp from provider
   createdAt: string;
   updatedAt: string;
   profileOwner?: string;

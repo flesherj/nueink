@@ -10,3 +10,4 @@ export * from './Person';
 export * from './Budget';
 export * from './Debt';
 export * from './FinancialIntegration';
+export * from './IntegrationConfig';

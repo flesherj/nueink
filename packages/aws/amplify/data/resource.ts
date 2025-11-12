@@ -121,6 +121,7 @@ const schema = a.schema({
             currency: a.string().required(),            // USD|EUR|etc
             personId: a.string(),                       // FK to Person (for auto-assignment)
             status: a.string().required(),              // active|inactive|closed
+            syncedAt: a.datetime(),                     // Last sync timestamp from provider
             createdAt: a.datetime().required(),
             updatedAt: a.datetime().required(),
             profileOwner: a.string(),
@@ -150,6 +151,7 @@ const schema = a.schema({
             pending: a.boolean().required(),            // Is pending?
             personId: a.string(),                       // FK to Person (auto-assigned)
             receiptUrls: a.string().array(),            // S3 keys for receipts (Phase 2)
+            syncedAt: a.datetime(),                     // Last sync timestamp from provider
             createdAt: a.datetime().required(),
             updatedAt: a.datetime().required(),
             profileOwner: a.string(),
@@ -201,10 +203,11 @@ const schema = a.schema({
             amount: a.float().required(),               // Budgeted amount
             period: a.string().required(),              // monthly|weekly|yearly
             startDate: a.datetime().required(),         // Budget period start
-            endDate: a.datetime().required(),           // Budget period end
+            endDate: a.datetime(),                      // Budget period end (optional for ongoing budgets)
             spent: a.float(),                           // Auto-calculated spent amount
             remaining: a.float(),                       // Auto-calculated remaining
             status: a.string().required(),              // active|inactive
+            syncedAt: a.datetime(),                     // Last sync timestamp from provider
             createdAt: a.datetime().required(),
             updatedAt: a.datetime().required(),
             profileOwner: a.string(),
@@ -232,6 +235,30 @@ const schema = a.schema({
             .identifier(['debtId'])
             .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
             .secondaryIndexes(index => [index('organizationId')]),
+
+        // IntegrationConfig: OAuth token refs stored in Secrets Manager
+        // Secret name computed: nueink/integration/{accountId}/{provider}
+        IntegrationConfig: a.model({
+            integrationId: a.id().required(),
+            accountId: a.string().required(),           // FK to Account
+            organizationId: a.string().required(),      // FK to Organization
+            provider: a.string().required(),            // ynab|plaid|manual
+            expiresAt: a.datetime(),                    // Token expiration (cached)
+            status: a.string().required(),              // active|disabled|error|expired
+            syncedAt: a.datetime(),                     // Last successful sync timestamp
+            lastSyncError: a.string(),                  // Last error message (if any)
+            syncEnabled: a.boolean().required(),        // User can disable sync temporarily
+            createdAt: a.datetime().required(),
+            updatedAt: a.datetime().required(),
+            profileOwner: a.string(),
+        })
+            .identifier(['integrationId'])
+            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
+            .secondaryIndexes(index => [
+                index('accountId'),
+                index('organizationId'),
+                index('provider')
+            ]),
     })
         .authorization((allow) => [allow.resource(postConfirmation)])
 ;

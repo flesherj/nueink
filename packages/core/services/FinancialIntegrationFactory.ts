@@ -1,9 +1,10 @@
 import type { FinancialIntegration, FinancialProvider } from '../models';
 
 /**
- * Configuration needed to create a financial integration
+ * Configuration needed to create a financial integration instance
+ * (Runtime config, not to be confused with IntegrationConfig DB model)
  */
-export interface IntegrationConfig {
+export interface CreateIntegrationConfig {
   provider: FinancialProvider;
   organizationId: string;
   profileOwner: string;
@@ -43,7 +44,7 @@ export interface ManualCredentials {
  * Example implementation:
  * ```typescript
  * export class LambdaFinancialIntegrationFactory extends FinancialIntegrationFactory {
- *   protected createYnabIntegration(config: IntegrationConfig): FinancialIntegration {
+ *   protected createYnabIntegration(config: CreateIntegrationConfig): FinancialIntegration {
  *     const { YnabIntegration } = require('@nueink/ynab');
  *     return new YnabIntegration(
  *       config.credentials.accessToken,
@@ -52,7 +53,7 @@ export interface ManualCredentials {
  *     );
  *   }
  *
- *   protected createPlaidIntegration(config: IntegrationConfig): FinancialIntegration {
+ *   protected createPlaidIntegration(config: CreateIntegrationConfig): FinancialIntegration {
  *     const { PlaidIntegration } = require('@nueink/plaid');
  *     return new PlaidIntegration(...);
  *   }
@@ -63,7 +64,7 @@ export abstract class FinancialIntegrationFactory {
   /**
    * Create a FinancialIntegration instance based on provider
    */
-  public create(config: IntegrationConfig): FinancialIntegration {
+  public create(config: CreateIntegrationConfig): FinancialIntegration {
     switch (config.provider) {
       case 'ynab':
         if (config.credentials.type !== 'ynab') {
@@ -90,7 +91,7 @@ export abstract class FinancialIntegrationFactory {
    * Must be implemented by platform-specific factory
    */
   protected abstract createYnabIntegration(
-    config: IntegrationConfig
+    config: CreateIntegrationConfig
   ): FinancialIntegration;
 
   /**
@@ -98,7 +99,7 @@ export abstract class FinancialIntegrationFactory {
    * Must be implemented by platform-specific factory
    */
   protected abstract createPlaidIntegration(
-    config: IntegrationConfig
+    config: CreateIntegrationConfig
   ): FinancialIntegration;
 
   /**
@@ -106,6 +107,6 @@ export abstract class FinancialIntegrationFactory {
    * Must be implemented by platform-specific factory
    */
   protected abstract createManualIntegration(
-    config: IntegrationConfig
+    config: CreateIntegrationConfig
   ): FinancialIntegration;
 }

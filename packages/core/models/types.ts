@@ -99,6 +99,11 @@ export type BudgetPeriod = 'monthly' | 'weekly' | 'yearly';
 export type BudgetStatus = 'active' | 'inactive';
 
 /**
+ * Integration configuration status
+ */
+export type IntegrationConfigStatus = 'active' | 'disabled' | 'error' | 'expired';
+
+/**
  * Debt type
  */
 export type DebtType = 'credit_card' | 'loan' | 'mortgage' | 'other';

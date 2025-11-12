@@ -11,6 +11,7 @@ export type BudgetEntity = {
   spent?: number; // Auto-calculated spent amount
   remaining?: number; // Auto-calculated remaining
   status: BudgetStatus;
+  syncedAt?: string; // Last sync timestamp from provider
   createdAt: string;
   updatedAt: string;
   profileOwner?: string;

@@ -24,6 +24,7 @@ export interface Transaction {
   pending: boolean;
   personId?: string;               // Auto-assigned person
   receiptUrls?: Array<string>;     // S3 keys for receipts (Phase 2)
+  syncedAt?: Date;                 // Last sync timestamp from provider
   createdAt: Date;
   updatedAt: Date;
   profileOwner: string;

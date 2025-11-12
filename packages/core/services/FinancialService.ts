@@ -5,7 +5,7 @@ import type {
 } from '../models';
 import type {
   FinancialIntegrationFactory,
-  IntegrationConfig,
+  CreateIntegrationConfig,
 } from './FinancialIntegrationFactory';
 import type { MetricsService } from './MetricsService';
 import { STANDARD_DIMENSIONS } from '../config/metrics';
@@ -32,7 +32,7 @@ export interface SyncResult {
  * const factory = new LambdaFinancialIntegrationFactory();
  * const service = new FinancialService(factory);
  *
- * const config: IntegrationConfig = {
+ * const config: CreateIntegrationConfig = {
  *   provider: 'ynab',
  *   organizationId: 'org-123',
  *   profileOwner: 'user-123',
@@ -74,7 +74,7 @@ export class FinancialService {
    * 6. Return sync result
    */
   public syncUserData = async (
-    config: IntegrationConfig
+    config: CreateIntegrationConfig
   ): Promise<SyncResult> => {
     const startTime = Date.now();
     const userId = config.profileOwner;
@@ -233,7 +233,7 @@ export class FinancialService {
    * Get integration status
    */
   public getIntegrationStatus = async (
-    config: IntegrationConfig
+    config: CreateIntegrationConfig
   ): Promise<IntegrationStatus> => {
     try {
       const integration = this.factory.create(config);
@@ -250,7 +250,7 @@ export class FinancialService {
    * Refresh account balances
    */
   public refreshBalances = async (
-    config: IntegrationConfig
+    config: CreateIntegrationConfig
   ): Promise<FinancialAccount[]> => {
     const integration = this.factory.create(config);
     const accounts = await integration.refreshBalances();

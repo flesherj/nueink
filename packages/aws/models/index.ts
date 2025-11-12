@@ -13,3 +13,4 @@ export * from './Comment';
 export * from './Person';
 export * from './Budget';
 export * from './Debt';
+export * from './IntegrationConfig';

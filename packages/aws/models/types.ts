@@ -73,3 +73,5 @@ export type BudgetStatus = 'active' | 'inactive';
 export type DebtType = 'credit_card' | 'loan' | 'mortgage' | 'other';
 
 export type DebtStatus = 'active' | 'paid_off' | 'closed';
+
+export type IntegrationConfigStatus = 'active' | 'disabled' | 'error' | 'expired';

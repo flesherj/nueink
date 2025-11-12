@@ -22,6 +22,7 @@ export interface FinancialAccount {
   currency: Currency;
   personId?: string;               // For auto-assignment
   status: FinancialAccountStatus;
+  syncedAt?: Date;                 // Last sync timestamp from provider
   createdAt: Date;
   updatedAt: Date;
   profileOwner: string;

@@ -15,6 +15,7 @@ export interface Budget {
   spent?: number;                  // Auto-calculated
   remaining?: number;              // Auto-calculated
   status: BudgetStatus;
+  syncedAt?: Date;                 // Last sync timestamp from provider
   createdAt: Date;
   updatedAt: Date;
   profileOwner: string;
