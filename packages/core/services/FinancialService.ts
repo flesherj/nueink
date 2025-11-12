@@ -2,12 +2,15 @@ import type {
   FinancialAccount,
   Transaction,
   IntegrationStatus,
+  FinancialProvider,
 } from '../models';
 import type {
   FinancialIntegrationFactory,
   CreateIntegrationConfig,
+  ProviderCredentials,
 } from './FinancialIntegrationFactory';
 import type { MetricsService } from './MetricsService';
+import type { IntegrationConfigService } from './IntegrationConfigService';
 import { STANDARD_DIMENSIONS } from '../config/metrics';
 
 /**
@@ -24,25 +27,16 @@ export interface SyncResult {
 /**
  * FinancialService orchestrates financial data syncing
  *
- * This is a simple in-memory implementation for testing.
- * Production implementation will persist to DynamoDB.
+ * Updated to use IntegrationConfigService for stored configs and token management.
  *
  * Usage:
  * ```typescript
  * const factory = new LambdaFinancialIntegrationFactory();
- * const service = new FinancialService(factory);
+ * const integrationConfigService = new IntegrationConfigService(repository, secretManager);
+ * const service = new FinancialService(factory, integrationConfigService);
  *
- * const config: CreateIntegrationConfig = {
- *   provider: 'ynab',
- *   organizationId: 'org-123',
- *   profileOwner: 'user-123',
- *   credentials: {
- *     type: 'ynab',
- *     accessToken: 'token-xyz',
- *   },
- * };
- *
- * const result = await service.syncUserData(config);
+ * // Sync using stored integration
+ * const result = await service.syncUserData('account-123', 'ynab');
  * console.log(`Synced ${result.accountsCount} accounts, ${result.transactionsCount} transactions`);
  *
  * const accounts = service.getAccounts('org-123');
@@ -51,14 +45,20 @@ export interface SyncResult {
  */
 export class FinancialService {
   private factory: FinancialIntegrationFactory;
+  private integrationConfigService: IntegrationConfigService;
   private metrics?: MetricsService;
 
-  // In-memory storage (replace with DynamoDB in production)
+  // In-memory storage (replace with repository persistence in production)
   private accounts: Map<string, FinancialAccount[]> = new Map();
   private transactions: Map<string, Transaction[]> = new Map();
 
-  constructor(factory: FinancialIntegrationFactory, metrics?: MetricsService) {
+  constructor(
+    factory: FinancialIntegrationFactory,
+    integrationConfigService: IntegrationConfigService,
+    metrics?: MetricsService
+  ) {
     this.factory = factory;
+    this.integrationConfigService = integrationConfigService;
     this.metrics = metrics;
   }
 
@@ -66,28 +66,107 @@ export class FinancialService {
    * Sync user's financial data from provider
    *
    * Steps:
-   * 1. Create integration using factory
-   * 2. Check integration status
-   * 3. Fetch accounts
-   * 4. Fetch transactions (last 30 days)
-   * 5. Store in memory (or DynamoDB in production)
-   * 6. Return sync result
+   * 1. Retrieve stored integration config
+   * 2. Retrieve OAuth tokens from Secrets Manager
+   * 3. Build runtime integration config with credentials
+   * 4. Create integration using factory
+   * 5. Check integration status
+   * 6. Fetch accounts
+   * 7. Fetch transactions (last 30 days)
+   * 8. Store in memory (or repositories in production)
+   * 9. Update integration config (syncedAt, status)
+   * 10. Return sync result
    */
   public syncUserData = async (
-    config: CreateIntegrationConfig
+    accountId: string,
+    provider: FinancialProvider
   ): Promise<SyncResult> => {
     const startTime = Date.now();
-    const userId = config.profileOwner;
-    const provider = config.provider;
+    const userId = accountId;
 
     try {
-      // Create integration
-      const integration = this.factory.create(config);
+      // 1. Retrieve stored integration config
+      const integrationConfig = await this.integrationConfigService.findByAccountIdAndProvider(
+        accountId,
+        provider
+      );
 
-      // Check status
+      if (!integrationConfig) {
+        const durationMs = Date.now() - startTime;
+        this.metrics?.record('SYNC_FAILURE', 1, {
+          UserId: userId,
+          Provider: provider,
+          Status: STANDARD_DIMENSIONS.STATUS.FAILURE,
+          ErrorType: 'ConfigNotFound',
+        });
+        return {
+          success: false,
+          accountsCount: 0,
+          transactionsCount: 0,
+          durationMs,
+          error: `No integration config found for ${accountId}/${provider}`,
+        };
+      }
+
+      // Check if integration is active
+      if (integrationConfig.status !== 'active') {
+        const durationMs = Date.now() - startTime;
+        this.metrics?.record('SYNC_FAILURE', 1, {
+          UserId: userId,
+          Provider: provider,
+          Status: STANDARD_DIMENSIONS.STATUS.FAILURE,
+          ErrorType: 'IntegrationDisabled',
+        });
+        return {
+          success: false,
+          accountsCount: 0,
+          transactionsCount: 0,
+          durationMs,
+          error: `Integration is ${integrationConfig.status}`,
+        };
+      }
+
+      // 2. Retrieve OAuth tokens
+      const tokens = await this.integrationConfigService.getTokens(accountId, provider);
+      if (!tokens) {
+        const durationMs = Date.now() - startTime;
+        this.metrics?.record('SYNC_FAILURE', 1, {
+          UserId: userId,
+          Provider: provider,
+          Status: STANDARD_DIMENSIONS.STATUS.FAILURE,
+          ErrorType: 'TokensNotFound',
+        });
+        return {
+          success: false,
+          accountsCount: 0,
+          transactionsCount: 0,
+          durationMs,
+          error: `No tokens found for ${accountId}/${provider}`,
+        };
+      }
+
+      // 3. Build runtime integration config with credentials
+      const credentials = this.buildCredentials(provider, tokens.accessToken);
+      const runtimeConfig: CreateIntegrationConfig = {
+        provider,
+        organizationId: integrationConfig.organizationId,
+        profileOwner: integrationConfig.profileOwner,
+        credentials,
+      };
+
+      // 4. Create integration
+      const integration = this.factory.create(runtimeConfig);
+
+      // 5. Check status
       const status = await integration.getStatus();
       if (!status.connected) {
         const durationMs = Date.now() - startTime;
+
+        // Update integration config with error
+        await this.integrationConfigService.update(integrationConfig.integrationId, {
+          status: 'error',
+          lastSyncError: status.error || 'Integration not connected',
+        });
 
         // Record failure metric
         this.metrics?.record('SYNC_FAILURE', 1, {
@@ -111,10 +190,10 @@ export class FinancialService {
         };
       }
 
-      // Fetch accounts
+      // 6. Fetch accounts
       const accounts = await integration.getAccounts();
 
-      // Fetch transactions (last 30 days)
+      // 7. Fetch transactions (last 30 days)
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 30);
@@ -124,11 +203,18 @@ export class FinancialService {
         endDate.toISOString().split('T')[0]
       );
 
-      // Store in memory
-      this.accounts.set(config.organizationId, accounts);
-      this.transactions.set(config.organizationId, transactions);
+      // 8. Store in memory (TODO: persist to repositories)
+      this.accounts.set(integrationConfig.organizationId, accounts);
+      this.transactions.set(integrationConfig.organizationId, transactions);
 
       const durationMs = Date.now() - startTime;
+
+      // 9. Update integration config with successful sync
+      await this.integrationConfigService.update(integrationConfig.integrationId, {
+        syncedAt: new Date(),
+        status: 'active',
+        lastSyncError: undefined, // Clear any previous errors
+      });
 
       // Record success metrics
       this.metrics?.record('SYNC_SUCCESS', 1, {
@@ -188,9 +274,28 @@ export class FinancialService {
   };
 
   /**
+   * Build provider-specific credentials from access token
+   */
+  private buildCredentials = (
+    provider: FinancialProvider,
+    accessToken: string
+  ): ProviderCredentials => {
+    switch (provider) {
+      case 'ynab':
+        return { type: 'ynab', accessToken };
+      case 'plaid':
+        return { type: 'plaid', accessToken };
+      case 'manual':
+        return { type: 'manual' };
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  };
+
+  /**
    * Categorize error for metrics
    */
-  private categorizeError(error: string): string {
+  private categorizeError = (error: string): string => {
     const errorLower = error.toLowerCase();
 
     if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
@@ -213,7 +318,7 @@ export class FinancialService {
     }
 
     return 'Unknown';
-  }
+  };
 
   /**
    * Get cached accounts for organization
@@ -233,10 +338,42 @@ export class FinancialService {
    * Get integration status
    */
   public getIntegrationStatus = async (
-    config: CreateIntegrationConfig
+    accountId: string,
+    provider: FinancialProvider
   ): Promise<IntegrationStatus> => {
     try {
-      const integration = this.factory.create(config);
+      // Retrieve stored integration config
+      const integrationConfig = await this.integrationConfigService.findByAccountIdAndProvider(
+        accountId,
+        provider
+      );
+
+      if (!integrationConfig) {
+        return {
+          connected: false,
+          error: `No integration config found for ${accountId}/${provider}`,
+        };
+      }
+
+      // Retrieve OAuth tokens
+      const tokens = await this.integrationConfigService.getTokens(accountId, provider);
+      if (!tokens) {
+        return {
+          connected: false,
+          error: `No tokens found for ${accountId}/${provider}`,
+        };
+      }
+
+      // Build runtime config and check status
+      const credentials = this.buildCredentials(provider, tokens.accessToken);
+      const runtimeConfig: CreateIntegrationConfig = {
+        provider,
+        organizationId: integrationConfig.organizationId,
+        profileOwner: integrationConfig.profileOwner,
+        credentials,
+      };
+
+      const integration = this.factory.create(runtimeConfig);
       return await integration.getStatus();
     } catch (error) {
       return {
@@ -250,15 +387,85 @@ export class FinancialService {
    * Refresh account balances
    */
   public refreshBalances = async (
-    config: CreateIntegrationConfig
+    accountId: string,
+    provider: FinancialProvider
   ): Promise<FinancialAccount[]> => {
-    const integration = this.factory.create(config);
-    const accounts = await integration.refreshBalances();
+    const startTime = Date.now();
+    const userId = accountId;
 
-    // Update cached accounts
-    this.accounts.set(config.organizationId, accounts);
+    try {
+      // Retrieve stored integration config
+      const integrationConfig = await this.integrationConfigService.findByAccountIdAndProvider(
+        accountId,
+        provider
+      );
 
-    return accounts;
+      if (!integrationConfig) {
+        throw new Error(`No integration config found for ${accountId}/${provider}`);
+      }
+
+      // Retrieve OAuth tokens
+      const tokens = await this.integrationConfigService.getTokens(accountId, provider);
+      if (!tokens) {
+        throw new Error(`No tokens found for ${accountId}/${provider}`);
+      }
+
+      // Build runtime config
+      const credentials = this.buildCredentials(provider, tokens.accessToken);
+      const runtimeConfig: CreateIntegrationConfig = {
+        provider,
+        organizationId: integrationConfig.organizationId,
+        profileOwner: integrationConfig.profileOwner,
+        credentials,
+      };
+
+      const integration = this.factory.create(runtimeConfig);
+      const accounts = await integration.refreshBalances();
+
+      // Update cached accounts
+      this.accounts.set(integrationConfig.organizationId, accounts);
+
+      const durationMs = Date.now() - startTime;
+
+      // Record success metrics
+      this.metrics?.record('BALANCE_REFRESH_SUCCESS', 1, {
+        UserId: userId,
+        Provider: provider,
+        Status: STANDARD_DIMENSIONS.STATUS.SUCCESS,
+      });
+
+      this.metrics?.record('BALANCE_REFRESH_DURATION', durationMs, {
+        UserId: userId,
+        Provider: provider,
+      });
+
+      this.metrics?.record('ACCOUNTS_REFRESHED', accounts.length, {
+        UserId: userId,
+        Provider: provider,
+      });
+
+      return accounts;
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Record failure metrics
+      this.metrics?.record('BALANCE_REFRESH_FAILURE', 1, {
+        UserId: userId,
+        Provider: provider,
+        Status: STANDARD_DIMENSIONS.STATUS.FAILURE,
+        ErrorType: this.categorizeError(errorMessage),
+      }, {
+        error: errorMessage,
+      });
+
+      this.metrics?.record('BALANCE_REFRESH_DURATION', durationMs, {
+        UserId: userId,
+        Provider: provider,
+      });
+
+      throw error; // Re-throw to let caller handle
+    }
   };
 
   /**
