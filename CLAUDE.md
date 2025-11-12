@@ -160,6 +160,81 @@ Native app includes dev client for custom native code.
 - `eas.json` - Expo Application Services build configuration
 - `packages/aws/amplify_outputs.json` - Generated Amplify configuration (not in git)
 
+## Coding Standards
+
+### Function Declarations
+
+**Always use arrow functions when possible:**
+
+- **Class methods**: Use arrow function properties (class fields) for all methods
+- **Access modifiers**: Always be explicit with `public` and `private` keywords
+  ```typescript
+  // ✅ Correct
+  class MyService {
+    public myMethod = (param: string): string => {
+      return param;
+    };
+
+    private helperMethod = (param: string): string => {
+      return param;
+    };
+  }
+
+  // ❌ Avoid
+  class MyService {
+    myMethod(param: string): string {  // No access modifier, not arrow function
+      return param;
+    }
+  }
+  ```
+
+- **Standalone functions**: Use arrow function expressions
+  ```typescript
+  // ✅ Correct
+  export const myFunction = (param: string): string => {
+    return param;
+  };
+
+  // ❌ Avoid
+  export function myFunction(param: string): string {
+    return param;
+  }
+  ```
+
+**Benefits**: Arrow functions preserve `this` context, provide consistent syntax across the codebase, and work well with functional programming patterns.
+
+### Architecture Patterns
+
+**Secret Management:**
+
+- **Core package** defines business logic and interfaces
+  - `SecretManager` interface - Platform-agnostic secret storage contract
+  - Domain services (e.g., `IntegrationConfigService`) handle:
+    - Secret naming conventions
+    - Data structure and serialization
+    - Business validation
+    - Calling SecretManager for storage
+
+- **AWS package** provides infrastructure implementations
+  - `SecretsManagerService` - Generic AWS Secrets Manager implementation
+  - NO business logic - just storage operations (store/get/update/delete)
+  - Reusable for any secret type (tokens, API keys, webhooks, etc.)
+
+**Example:**
+```typescript
+// Core: IntegrationConfigService handles integration-specific logic
+const integrationService = new IntegrationConfigService(repository, secretManager);
+await integrationService.storeTokens('account-123', 'ynab', {
+  accessToken: '...',
+  refreshToken: '...',
+  expiresAt: new Date()
+});
+
+// AWS: SecretsManagerService is generic infrastructure
+const secretManager = new SecretsManagerService();
+await secretManager.storeSecret('my-secret-name', { key: 'value' });
+```
+
 ## Important Notes
 
 - **Profile Owner Authorization**: All protected models use `profileOwner` field for authorization. Ensure this is set to the Cognito user ID on create.

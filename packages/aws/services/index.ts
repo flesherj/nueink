@@ -1,10 +1,12 @@
 /**
- * CloudWatchMetricsService - Lambda ONLY
+ * AWS Services - Lambda ONLY
  *
  * DO NOT import in React Native code.
- * Uses CloudWatch EMF (Embedded Metric Format) for logging.
  *
- * For mobile/web: Create AmplitudeMetricsService or WebMetricsService
- * that implements MetricsService interface from @nueink/core
+ * CloudWatchMetricsService: Uses CloudWatch EMF (Embedded Metric Format)
+ * SecretsManagerService: Manages OAuth tokens in AWS Secrets Manager
+ *
+ * For mobile/web: Create platform-specific implementations
  */
 export * from './CloudWatchMetricsService';
+export * from './SecretsManagerService';
