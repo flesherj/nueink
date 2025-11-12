@@ -60,6 +60,11 @@ export class IntegrationConfigService {
     return entities.map((entity) => this.converter.toDomain(entity));
   };
 
+  public listActiveIntegrations = async (): Promise<IntegrationConfig[]> => {
+    const entities = await this.repository.findAllActive();
+    return entities.map((entity) => this.converter.toDomain(entity));
+  };
+
   public create = async (config: IntegrationConfig): Promise<IntegrationConfig> => {
     const entity = this.converter.toEntity(config);
     const saved = await this.repository.save(entity);
@@ -197,6 +202,26 @@ export class IntegrationConfigService {
   ): Promise<boolean> => {
     const tokens = await this.getTokens(accountId, provider);
     return !!tokens?.refreshToken;
+  };
+
+  /**
+   * Update last sync time and clear errors
+   * Called after successful sync to update integration status
+   */
+  public updateLastSyncTime = async (
+    accountId: string,
+    provider: FinancialProvider
+  ): Promise<void> => {
+    const config = await this.findByAccountIdAndProvider(accountId, provider);
+    if (!config) {
+      throw new Error(`Integration not found for ${accountId}/${provider}`);
+    }
+
+    await this.update(config.integrationId, {
+      syncedAt: new Date(),
+      lastSyncError: undefined, // Clear any previous errors
+      updatedAt: new Date(),
+    });
   };
 
   /**

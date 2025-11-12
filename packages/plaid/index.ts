@@ -7,5 +7,5 @@
  * within the NueInk ecosystem.
  */
 
-export * from './src/client/NueInkPlaidIntegration';
+export * from './src/client/PlaidIntegration';
 export * from './src/services';

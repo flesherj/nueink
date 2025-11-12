@@ -5,7 +5,7 @@
  * This allows easy swapping of HTTP implementations and better testability.
  */
 
-import axios, { type AxiosInstance } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import type { HttpClient, HttpRequestConfig, HttpResponse } from './HttpClient';
 
 export class AxiosHttpClient implements HttpClient {

@@ -26,11 +26,11 @@ export class YnabIntegration implements FinancialIntegration {
   private lastSyncTime: Date | null = null;
 
   constructor(
-    private accessToken: string,
+    ynabClient: YNABApi,
     private organizationId: string,
     private profileOwner: string
   ) {
-    this.ynabClient = new YNABApi(accessToken);
+    this.ynabClient = ynabClient;
     this.accountConverter = new YnabAccountConverter();
     this.transactionConverter = new YnabTransactionConverter();
   }

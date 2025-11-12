@@ -96,6 +96,11 @@ export class AmplifyIntegrationConfigRepository implements IntegrationConfigRepo
     return all.filter(config => config.status === 'active');
   }
 
+  async findAllActive(): Promise<IntegrationConfigEntity[]> {
+    const all = await this.findAll();
+    return all.filter(config => config.status === 'active' && config.syncEnabled);
+  }
+
   private toIntegrationConfig(data: any): IntegrationConfigEntity {
     return {
       integrationId: data.integrationId,

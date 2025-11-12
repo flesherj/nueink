@@ -24,4 +24,9 @@ export interface IntegrationConfigRepository<T> extends Repository<T> {
    * Find all active integrations for an account
    */
   findActiveByAccountId(accountId: string): Promise<T[]>;
+
+  /**
+   * Find all active integrations across all accounts (for sync jobs)
+   */
+  findAllActive(): Promise<T[]>;
 }

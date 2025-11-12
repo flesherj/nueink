@@ -3,9 +3,13 @@ import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { postConfirmation } from './auth/post-confirmation/resource';
 import { oauthCallback } from './functions/oauth-callback/resource';
+import { financialSync } from './functions/financial-sync/resource';
 import { createEventBus } from './events/resource';
-import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpApi, HttpMethod, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
+import { Duration } from 'aws-cdk-lib';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -15,6 +19,7 @@ const backend = defineBackend({
   data,
   postConfirmation,
   oauthCallback,
+  financialSync,
 });
 
 // Create stack for custom resources (EventBridge, future Lambdas, etc.)
@@ -22,6 +27,24 @@ const eventsStack = backend.createStack('nueink-events-stack');
 
 // Create EventBridge event bus for sync orchestration
 const eventBus = createEventBus(eventsStack);
+
+// ========== Financial Sync Schedule ==========
+
+/**
+ * Create EventBridge rule to trigger financial sync Lambda
+ * Schedule: Every 4 hours (6 times per day)
+ *
+ * This keeps financial data reasonably fresh while staying within
+ * API rate limits and minimizing costs.
+ */
+const syncStack = backend.createStack('nueink-sync-stack');
+
+new Rule(syncStack, 'FinancialSyncSchedule', {
+  ruleName: 'nueink-financial-sync-schedule',
+  description: 'Triggers financial data sync every 4 hours',
+  schedule: Schedule.rate(Duration.hours(4)), // Run every 4 hours
+  targets: [new LambdaFunction(backend.financialSync.resources.lambda)],
+});
 
 // ========== HTTP API for OAuth Callback ==========
 
@@ -39,7 +62,7 @@ const httpApi = new HttpApi(oauthStack, 'OAuthHttpApi', {
   description: 'HTTP API for OAuth callbacks from financial providers',
   corsPreflight: {
     allowOrigins: ['*'],
-    allowMethods: [HttpMethod.GET],
+    allowMethods: [CorsHttpMethod.GET],
     allowHeaders: ['*'],
   },
 });
