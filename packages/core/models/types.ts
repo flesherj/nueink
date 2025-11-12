@@ -47,9 +47,14 @@ export type MembershipStatus = 'active' | 'invited' | 'pending';
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY';
 
 /**
- * Financial data provider
+ * Supported financial data providers
  */
-export type FinancialProvider = 'plaid' | 'ynab' | 'manual';
+export const FINANCIAL_PROVIDERS = ['plaid', 'ynab', 'manual'] as const;
+
+/**
+ * Financial data provider (derived from FINANCIAL_PROVIDERS array)
+ */
+export type FinancialProvider = typeof FINANCIAL_PROVIDERS[number];
 
 /**
  * Status for institutions

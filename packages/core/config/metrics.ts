@@ -139,6 +139,59 @@ export const METRIC_DEFINITIONS = {
     description: 'Number of transactions synced'
   }),
 
+  BALANCE_REFRESH_SUCCESS: defineMetric({
+    metricName: 'BalanceRefreshSuccess',
+    dimensions: ['UserId', 'Provider', 'Status'] as const,
+    unit: 'Count',
+    description: 'Account balances refreshed successfully'
+  }),
+
+  BALANCE_REFRESH_FAILURE: defineMetric({
+    metricName: 'BalanceRefreshFailure',
+    dimensions: ['UserId', 'Provider', 'Status', 'ErrorType'] as const,
+    unit: 'Count',
+    description: 'Account balance refresh failed'
+  }),
+
+  BALANCE_REFRESH_DURATION: defineMetric({
+    metricName: 'BalanceRefreshDuration',
+    dimensions: ['UserId', 'Provider'] as const,
+    unit: 'Milliseconds',
+    description: 'Time to refresh account balances'
+  }),
+
+  ACCOUNTS_REFRESHED: defineMetric({
+    metricName: 'AccountsRefreshed',
+    dimensions: ['UserId', 'Provider'] as const,
+    unit: 'Count',
+    description: 'Number of accounts with updated balances'
+  }),
+
+  // ============================================
+  // OAuth Integration Metrics
+  // ============================================
+
+  OAUTH_CALLBACK_SUCCESS: defineMetric({
+    metricName: 'OAuthCallbackSuccess',
+    dimensions: ['UserId', 'Provider', 'Status'] as const,
+    unit: 'Count',
+    description: 'OAuth callback completed successfully'
+  }),
+
+  OAUTH_CALLBACK_FAILURE: defineMetric({
+    metricName: 'OAuthCallbackFailure',
+    dimensions: ['ErrorType', 'Status'] as const,
+    unit: 'Count',
+    description: 'OAuth callback failed'
+  }),
+
+  OAUTH_CALLBACK_DURATION: defineMetric({
+    metricName: 'OAuthCallbackDuration',
+    dimensions: ['UserId', 'Provider'] as const,
+    unit: 'Milliseconds',
+    description: 'Time to process OAuth callback'
+  }),
+
   // ============================================
   // Engagement Metrics
   // ============================================

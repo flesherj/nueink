@@ -7,5 +7,10 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nueink/plaid": "1.0.0",
+    "@nueink/ynab": "1.0.0",
+    "axios": "^1.7.9"
   }
 }

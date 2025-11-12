@@ -13,3 +13,5 @@ export * from './SecretManager';
 export * from './NueInkServiceFactory';
 export * from './FinancialIntegrationFactory';
 export * from './FinancialService';
+export * from './oauth';
+export * from './http';

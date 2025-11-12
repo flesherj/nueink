@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@nueink/core": "1.0.0",
+    "axios": "^1.7.9",
     "ynab": "^1.36.0"
   }
 }

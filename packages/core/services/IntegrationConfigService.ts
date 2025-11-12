@@ -160,6 +160,46 @@ export class IntegrationConfigService {
   };
 
   /**
+   * Check if tokens need refresh
+   * Returns true if:
+   * - No expiresAt date (safe default)
+   * - expiresAt is within 5 minutes of expiring
+   * - expiresAt has already passed
+   */
+  public needsTokenRefresh = async (
+    accountId: string,
+    provider: FinancialProvider
+  ): Promise<boolean> => {
+    const tokens = await this.getTokens(accountId, provider);
+
+    if (!tokens) {
+      return false; // No tokens = can't refresh
+    }
+
+    if (!tokens.expiresAt) {
+      return false; // No expiry date = assume valid
+    }
+
+    // Refresh if within 5 minutes of expiry or already expired
+    const bufferMs = 5 * 60 * 1000; // 5 minutes
+    const now = new Date().getTime();
+    const expiryTime = tokens.expiresAt.getTime();
+
+    return expiryTime - now <= bufferMs;
+  };
+
+  /**
+   * Check if integration has a refresh token available
+   */
+  public hasRefreshToken = async (
+    accountId: string,
+    provider: FinancialProvider
+  ): Promise<boolean> => {
+    const tokens = await this.getTokens(accountId, provider);
+    return !!tokens?.refreshToken;
+  };
+
+  /**
    * Serialize tokens to secret storage format
    */
   private serializeTokens = (tokens: IntegrationTokens): Record<string, any> => {

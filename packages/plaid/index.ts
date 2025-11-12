@@ -8,3 +8,4 @@
  */
 
 export * from './src/client/NueInkPlaidIntegration';
+export * from './src/services';
