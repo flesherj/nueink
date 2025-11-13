@@ -29,19 +29,24 @@ export class NueInkAmplifyBuilder {
     let config = this.amplifyConfig;
     let options = this.libraryOptions;
 
+    // Note: REST API support was removed when nueink-api-stack was deprecated
+    // This code is kept for backward compatibility but won't activate without custom.API
     if (this.apiSupport) {
-      config = {
-        ...this.amplifyConfig,
-        API: {
-          ...this.amplifyConfig.API,
-          REST: amplifyOutputs.custom.API,
-        },
-      };
+      const customOutputs = amplifyOutputs as any;
+      if (customOutputs.custom?.API) {
+        config = {
+          ...this.amplifyConfig,
+          API: {
+            ...this.amplifyConfig.API,
+            REST: customOutputs.custom.API,
+          },
+        };
 
-      options = {
-        ...this.libraryOptions,
-        API: { REST: { retryStrategy: { strategy: 'no-retry' } } },
-      };
+        options = {
+          ...this.libraryOptions,
+          API: { REST: { retryStrategy: { strategy: 'no-retry' } } },
+        };
+      }
     }
 
     Amplify.configure(config, options);

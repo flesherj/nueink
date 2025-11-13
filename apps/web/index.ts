@@ -4,6 +4,6 @@ import { NueInkAmplifyBuilder } from '@nueink/aws';
 
 import App from './App';
 
-NueInkAmplifyBuilder.builder().withApiSupport().build();
+NueInkAmplifyBuilder.builder().build();
 
 registerRootComponent(App);

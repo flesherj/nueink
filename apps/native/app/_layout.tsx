@@ -11,7 +11,7 @@ import {
 } from '@nueink/ui';
 import { NueInkAmplifyBuilder } from '@nueink/aws';
 
-NueInkAmplifyBuilder.builder().withApiSupport().build();
+NueInkAmplifyBuilder.builder().build();
 
 const RootLayout = () => {
   const colorScheme = useColorScheme();
