@@ -5,6 +5,7 @@
 
 export * from './models';
 export * from './NueInkAmplifyBuilder';
+export { ClientRepositoryFactory } from './repositories/ClientRepositoryFactory';
 
 // ========================================
 // LAMBDA-ONLY EXPORTS (DO NOT USE IN REACT NATIVE)

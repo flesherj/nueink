@@ -12160,7 +12160,7 @@ expo-updates-interface@~1.1.0:
   resolved "https://registry.yarnpkg.com/expo-updates-interface/-/expo-updates-interface-1.1.0.tgz#62497d4647b381da9fdb68868ed180203ae737ef"
   integrity sha512-DeB+fRe0hUDPZhpJ4X4bFMAItatFBUPjw/TVSbJsaf3Exeami+2qbbJhWkcTMoYHOB73nOIcaYcWXYJnCJXO0w==
 
-expo-web-browser@^15.0.9:
+expo-web-browser@~15.0.9:
   version "15.0.9"
   resolved "https://registry.yarnpkg.com/expo-web-browser/-/expo-web-browser-15.0.9.tgz#248b8de8f901e68e89944c85a46ee40205190f59"
   integrity sha512-Dj8kNFO+oXsxqCDNlUT/GhOrJnm10kAElH++3RplLydogFm5jTzXYWDEeNIDmV+F+BzGYs+sIhxiBf7RyaxXZg==

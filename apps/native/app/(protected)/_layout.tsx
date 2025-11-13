@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react';
 import { useAuthenticator } from '@aws-amplify/ui-react-native';
 import { Stack } from 'expo-router';
 
-import { AccountEntity, AccountApi } from '@nueink/aws';
+import { ClientRepositoryFactory } from '@nueink/aws';
+import { AccountService } from '@nueink/core';
+import type { Account } from '@nueink/core';
 import { AccountProvider } from '@nueink/ui';
+
+// Create client-safe service using ClientRepositoryFactory
+const repositoryFactory = ClientRepositoryFactory.getInstance();
+const accountService = new AccountService(repositoryFactory.repository('account'));
 
 export const ProtectedLayout = () => {
   const { user } = useAuthenticator();
-  const [account, setAccount] = useState<AccountEntity>();
+  const [account, setAccount] = useState<Account>();
 
   useEffect(() => {
     loadAccount();
@@ -26,9 +32,16 @@ export const ProtectedLayout = () => {
       }
 
       console.log('Fetching account for userId:', userId);
-      const account = await AccountApi.create().getAccount(userId);
-      console.log('Account loaded:', account);
-      setAccount(account);
+
+      // Use AccountService from core (goes through repository layer)
+      const accountData = await accountService.findById(userId);
+
+      if (accountData) {
+        console.log('Account loaded:', accountData);
+        setAccount(accountData);
+      } else {
+        console.log('No account found for userId:', userId);
+      }
     } catch (error) {
       console.error('Error loading account:', error);
     }

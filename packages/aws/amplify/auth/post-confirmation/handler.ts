@@ -26,7 +26,8 @@ export const handler: PostConfirmationTriggerHandler = async (event) => {
   const username = event.userName;
   const accountId = event.request.userAttributes.sub;
   const email = event.request.userAttributes.email;
-  const profileOwner = `${accountId}::${username}`;
+  // profileOwner must be just the Cognito sub for Amplify owner-based auth
+  const profileOwner = accountId;
   const emailDomain = email?.split('@')[1] || 'unknown';
 
   try {
