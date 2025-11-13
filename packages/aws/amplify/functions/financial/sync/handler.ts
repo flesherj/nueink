@@ -84,6 +84,71 @@ const providerFactories: Record<string, ProviderFactory> = {
   plaid: new PlaidProviderFactory(plaidClient),
 };
 
+// ========== Helper Functions ==========
+
+/**
+ * Store accounts with deduplication logic
+ * Prevents duplicate account records when multiple users in same org sync the same accounts
+ */
+const storeAccountsWithDeduplication = async (
+  accounts: any[],
+  organizationId: string,
+  provider: FinancialProvider
+): Promise<{ created: number; skipped: number; updated: number }> => {
+  const financialAccountRepo = factory.repository('financialAccount');
+  let created = 0;
+  let skipped = 0;
+  let updated = 0;
+
+  for (const account of accounts) {
+    try {
+      // Skip if no external ID (can't deduplicate without it)
+      if (!account.externalAccountId) {
+        console.warn(`Account ${account.name} has no externalAccountId, skipping deduplication`);
+        await financialAccountRepo.save(account);
+        created++;
+        continue;
+      }
+
+      // Check if account already exists in this organization
+      const orgAccounts = await financialAccountRepo.findByOrganization(organizationId, 1000);
+      const existingAccount = orgAccounts.items.find(
+        (existing: any) =>
+          existing.provider === provider &&
+          existing.externalAccountId === account.externalAccountId
+      );
+
+      if (existingAccount) {
+        // Account already exists - update balances and sync timestamp
+        console.log(
+          `Account ${account.name} (${account.externalAccountId}) already exists in org ${organizationId}, updating`
+        );
+
+        await financialAccountRepo.update(existingAccount.financialAccountId, {
+          currentBalance: account.currentBalance,
+          availableBalance: account.availableBalance,
+          status: account.status,
+          syncedAt: account.syncedAt,
+          updatedAt: new Date().toISOString(),
+        });
+        updated++;
+      } else {
+        // New account - create it
+        await financialAccountRepo.save(account);
+        console.log(
+          `Created new account ${account.name} (${account.externalAccountId}) for org ${organizationId}`
+        );
+        created++;
+      }
+    } catch (error: any) {
+      console.error(`Failed to store account ${account.name}:`, error);
+      // Continue with other accounts even if one fails
+    }
+  }
+
+  return { created, skipped, updated };
+};
+
 // ========== Core Sync Logic ==========
 
 /**
@@ -203,9 +268,25 @@ const syncIntegration = async (
       console.log(`Successfully synced ${provider} for account ${accountId} in ${duration}ms`);
     }
 
-    // TODO: Store synced data in DynamoDB
-    // This will be implemented once we have the data models defined
-    // For now, the sync providers are just fetching and validating the data
+    // Store synced data in DynamoDB with deduplication
+    if (accountsResult.success && accountsResult.data.length > 0) {
+      const storageResult = await storeAccountsWithDeduplication(
+        accountsResult.data,
+        organizationId,
+        provider
+      );
+
+      console.log(`Account storage: ${storageResult.created} created, ${storageResult.updated} updated, ${storageResult.skipped} skipped`);
+
+      // Record account storage metrics
+      metricsService.record('ACCOUNTS_SYNCED', accountsResult.data.length, {
+        Provider: provider,
+        UserId: accountId,
+      });
+    }
+
+    // TODO: Store transactions in DynamoDB
+    // Transaction storage will be similar but needs transaction deduplication by externalTransactionId
   } catch (error: any) {
     console.error(`Failed to sync ${provider} for account ${accountId}:`, error);
 
