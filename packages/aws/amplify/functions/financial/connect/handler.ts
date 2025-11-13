@@ -206,8 +206,8 @@ export const handler: APIGatewayProxyHandler = async (
       Provider: provider,
     });
 
-    // Redirect back to app with success
-    return redirectResponse(`myapp://oauth-success?provider=${provider}`);
+    // Redirect back to app with success (using nueink:// scheme from app.json)
+    return redirectResponse(`nueink://oauth-success?provider=${provider}`);
   } catch (error) {
     const durationMs = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);

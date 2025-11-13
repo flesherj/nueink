@@ -8,6 +8,11 @@ client_secret*
 
 openApiKey.txt
 
+# Environment files
+.env
+.env.local
+.env.*.local
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*
