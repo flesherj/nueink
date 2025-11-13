@@ -6,7 +6,8 @@
   "types": "index.ts",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:integration": "tsx scripts/test-integration.ts"
   },
   "dependencies": {
     "@nueink/core": "1.0.0",

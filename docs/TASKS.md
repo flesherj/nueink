@@ -609,44 +609,51 @@
 **Current State (Nov 13, 2025):**
 - ✅ Backend: OAuth callback handler ready
 - ✅ Backend: Sync handler ready with deduplication
+- ✅ Config: Amplify secrets configured (YNAB + Plaid)
+- ✅ Testing: YNAB integration validated end-to-end
 - ❌ Frontend: Cannot initiate OAuth (missing)
 - ❌ Frontend: Cannot display synced data (missing)
-- ❌ Config: Amplify secrets not set (blocking)
 
 **Critical Path Order:**
 
-### Step 1: Configure Amplify Secrets ⏭️ NEXT
+### Step 1: Configure Amplify Secrets ✅ COMPLETE
 
 **Blocking:** OAuth flow cannot work without provider credentials
 
-- [ ] **Set YNAB secrets**
+- [x] **Set YNAB secrets**
   - Command: `npx ampx sandbox secret set YNAB_CLIENT_ID`
   - Command: `npx ampx sandbox secret set YNAB_CLIENT_SECRET`
   - Command: `npx ampx sandbox secret set YNAB_TOKEN_URL`
   - Command: `npx ampx sandbox secret set YNAB_REDIRECT_URI`
   - Values: From YNAB OAuth app registration
-  - Acceptance: Secrets stored in Amplify
+  - Acceptance: Secrets stored in Amplify ✅
 
-- [ ] **Set Plaid secrets**
+- [x] **Set Plaid secrets**
   - Command: `npx ampx sandbox secret set PLAID_CLIENT_ID`
   - Command: `npx ampx sandbox secret set PLAID_SECRET`
   - Command: `npx ampx sandbox secret set PLAID_ENVIRONMENT`
   - Values: From Plaid dashboard
-  - Acceptance: Secrets stored in Amplify
+  - Acceptance: Secrets stored in Amplify ✅
 
-- [ ] **Get OAuth callback URL**
+- [x] **Get OAuth callback URL**
   - Run: `yarn sandbox:dev`
   - Find: CloudFormation output `OAuthCallbackUrl`
-  - Value: `https://{api-id}.execute-api.{region}.amazonaws.com/oauth/callback`
-  - Acceptance: Have callback URL for provider registration
+  - Value: `https://yplrq4hy08.execute-api.us-east-1.amazonaws.com/oauth/callback`
+  - Acceptance: Have callback URL for provider registration ✅
 
-- [ ] **Register OAuth apps with providers**
-  - YNAB: Register app at https://app.ynab.com/settings/developer
-  - YNAB: Set redirect URI to callback URL
-  - Plaid: Configure redirect URI in Plaid dashboard
-  - Acceptance: Providers accept our callback URL
+- [x] **Register OAuth apps with providers**
+  - YNAB: Register app at https://app.ynab.com/settings/developer ✅
+  - YNAB: Set redirect URI to callback URL ✅
+  - Plaid: Configure redirect URI in Plaid dashboard ✅
+  - Acceptance: Providers accept our callback URL ✅
 
-### Step 2: Build OAuth Initiation Flow
+- [x] **BONUS: Create YNAB integration test**
+  - File: `packages/ynab/scripts/test-integration.ts`
+  - Tests: Connection, accounts, transactions, balances, data validation
+  - Usage: `export YNAB_ACCESS_TOKEN=xxx && yarn workspace @nueink/ynab test:integration`
+  - Acceptance: YNAB integration validated end-to-end ✅
+
+### Step 2: Build OAuth Initiation Flow ⏭️ NEXT
 
 **Goal:** User clicks "Connect YNAB" → redirects to provider → returns to app
 
