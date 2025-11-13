@@ -1,6 +1,8 @@
 import type { PostConfirmationTriggerHandler } from 'aws-lambda';
 import { env } from '$amplify/env/post-confirmation';
-import { NueInkRepositoryFactory, CloudWatchMetricsService } from '@nueink/aws';
+// Lambda-only imports (not exported from main @nueink/aws package)
+import { NueInkRepositoryFactory } from '@nueink/aws/repositories';
+import { CloudWatchMetricsService } from '@nueink/aws/services';
 import { STANDARD_DIMENSIONS } from '@nueink/core';
 import { initializeAmplifyClient } from '../../shared/initializeClient';
 
