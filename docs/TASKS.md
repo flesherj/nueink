@@ -498,299 +498,262 @@
 
 **Why:** Real-time UX ("Instagram for Finances"), event-driven architecture learning, scalable foundation
 
-**Architecture Decisions (Nov 11, 2025):**
+**Architecture Decisions (Nov 11-13, 2025):**
 - ✅ EventBridge for event routing (not SQS)
 - ✅ AppSync subscriptions for real-time updates (not custom WebSocket)
-- ✅ Direct to Transaction table (cache tables added later if needed)
+- ✅ Direct to Transaction/FinancialAccount tables (cache tables added later if needed)
 - ✅ MetricsService with CloudWatch EMF (free metrics, operational visibility)
 - ✅ User-triggered + scheduled background sync
+- ✅ Provider factory pattern (YnabProviderFactory, PlaidProviderFactory)
+- ✅ Single flexible sync Lambda (not separate enqueue/worker)
+- ✅ Secrets Manager for OAuth tokens (not Parameter Store)
+- ✅ Account deduplication (couples/families support)
+
+**What We Actually Built (Nov 11-13):**
+- ✅ IntegrationConfig model (stores provider connections)
+- ✅ OAuth callback handler (financial-connect Lambda)
+- ✅ Flexible sync handler (financial-sync Lambda - scheduled/single/bulk)
+- ✅ Account deduplication logic (prevents duplicate accounts in orgs)
+- ✅ EventBridge schedule (every 4 hours)
+- ✅ HTTP API Gateway for OAuth callbacks
+- ✅ Domain-based function organization
 
 **Success Criteria:**
-- ✅ EventBridge triggers sync every 15 minutes (configurable)
-- ✅ Lambdas process users in parallel (auto-scale)
-- ✅ YNAB data syncs to Transaction table directly
-- ✅ Metrics published to CloudWatch (EMF)
-- ✅ Real-time UI updates via AppSync (Transaction.onCreate subscription)
-- ✅ User sees transactions appear without pull-to-refresh
+- ✅ EventBridge triggers sync every 4 hours ✓
+- ✅ Lambda processes users in parallel (auto-scale) ✓
+- ✅ Account deduplication for shared orgs ✓
+- ⏭️ OAuth flow (frontend initiation) - Next
+- ⏭️ YNAB/Plaid data syncs to tables - Next
+- ⏭️ Metrics published to CloudWatch (EMF) - Partial
+- ⏭️ Real-time UI updates via AppSync subscriptions - Later
+- ⏭️ User sees transactions appear without pull-to-refresh - Later
 
-### 1.1 Data Models for Sync
+### 1.1 Data Models for Sync ✅ COMPLETE
 
-**📋 Model Review Findings (Nov 11, 2025):**
+**Status: ✅ Complete (Nov 11-13, 2025)**
 
-**Transaction Model - Status: ✅ 90% Ready**
-- ✅ Has `externalTransactionId` (for deduplication)
-- ✅ Has `provider` field (FinancialProvider enum)
-- ✅ Has `financialAccountId` (links to account)
-- ❌ **Missing:** `syncedAt` timestamp (when last synced from provider)
-- 💡 Note: `provider` field can serve as syncSource (no separate field needed)
+**What Was Built:**
+- ✅ IntegrationConfig model created (stores OAuth tokens in Secrets Manager)
+- ✅ Transaction model ready (has externalTransactionId, provider, syncedAt)
+- ✅ FinancialAccount model ready (has externalAccountId, provider)
+- ✅ All models in Amplify schema
+- ✅ Repositories implemented (IntegrationConfigRepository, FinancialAccountRepository)
+- ✅ IntegrationConfigService with token management
 
-**FinancialAccount Model - Status: ✅ 95% Ready**
-- ✅ Has `externalAccountId` (provider's account ID)
-- ✅ Has `provider` field (FinancialProvider enum)
-- ✅ Has `currentBalance` and `availableBalance`
-- ✅ Has `status` field (can mark as syncing/active/error)
-- 💡 Note: Very minimal changes needed
+**Commits:**
+- Add IntegrationConfig repository and service layer
+- Add generic secret management infrastructure
+- Update FinancialService to use IntegrationConfig and token management
 
-**Missing Model - IntegrationConfig:**
-- ❌ Need new model to store user's integration credentials
-- Fields needed: accountId, provider, accessToken, refreshToken, lastSyncAt, status, createdAt, updatedAt
+### 1.2 OAuth Callback Handler ✅ COMPLETE
+
+**Status: ✅ Complete (Nov 13, 2025)**
+
+**What Was Built:**
+- ✅ Financial connect Lambda (financial-connect)
+- ✅ HTTP API Gateway endpoint (/oauth/callback)
+- ✅ OAuth token exchange (YNAB, Plaid)
+- ✅ Token storage in Secrets Manager
+- ✅ IntegrationConfig creation/update
+- ✅ Metrics tracking (OAuth success/failure)
+- ✅ Error handling and redirects
+
+**Location:** `packages/aws/amplify/functions/financial/connect/`
+
+**Commits:**
+- Phase 2: OAuth callback handler and token management
+- Refactor: Organize Lambda functions by business domain
+
+### 1.3 Financial Sync Handler ✅ COMPLETE
+
+**Status: ✅ Complete (Nov 13, 2025)**
+
+**What Was Built:**
+- ✅ Flexible sync Lambda (scheduled/single/bulk invocation)
+- ✅ Provider factory pattern (YnabProviderFactory, PlaidProviderFactory)
+- ✅ Sync providers (YnabSyncProvider, PlaidSyncProvider)
+- ✅ Account deduplication (couples/families support)
+- ✅ EventBridge schedule (every 4 hours)
+- ✅ Metrics tracking (sync duration, success/failure, accounts synced)
+- ✅ Parallel sync execution
+- ✅ Graceful error handling (one failure doesn't stop all syncs)
+
+**Location:** `packages/aws/amplify/functions/financial/sync/`
+
+**Event Structure:**
+```typescript
+// Sync all active: {}
+// Sync specific: { integrations: [{ accountId, provider }, ...] }
+```
+
+**Commits:**
+- Phase 3: Financial sync Lambda with provider factory pattern
+- Refactor: Flexible sync invocation (scheduled/single/bulk)
+- Add account deduplication to financial sync
+
+### 1.2-1.6 (Original Plan) - ❌ SKIPPED
+
+**Reason:** Built simpler architecture than originally planned
+
+**What We Skipped:**
+- ~~1.2 Lambda Integration Factory~~ (used ProviderFactory pattern instead)
+- ~~1.3 Parameter Store Service~~ (used Secrets Manager directly)
+- ~~1.4 Enqueue Lambda~~ (single flexible Lambda instead)
+- ~~1.5 Sync Worker Lambda~~ (financial-sync handles this)
+- ~~1.6 EventBridge Configuration~~ (already configured in backend.ts)
 
 ---
 
-- [x] **Review existing Transaction model** (Nov 11 - DONE)
-  - ✅ Checked: `packages/core/models/Transaction.ts`
-  - ✅ Checked: `packages/aws/models/Transaction.ts`
-  - ✅ Verified fields support sync (mostly ready!)
-  - Acceptance: Know what needs to be added
+## 🎯 Critical Path to MVP (What's Actually Needed Next)
 
-- [ ] **Extend Transaction model** (Tonight)
-  - Add: `syncedAt?: Date` (timestamp of last sync)
-  - Note: `provider` field already serves as syncSource
-  - Note: `externalTransactionId` already exists for deduplication
-  - Update: Amplify schema
-  - Acceptance: Model supports sync metadata
+**Current State (Nov 13, 2025):**
+- ✅ Backend: OAuth callback handler ready
+- ✅ Backend: Sync handler ready with deduplication
+- ❌ Frontend: Cannot initiate OAuth (missing)
+- ❌ Frontend: Cannot display synced data (missing)
+- ❌ Config: Amplify secrets not set (blocking)
 
-- [ ] **Create IntegrationConfig model**
-  - File: `packages/aws/models/IntegrationConfig.ts`
-  - Fields: userId, provider, credentials (encrypted), enabled, lastSyncAt, createdAt, updatedAt
-  - Create entity type
-  - Acceptance: TypeScript interface defined
+**Critical Path Order:**
 
-- [ ] **Add IntegrationConfig to Amplify schema**
-  - File: `packages/aws/amplify/data/resource.ts`
-  - Add IntegrationConfig model definition
-  - Set authorization rules (owner-based)
-  - Add index: userId (for querying user's integrations)
-  - Acceptance: Schema compiles
+### Step 1: Configure Amplify Secrets ⏭️ NEXT
 
-- [ ] **Generate types**
-  - Run: `yarn sandbox:dev` to generate types
-  - Verify: Generated types in `amplify_outputs.json`
-  - Acceptance: No TypeScript errors
+**Blocking:** OAuth flow cannot work without provider credentials
 
-- [ ] **Commit data models**
-  - Message: "Add IntegrationConfig and extend Transaction for sync"
-  - Include: Model files, schema updates
+- [ ] **Set YNAB secrets**
+  - Command: `npx ampx sandbox secret set YNAB_CLIENT_ID`
+  - Command: `npx ampx sandbox secret set YNAB_CLIENT_SECRET`
+  - Command: `npx ampx sandbox secret set YNAB_TOKEN_URL`
+  - Command: `npx ampx sandbox secret set YNAB_REDIRECT_URI`
+  - Values: From YNAB OAuth app registration
+  - Acceptance: Secrets stored in Amplify
 
-### 1.2 Lambda Integration Factory
+- [ ] **Set Plaid secrets**
+  - Command: `npx ampx sandbox secret set PLAID_CLIENT_ID`
+  - Command: `npx ampx sandbox secret set PLAID_SECRET`
+  - Command: `npx ampx sandbox secret set PLAID_ENVIRONMENT`
+  - Values: From Plaid dashboard
+  - Acceptance: Secrets stored in Amplify
 
-- [ ] **Create Lambda factory**
-  - File: `packages/aws/functions/shared/LambdaFinancialIntegrationFactory.ts`
-  - Extend: `FinancialIntegrationFactory` from core
-  - Implement: `createYnabIntegration()`
-  - Implement: `createPlaidIntegration()`
-  - Implement: `createManualIntegration()` as stub
-  - Acceptance: Factory instantiates integrations
-
-- [ ] **Test factory**
-  - Create test script
-  - Verify YNAB integration works
-  - Acceptance: Can create and use integrations
-
-- [ ] **Commit factory**
-  - Message: "Add Lambda integration factory"
-
-### 1.3 Parameter Store Service
-
-- [ ] **Create ParameterStoreService**
-  - File: `packages/aws/services/ParameterStoreService.ts`
-  - Method: `getProviderConfig(provider)` - global config
-  - Method: `getUserCredentials(userId, provider)` - encrypted credentials
-  - Method: `saveUserCredentials(userId, provider, creds)` - with encryption
-  - Use: AWS Systems Manager client
-  - Acceptance: Can read/write parameters
-
-- [ ] **Document parameter naming**
-  - Add comments with naming convention
-  - Global: `/nueink/{provider}/config`
-  - User: `/nueink/{userId}/{provider}/credentials`
-  - Acceptance: Clear documentation
-
-- [ ] **Commit Parameter Store service**
-  - Message: "Add Parameter Store service for credentials"
-
-### 1.4 Enqueue Lambda
-
-- [ ] **Create Lambda directory**
-  - Create: `packages/aws/amplify/functions/enqueue-sync-users/`
-  - Acceptance: Directory exists
-
-- [ ] **Create Lambda resource**
-  - File: `resource.ts`
-  - Use: `defineFunction()`
-  - Configure: EventBridge schedule (every 15 min)
-  - Acceptance: Function defined
-
-- [ ] **Implement Lambda handler**
-  - File: `handler.ts`
-  - Logic:
-    1. Query all users with enabled integrations
-    2. For each user: publish `user.sync.requested` event
-    3. Use EventBridgePublisher
-    4. Log counts
-  - Acceptance: Handler compiles
-
-- [ ] **Test Lambda locally**
-  - Create test event
-  - Run handler
-  - Verify events published
-  - Acceptance: Works as expected
-
-- [ ] **Add to backend**
-  - File: `packages/aws/amplify/backend.ts`
-  - Import and add function
-  - Acceptance: Backend compiles
-
-- [ ] **Commit enqueue Lambda**
-  - Message: "Add enqueue-sync-users Lambda"
-
-### 1.5 Sync Worker Lambda
-
-- [ ] **Create Lambda directory**
-  - Create: `packages/aws/amplify/functions/sync-user-data/`
-  - Acceptance: Directory exists
-
-- [ ] **Create Lambda resource**
-  - File: `resource.ts`
-  - Use: `defineFunction()`
-  - Configure: EventBridge trigger (user.sync.requested)
-  - Acceptance: Function defined
-
-- [ ] **Implement Lambda handler**
-  - File: `handler.ts`
-  - Logic:
-    1. Receive event with userId, provider
-    2. Load IntegrationConfig from DynamoDB
-    3. Create FinancialService with factory
-    4. Call `syncUserData(config)`
-    5. Save results to cache tables
-    6. Publish CloudWatch metrics
-  - Use: MetricsService for metrics
-  - Error handling: Catch and log errors
-  - Acceptance: Handler compiles
-
-- [ ] **Test Lambda locally**
-  - Create test event
-  - Mock DynamoDB data
-  - Run handler
-  - Verify sync logic
-  - Acceptance: Works with test data
-
-- [ ] **Add to backend**
-  - File: `packages/aws/amplify/backend.ts`
-  - Import and add function
-  - Acceptance: Backend compiles
-
-- [ ] **Commit sync worker**
-  - Message: "Add sync-user-data worker Lambda"
-
-### 1.6 EventBridge Configuration
-
-- [ ] **Add EventBridge to backend**
-  - File: `packages/aws/amplify/backend.ts`
-  - Create or use default event bus
-  - Acceptance: Event bus configured
-
-- [ ] **Add schedule rule**
-  - Create rule: Trigger enqueue-sync-users every 15 min
-  - Expression: `rate(15 minutes)`
-  - Target: enqueue-sync-users Lambda
-  - Acceptance: Rule created
-
-- [ ] **Add event rule**
-  - Create rule: Route `user.sync.requested` to sync-user-data
-  - Pattern: `{ "source": ["nueink.sync"], "detail-type": ["user.sync.requested"] }`
-  - Target: sync-user-data Lambda
-  - Acceptance: Rule created
-
-- [ ] **Grant permissions**
-  - enqueue-sync-users: Can publish events
-  - sync-user-data: Can be invoked by EventBridge
-  - Both: Can access DynamoDB tables
-  - Acceptance: IAM policies configured
-
-- [ ] **Commit EventBridge config**
-  - Message: "Configure EventBridge for sync orchestration"
-
-### 1.7 Real-Time Client Integration
-
-- [ ] **Add AppSync subscription to native app**
-  - File: `apps/native/app/(protected)/transactions/index.tsx` (or wherever)
-  - Subscribe: `client.models.Transaction.onCreate()`
-  - Filter: By organizationId
-  - Update: State to add new transactions at top
-  - Acceptance: Transactions appear in real-time
-
-- [ ] **Test real-time flow**
-  - Manually insert Transaction record
-  - Verify: Appears in app immediately (no refresh)
-  - Acceptance: Real-time updates work
-
-- [ ] **Add loading states**
-  - Show: "Syncing..." indicator when sync triggered
-  - Show: Success toast when sync completes
-  - Handle: Offline/error states
-  - Acceptance: Good UX
-
-- [ ] **Commit real-time UI**
-  - Message: "Add real-time transaction updates via AppSync"
-
-### 1.8 Testing & Validation
-
-- [ ] **Create YNAB test script**
-  - File: `packages/ynab/scripts/test-integration.ts`
-  - Use real YNAB token (from env var)
-  - Test: `getStatus()` - verify connection
-  - Test: `getAccounts()` - fetch accounts
-  - Test: `getTransactions()` - fetch last 30 days
-  - Verify: Converters work (milliunits → cents)
-  - Log: Results to console
-  - Acceptance: Script runs successfully
-
-- [ ] **Insert test IntegrationConfig**
-  - Manually create IntegrationConfig in DynamoDB
-  - Use your YNAB credentials
-  - Enable: true
-  - Acceptance: Test record exists
-
-- [ ] **Deploy to sandbox**
+- [ ] **Get OAuth callback URL**
   - Run: `yarn sandbox:dev`
-  - Verify: All Lambdas deployed
-  - Verify: EventBridge rules created
-  - Acceptance: Sandbox running
+  - Find: CloudFormation output `OAuthCallbackUrl`
+  - Value: `https://{api-id}.execute-api.{region}.amazonaws.com/oauth/callback`
+  - Acceptance: Have callback URL for provider registration
 
-- [ ] **Trigger enqueue Lambda manually**
-  - Use AWS Console or CLI
-  - Invoke enqueue-sync-users
-  - Check CloudWatch Logs
-  - Acceptance: Events published
+- [ ] **Register OAuth apps with providers**
+  - YNAB: Register app at https://app.ynab.com/settings/developer
+  - YNAB: Set redirect URI to callback URL
+  - Plaid: Configure redirect URI in Plaid dashboard
+  - Acceptance: Providers accept our callback URL
 
-- [ ] **Verify sync worker runs**
-  - Check CloudWatch Logs for sync-user-data
-  - Verify: Data in Transaction table
-  - Verify: Metrics in CloudWatch
-  - Verify: Real-time update in app
-  - Acceptance: End-to-end flow works
+### Step 2: Build OAuth Initiation Flow
 
-- [ ] **Create CloudWatch dashboard**
-  - Metrics: Sync success rate, duration P95, error count by provider
-  - Graphs: 24hr, 7d, 30d views
+**Goal:** User clicks "Connect YNAB" → redirects to provider → returns to app
+
+- [ ] **Create Connect Accounts screen**
+  - File: `apps/native/app/(protected)/settings/connect-accounts.tsx`
+  - UI: List of providers (YNAB, Plaid) with "Connect" buttons
+  - Show: Connection status (connected/not connected)
+  - Acceptance: User can see available providers
+
+- [ ] **Implement OAuth initiation**
+  - File: `packages/core/services/oauth/FinancialOAuthService.ts` (if needed)
+  - Method: `initiateOAuth(provider, accountId, organizationId)`
+  - Build URL: `${providerAuthUrl}?client_id=...&redirect_uri=...&state=${accountId}:${provider}:${organizationId}`
+  - Action: Open browser to OAuth URL (Expo WebBrowser.openAuthSessionAsync)
+  - Acceptance: User redirected to provider login
+
+- [ ] **Handle OAuth return**
+  - Use: Expo Linking to capture deep link
+  - Parse: `myapp://oauth-success?provider=ynab`
+  - Action: Trigger immediate sync for that user
+  - UI: Show success message
+  - Acceptance: User returns to app after OAuth
+
+- [ ] **Test OAuth flow end-to-end**
+  - Start: Click "Connect YNAB"
+  - OAuth: Login to YNAB, authorize
+  - Return: Back to app
+  - Verify: IntegrationConfig created in DynamoDB
+  - Verify: Tokens stored in Secrets Manager
+  - Acceptance: Complete OAuth flow works
+
+### Step 3: Display Synced Data
+
+**Goal:** User sees their accounts and transactions in the app
+
+- [ ] **Create Accounts list screen**
+  - File: `apps/native/app/(protected)/accounts/index.tsx`
+  - Query: `client.models.FinancialAccount.list({ filter: { organizationId: { eq: orgId } } })`
+  - Display: Account name, mask, type, current balance
+  - Group: By provider or institution
+  - Acceptance: Synced accounts appear in UI
+
+- [ ] **Create Account detail screen**
+  - File: `apps/native/app/(protected)/accounts/[id].tsx`
+  - Show: Account details, current balance, available balance
+  - Show: Recent transactions for this account
+  - Action: "Refresh balance" button (triggers sync)
+  - Acceptance: Can view account details
+
+- [ ] **Create Transactions feed**
+  - File: `apps/native/app/(protected)/transactions/index.tsx`
+  - Query: `client.models.Transaction.list({ filter: { organizationId: { eq: orgId } } })`
+  - Sort: By date descending
+  - Display: Date, merchant, amount, account
+  - Pagination: Load more as user scrolls
+  - Acceptance: Synced transactions appear in UI
+
+- [ ] **Add pull-to-refresh**
+  - Action: Trigger sync for user's integrations
+  - UI: Show loading indicator
+  - Update: Refresh data after sync completes
+  - Acceptance: User can manually refresh data
+
+- [ ] **Test data display end-to-end**
+  - Setup: Complete OAuth for YNAB
+  - Wait: For scheduled sync OR trigger manual sync
+  - Verify: Accounts appear in accounts list
+  - Verify: Transactions appear in feed
+  - Verify: Balances are correct
+  - Acceptance: Can see real financial data
+
+### Step 4: End-to-End Validation
+
+- [ ] **Test complete user journey**
+  1. User creates account (Cognito signup)
+  2. User clicks "Connect YNAB"
+  3. User completes OAuth
+  4. User sees "Syncing..." message
+  5. User sees accounts appear
+  6. User sees transactions appear
+  7. User can pull-to-refresh
+  - Acceptance: Complete journey works
+
+- [ ] **Test scheduled sync**
+  - Wait: 4 hours OR manually invoke financial-sync Lambda
+  - Verify: New transactions appear
+  - Verify: Balances updated
+  - Acceptance: Scheduled sync works
+
+- [ ] **Test couples scenario**
+  - User A: Connects Chase account
+  - User B: Connects same Chase account (same org)
+  - Verify: Account NOT duplicated
+  - Verify: Both users see same account
+  - Verify: Transactions deduplicated
+  - Acceptance: Deduplication works
+
+- [ ] **Check CloudWatch metrics**
+  - Verify: OAUTH_CALLBACK_SUCCESS metrics
+  - Verify: SYNC_SUCCESS metrics
+  - Verify: ACCOUNTS_SYNCED metrics
   - Acceptance: Operational visibility
 
-- [ ] **Verify data quality**
-  - Query Transaction table
-  - Verify: Amounts in cents
-  - Verify: Dates correct
-  - Verify: No duplicates (externalId working)
-  - Acceptance: Data looks correct
-
-- [ ] **Commit testing**
-  - Message: "Sync system tested and working end-to-end"
-  - Include: Test scripts, documentation
-
-- [ ] **Mark Phase 1 complete**
-  - Update progress
-  - Document completion date
+- [ ] **Document any issues**
+  - Create: Issue for each bug found
+  - Prioritize: Critical vs nice-to-have
+  - Acceptance: Known issues tracked
 
 ---
 
