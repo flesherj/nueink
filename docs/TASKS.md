@@ -1019,6 +1019,121 @@
   - Update progress
   - Document completion date
 
+### 1.9.4 Explicit Account Selection (Option B Architecture)
+
+**Goal:** User explicitly selects which accounts to sync (privacy & control)
+
+**Scheduled:** After basic UI displays synced data (Phase 2 or later)
+
+**Why Deferred:**
+- Current architecture doesn't prevent this change
+- Clean migration path (backfill existing as "all selected")
+- Requires frontend account picker UI (significant work)
+- Better to validate core value prop first
+
+**Architectural Decision (Nov 13, 2025):**
+- ✅ Current MVP: Sync all accessible accounts (acceptable for early users)
+- ✅ Option B: User picks accounts during connect flow (privacy-focused)
+- ✅ Migration: Backfill `selectedAccountIds` with existing accounts
+- ✅ YNAB: Can detect new accounts, notify user to opt-in
+- ✅ Plaid: Requires Update Mode re-link to add accounts
+
+**Time Estimate:** 1-2 days
+
+**Tasks:**
+
+- [ ] **Add selectedAccountIds to IntegrationConfig**
+  - File: `packages/aws/amplify/data/resource.ts`
+  - Add: `selectedAccountIds: a.string().array()`
+  - Purpose: Store which accounts user chose to sync
+  - Acceptance: Schema compiles
+
+- [ ] **Update IntegrationConfigService**
+  - File: `packages/core/services/IntegrationConfigService.ts`
+  - Add: `updateSelectedAccounts(integrationId, accountIds)` method
+  - Add: `isAccountSelected(integrationId, externalAccountId)` helper
+  - Acceptance: Can manage selected accounts
+
+- [ ] **Create account picker UI**
+  - File: `apps/native/app/(protected)/connect/account-picker.tsx`
+  - Show: List of all accessible accounts from provider
+  - UI: Checkboxes for each account
+  - Action: Store selected IDs in IntegrationConfig
+  - Acceptance: User can choose which accounts to sync
+
+- [ ] **Update financial-connect handler**
+  - File: `packages/aws/amplify/functions/financial/connect/handler.ts`
+  - After OAuth: Fetch all available accounts
+  - Store: All account metadata temporarily
+  - Redirect: To account picker UI (not direct to app)
+  - Acceptance: User sees picker after OAuth
+
+- [ ] **Filter sync to selected accounts**
+  - File: `packages/aws/amplify/functions/financial/sync/handler.ts`
+  - Load: `selectedAccountIds` from IntegrationConfig
+  - Filter: Only sync accounts in selected list
+  - Acceptance: Only chosen accounts sync
+
+- [ ] **Implement new account detection (YNAB only)**
+  - File: `packages/aws/amplify/functions/financial/sync/handler.ts`
+  - Logic:
+    ```typescript
+    if (provider === 'ynab') {
+      const allAccounts = await integration.getAccounts();
+      const selected = config.selectedAccountIds;
+      const newAccounts = allAccounts.filter(
+        a => !selected.includes(a.externalAccountId)
+      );
+      if (newAccounts.length > 0) {
+        await notificationService.send({
+          type: 'NEW_ACCOUNT_DETECTED',
+          accounts: newAccounts
+        });
+      }
+    }
+    ```
+  - Acceptance: User notified of new YNAB accounts
+
+- [ ] **Create "Refresh Connections" UI**
+  - File: `apps/native/app/(protected)/settings/connections.tsx`
+  - Button: "Add more accounts from [Bank]"
+  - Action: Re-launch OAuth flow (Plaid Update Mode)
+  - Acceptance: User can add accounts later
+
+- [ ] **Add notification types**
+  - NEW_ACCOUNT_DETECTED (YNAB)
+  - REFRESH_CONNECTIONS_REMINDER (Plaid - quarterly)
+  - Acceptance: Notification system supports account discovery
+
+- [ ] **Backfill existing integrations**
+  - Script: One-time migration
+  - Logic: Set `selectedAccountIds` = all currently synced accounts
+  - Assumption: Existing users wanted everything they synced
+  - Acceptance: No data loss, smooth transition
+
+- [ ] **Update documentation**
+  - Privacy policy: Explain explicit opt-in
+  - Help docs: How to add/remove accounts
+  - Acceptance: Users understand control
+
+- [ ] **Testing**
+  - Test: YNAB new account detection
+  - Test: Plaid Update Mode flow
+  - Test: Account picker UI with 1, 5, 20 accounts
+  - Test: Deselecting accounts stops sync
+  - Acceptance: All flows work correctly
+
+- [ ] **Mark 1.9.4 complete**
+  - Update progress
+  - Document completion date
+
+**Success Criteria:**
+- ✅ Users explicitly choose which accounts to sync
+- ✅ YNAB users notified of new accounts (opt-in prompt)
+- ✅ Plaid users can add accounts via Update Mode
+- ✅ Privacy-focused UX (user control over data)
+- ✅ Existing users migrated without disruption
+
 ---
 
 ## 📋 Phase 2: Social Financial Feed (Weeks 3-4)
