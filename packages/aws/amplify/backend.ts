@@ -2,8 +2,8 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { postConfirmation } from './auth/post-confirmation/resource';
-import { oauthCallback } from './functions/oauth-callback/resource';
-import { financialSync } from './functions/financial-sync/resource';
+import { financialConnect } from './functions/financial/connect/resource';
+import { financialSync } from './functions/financial/sync/resource';
 import { createEventBus } from './events/resource';
 import { HttpApi, HttpMethod, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -18,7 +18,7 @@ const backend = defineBackend({
   auth,
   data,
   postConfirmation,
-  oauthCallback,
+  financialConnect,
   financialSync,
 });
 
@@ -67,17 +67,17 @@ const httpApi = new HttpApi(oauthStack, 'OAuthHttpApi', {
   },
 });
 
-// Create Lambda integration for oauth-callback function
-const oauthIntegration = new HttpLambdaIntegration(
-  'OAuthCallbackIntegration',
-  backend.oauthCallback.resources.lambda
+// Create Lambda integration for financial-connect function
+const financialConnectIntegration = new HttpLambdaIntegration(
+  'FinancialConnectIntegration',
+  backend.financialConnect.resources.lambda
 );
 
 // Add GET /oauth/callback route
 httpApi.addRoutes({
   path: '/oauth/callback',
   methods: [HttpMethod.GET],
-  integration: oauthIntegration,
+  integration: financialConnectIntegration,
 });
 
 // Output the API URL for configuration

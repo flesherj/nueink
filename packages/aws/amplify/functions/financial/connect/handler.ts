@@ -1,5 +1,5 @@
 import type { APIGatewayProxyHandler, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { env } from '$amplify/env/oauth-callback';
+import { env } from '$amplify/env/financial-connect';
 import {
   NueInkRepositoryFactory,
   CloudWatchMetricsService,
@@ -14,7 +14,7 @@ import {
 } from '@nueink/core';
 import { YnabOAuthProvider } from '@nueink/ynab';
 import { PlaidOAuthProvider } from '@nueink/plaid';
-import { initializeAmplifyClient } from '../../shared/initializeClient';
+import { initializeAmplifyClient } from '../../../shared/initializeClient';
 
 const client = await initializeAmplifyClient(env);
 const metrics = new CloudWatchMetricsService();

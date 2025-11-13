@@ -13,8 +13,8 @@ export const OAuthSecrets = {
   PLAID_ENVIRONMENT: 'PLAID_ENVIRONMENT', // sandbox | development | production
 } as const;
 
-export const oauthCallback = defineFunction({
-  name: 'oauth-callback',
+export const financialConnect = defineFunction({
+  name: 'financial-connect',
   timeoutSeconds: 30,
   environment: {
     YNAB_TOKEN_URL: secret(OAuthSecrets.YNAB_TOKEN_URL),

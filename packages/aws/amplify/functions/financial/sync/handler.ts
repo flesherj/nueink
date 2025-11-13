@@ -20,7 +20,7 @@ import {
 import { YnabProviderFactory } from '@nueink/ynab';
 import { PlaidProviderFactory } from '@nueink/plaid';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
-import { initializeAmplifyClient } from '../../shared/initializeClient';
+import { initializeAmplifyClient } from '../../../shared/initializeClient';
 
 // Initialize Amplify client
 const client = await initializeAmplifyClient(env);
