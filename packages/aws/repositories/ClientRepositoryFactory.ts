@@ -18,7 +18,11 @@ import type { AccountEntity } from '../models/Account';
  */
 export class ClientRepositoryFactory {
   private static _instance: ClientRepositoryFactory;
-  private client = generateClient<Schema>();
+  // Use Cognito user pool authentication (not API key)
+  // This allows owner-based authorization rules to work
+  private client = generateClient<Schema>({
+    authMode: 'userPool',
+  });
 
   private constructor() {}
 

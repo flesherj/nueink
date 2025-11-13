@@ -13,8 +13,7 @@
  */
 
 import { env } from '$amplify/env/financial-sync';
-// Lambda-only imports (not exported from main @nueink/aws package)
-import { NueInkRepositoryFactory } from '@nueink/aws/repositories';
+import { NueInkRepositoryFactory } from '@nueink/aws';
 import { CloudWatchMetricsService, SecretsManagerService } from '@nueink/aws/services';
 import {
   IntegrationConfigService,

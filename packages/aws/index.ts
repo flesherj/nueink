@@ -5,17 +5,15 @@
 
 export * from './models';
 export * from './NueInkAmplifyBuilder';
-export { ClientRepositoryFactory } from './repositories/ClientRepositoryFactory';
+export * from './repositories';  // Safe - uses Amplify Data client (GraphQL), not AWS SDK
 
 // ========================================
 // LAMBDA-ONLY EXPORTS (DO NOT USE IN REACT NATIVE)
 // ========================================
-// Lambda functions must import these directly:
-// - import { NueInkRepositoryFactory } from '@nueink/aws/repositories'
+// Lambda functions can import these directly if needed:
 // - import { SecretsManagerService } from '@nueink/aws/services'
 // - import { EventBridgePublisher } from '@nueink/aws/events/EventBridgePublisher'
 
-// DO NOT uncomment these or they will break React Native builds:
-// export * from './services';  // ← Contains AWS SDK dependencies
-// export * from './repositories';  // ← Contains AWS SDK dependencies
-// export * from './events';  // ← Contains AWS SDK dependencies
+// DO NOT uncomment - contains AWS SDK dependencies:
+// export * from './services';  // ← SecretsManagerService, CloudWatchMetricsService use AWS SDK
+// export * from './events';  // ← EventBridgePublisher uses AWS SDK

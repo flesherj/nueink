@@ -1,7 +1,6 @@
 import type { APIGatewayProxyHandler, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { env } from '$amplify/env/financial-connect';
-// Lambda-only imports (not exported from main @nueink/aws package)
-import { NueInkRepositoryFactory } from '@nueink/aws/repositories';
+import { NueInkRepositoryFactory } from '@nueink/aws';
 import { CloudWatchMetricsService, SecretsManagerService } from '@nueink/aws/services';
 import {
   IntegrationConfigService,

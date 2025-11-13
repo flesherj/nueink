@@ -1,5 +1,4 @@
 import type { PostAuthenticationTriggerHandler } from 'aws-lambda';
-// Lambda-only imports (not exported from main @nueink/aws package)
 import { CloudWatchMetricsService } from '@nueink/aws/services';
 import { STANDARD_DIMENSIONS } from '@nueink/core';
 

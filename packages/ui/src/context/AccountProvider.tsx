@@ -5,10 +5,10 @@ import React, {
   useContext,
   useEffect,
 } from 'react';
-import { AccountEntity } from '@nueink/aws';
+import { Account } from '@nueink/core';
 
 export type AccountProviderContextProps = {
-  account?: AccountEntity;
+  account?: Account;
 };
 
 export const AccountContext = createContext<AccountProviderContextProps>({
@@ -20,9 +20,7 @@ export type AccountProviderProps = {
 } & AccountProviderContextProps;
 
 export const AccountProvider = (props: AccountProviderProps) => {
-  const [account, setAccount] = useState<AccountEntity | undefined>(
-    props.account
-  );
+  const [account, setAccount] = useState<Account | undefined>(props.account);
   useEffect(() => {
     setAccount(props.account);
   }, [props.account]);
