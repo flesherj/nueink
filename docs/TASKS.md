@@ -683,14 +683,17 @@
   - Updated `.gitignore` to exclude .env files ✅
   - Fixed backend handler deep link: `myapp://` → `nueink://` ✅
 
-- [ ] **Test OAuth flow end-to-end** - Ready to test (requires .env setup)
-  - Setup: Copy `.env.example` to `.env` and add YNAB_CLIENT_ID
-  - Start: Click "Connect YNAB"
-  - OAuth: Login to YNAB, authorize
-  - Return: Back to app via nueink://oauth-success
-  - Verify: IntegrationConfig created in DynamoDB
-  - Verify: Tokens stored in Secrets Manager
-  - Acceptance: Complete OAuth flow works
+- [x] **Test OAuth flow end-to-end** ✅ COMPLETE
+  - Setup: Copy `.env.example` to `.env` and add YNAB_CLIENT_ID ✅
+  - Start: Click "Connect YNAB" ✅
+  - OAuth: Login to YNAB, authorize ✅
+  - Return: Back to app via nueink://oauth-success ✅
+  - Verify: IntegrationConfig created in DynamoDB ✅
+  - Verify: Tokens stored in Secrets Manager ✅
+  - Acceptance: Complete OAuth flow works ✅
+  - **Fixes applied:**
+    - Updated YNAB_REDIRECT_URI in SSM to match current API Gateway URL
+    - Added `secretsmanager:TagResource` permission to financial-connect Lambda IAM role
 
 ### Step 3: Display Synced Data ⏭️ NEXT
 

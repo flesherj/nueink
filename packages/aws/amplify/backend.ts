@@ -10,6 +10,7 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Duration } from 'aws-cdk-lib';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -21,6 +22,57 @@ const backend = defineBackend({
   financialConnect,
   financialSync,
 });
+
+// ========== Grant IAM Permissions to Financial Lambdas ==========
+
+// Create a dedicated stack for IAM permissions
+const iamStack = backend.createStack('nueink-iam-stack');
+
+// Grant financial-connect Lambda permission to read SSM parameters and manage Secrets Manager
+backend.financialConnect.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['ssm:GetParameter', 'ssm:GetParameters'],
+    resources: [`arn:aws:ssm:${iamStack.region}:${iamStack.account}:parameter/amplify/*`],
+  })
+);
+
+backend.financialConnect.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: [
+      'secretsmanager:CreateSecret',
+      'secretsmanager:GetSecretValue',
+      'secretsmanager:PutSecretValue',
+      'secretsmanager:UpdateSecret',
+      'secretsmanager:DescribeSecret',
+      'secretsmanager:TagResource',
+    ],
+    resources: [`arn:aws:secretsmanager:${iamStack.region}:${iamStack.account}:secret:nueink/integration/*`],
+  })
+);
+
+// Grant financial-sync Lambda permission to read SSM parameters and manage Secrets Manager
+backend.financialSync.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['ssm:GetParameter', 'ssm:GetParameters'],
+    resources: [`arn:aws:ssm:${iamStack.region}:${iamStack.account}:parameter/amplify/*`],
+  })
+);
+
+backend.financialSync.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: [
+      'secretsmanager:GetSecretValue',
+      'secretsmanager:PutSecretValue',
+      'secretsmanager:UpdateSecret',
+      'secretsmanager:DescribeSecret',
+    ],
+    resources: [`arn:aws:secretsmanager:${iamStack.region}:${iamStack.account}:secret:nueink/integration/*`],
+  })
+);
 
 // Create stack for custom resources (EventBridge, future Lambdas, etc.)
 const eventsStack = backend.createStack('nueink-events-stack');
@@ -39,8 +91,11 @@ const eventBus = createEventBus(eventsStack);
  */
 const syncStack = backend.createStack('nueink-sync-stack');
 
+// Extract sandbox identifier from stack name for resource namespacing
+const syncStackSuffix = syncStack.stackName.split('-').slice(-1)[0] || 'default';
+
 new Rule(syncStack, 'FinancialSyncSchedule', {
-  ruleName: 'nueink-financial-sync-schedule',
+  ruleName: `nueink-financial-sync-schedule-${syncStackSuffix}`,
   description: 'Triggers financial data sync every 4 hours',
   schedule: Schedule.rate(Duration.hours(4)), // Run every 4 hours
   targets: [new LambdaFunction(backend.financialSync.resources.lambda)],
@@ -55,11 +110,14 @@ new Rule(syncStack, 'FinancialSyncSchedule', {
  *
  * Endpoint: https://{api-id}.execute-api.{region}.amazonaws.com/oauth/callback
  */
-const oauthStack = backend.createStack('nueink-oauth-stack');
+const oauthStack = backend.createStack('nueink-oauth-api-stack');
+
+// Extract sandbox identifier from stack name for resource namespacing
+const stackSuffix = oauthStack.stackName.split('-').slice(-1)[0] || 'default';
 
 const httpApi = new HttpApi(oauthStack, 'OAuthHttpApi', {
-  apiName: 'nueink-oauth-api',
-  description: 'HTTP API for OAuth callbacks from financial providers',
+  apiName: `nueink-oauth-api-${stackSuffix}`,
+  description: 'HTTP API for OAuth callbacks from financial providers (YNAB, Plaid)',
   corsPreflight: {
     allowOrigins: ['*'],
     allowMethods: [CorsHttpMethod.GET],
@@ -81,8 +139,16 @@ httpApi.addRoutes({
 });
 
 // Output the API URL for configuration
-// This will be visible in CloudFormation outputs
+// This will be visible in CloudFormation outputs AND in amplify_outputs.json
 oauthStack.exportValue(httpApi.url!, {
   name: 'OAuthCallbackUrl',
   description: 'OAuth callback URL for YNAB/Plaid redirect_uri configuration',
+});
+
+// Add OAuth callback URL to amplify_outputs.json
+// This allows the mobile app to access the callback URL without hardcoding
+backend.addOutput({
+  custom: {
+    oauthCallbackUrl: `${httpApi.url!}oauth/callback`,
+  },
 });

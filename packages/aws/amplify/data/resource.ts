@@ -1,5 +1,7 @@
 import {type ClientSchema, a, defineData} from '@aws-amplify/backend';
 import {postConfirmation} from '../auth/post-confirmation/resource';
+import {financialConnect} from '../functions/financial/connect/resource';
+import {financialSync} from '../functions/financial/sync/resource';
 
 const schema = a.schema({
         Account: a.model({
@@ -260,7 +262,11 @@ const schema = a.schema({
                 index('provider')
             ]),
     })
-        .authorization((allow) => [allow.resource(postConfirmation)])
+        .authorization((allow) => [
+            allow.resource(postConfirmation),
+            allow.resource(financialConnect),
+            allow.resource(financialSync),
+        ])
 ;
 
 export type Schema = ClientSchema<typeof schema>;
