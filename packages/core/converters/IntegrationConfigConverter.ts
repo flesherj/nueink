@@ -17,8 +17,8 @@ export class IntegrationConfigConverter implements Converter<IntegrationConfigEn
       syncedAt: domain.syncedAt?.toISOString(),
       lastSyncError: domain.lastSyncError,
       syncEnabled: domain.syncEnabled,
-      createdAt: domain.createdAt.toISOString(),
-      updatedAt: domain.updatedAt.toISOString(),
+      createdAt: domain.createdAt?.toISOString(),
+      updatedAt: domain.updatedAt?.toISOString(),
       profileOwner: domain.profileOwner,
     };
   }
