@@ -25,6 +25,7 @@
     "typecheck:ynab": "yarn workspace @nueink/ynab typecheck",
     "sandbox:dev": "yarn workspace @nueink/aws ampx sandbox --profile solotech --identifier dev",
     "sandbox:dev:delete": "yarn workspace @nueink/aws ampx sandbox delete --profile solotech --identifier dev",
+    "sandbox:watch": "cd packages/aws && ./watch-packages.sh",
     "ios": "./apps/build.sh native ios",
     "ios:dev": "./apps/build.sh native ios dev",
     "ios:clean": "rm -Rf $(xcrun simctl get_app_container booted com.nueink.app data)",
