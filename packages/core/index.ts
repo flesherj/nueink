@@ -17,3 +17,6 @@ export * from './services';
 
 // Metrics configuration (platform-agnostic)
 export * from './config/metrics';
+
+// Utilities
+export * from './utils/aws';

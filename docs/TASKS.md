@@ -1,9 +1,9 @@
 # NueInk Development Tasks
 
-**Last Updated:** November 11, 2025
-**Project Status:** 🟡 Development (Architectural Refactoring Phase)
+**Last Updated:** November 14, 2025
+**Project Status:** 🟡 Development (OAuth Integration & Financial Sync)
 **Owner:** James Flesher
-**Current Phase:** Phase 0 - Architectural Foundation
+**Current Phase:** Phase 1 - Financial Data Integration
 
 ---
 
@@ -40,13 +40,13 @@
 
 **Foundation:** ██████████ 100% (Existing infrastructure reusable)
 **Phase 0 (Architecture):** ██████████ 100% ✅ (Completed Nov 11, 2025)
-**Phase 1 (Integration):** █░░░░░░░░░ 10% (Started - data model review)
+**Phase 1 (Integration):** ████░░░░░░ 40% (OAuth complete, account sync working)
 **Phase 2 (Social Feed):** ░░░░░░░░░░ 0%
 **Phase 3 (Intelligence):** ░░░░░░░░░░ 0%
 **Phase 4 (Receipts/Bills):** ░░░░░░░░░░ 0%
 **Phase 5 (Polish):** ░░░░░░░░░░ 0%
 
-**Timeline to MVP:** 5-7 weeks remaining
+**Timeline to MVP:** 4-6 weeks remaining
 
 ### Key Milestones
 
@@ -56,8 +56,10 @@
 - ✅ **YNAB Package** (Created integration foundation)
 - ✅ **Architectural Refactoring** (Nov 11 - Phase 0 complete)
 - ✅ **Phase 0 Complete** (Nov 11 - Clean architecture, TypeScript fixed)
-- 🔄 **Phase 1 Started** (Nov 11 - Data model review)
-- ⏭️ **First Transaction Sync** (Target: Week 2)
+- ✅ **Phase 1 Started** (Nov 11 - Data model review)
+- ✅ **OAuth Integration Complete** (Nov 14 - YNAB OAuth working)
+- ✅ **Financial Account Sync Working** (Nov 14 - 19 accounts synced)
+- 🔄 **Transaction Sync** (Next: Implement DynamoDB storage)
 - ⏭️ **Social Feed MVP** (Target: Week 4)
 - ⏭️ **Beta Launch** (Target: Week 8)
 
@@ -65,7 +67,27 @@
 
 ## 🚀 Current Sprint (Week 1: Nov 11-17, 2025)
 
-### Completed Today ✅
+### Completed Nov 14 ✅
+
+- [x] **OAuth Integration Complete** (Nov 14 - DONE)
+  - ✅ YNAB OAuth callback handler implemented
+  - ✅ OAuth tokens stored in Secrets Manager
+  - ✅ IntegrationConnected event published to EventBridge
+  - ✅ Mobile app OAuth flow working end-to-end
+
+- [x] **Financial Sync Infrastructure** (Nov 14 - DONE)
+  - ✅ EventBridge rules configured (schedule + event-driven)
+  - ✅ Financial sync Lambda triggered on integration connect
+  - ✅ Account sync working (19 YNAB accounts synced)
+  - ✅ Transaction sync fetching (258 transactions retrieved)
+  - ✅ Event bus naming fixed (sandbox ID resolution)
+
+- [x] **Build System Improvements** (Nov 14 - DONE)
+  - ✅ Added presandbox:dev script to clean stale JS files
+  - ✅ Fixed EventBridge rule naming (64-char limit)
+  - ✅ Sandbox utilities moved to shared folder
+
+### Completed Nov 11 ✅
 
 - [x] **Phase 0 - Complete architectural refactoring** (Nov 11 - DONE)
   - ✅ Repository pattern with generics (all 10 services)
@@ -82,22 +104,12 @@
   - Phase 1.9 and Parked Ideas added
   - Comprehensive task tracking
 
-### In Progress 🔄
+### Up Next ⏭️
 
-- [ ] **Phase 1.1 - Data model review** (Nov 11 - Started)
-  - ✅ Reviewed Transaction model
-  - ✅ Reviewed FinancialAccount model
-  - ⏭️ Document sync requirements (tonight)
-  - ⏭️ Create IntegrationConfig model (tonight)
-
-### Blocked 🚫
-
-*No blocked tasks currently*
-
-### Up Next (Tonight) ⏭️
-
-1. Add sync fields to Transaction model (syncedAt)
-2. Create IntegrationConfig model
+1. **Transaction DynamoDB Storage** - Implement transaction storage with deduplication
+2. **Transaction Sync Testing** - Verify transactions appear in DynamoDB
+3. **Mobile UI for Accounts** - Display synced financial accounts in app
+4. **Transaction Feed UI** - Show transactions in social feed format
 3. Update Amplify schema
 4. Begin Lambda integration factory
 

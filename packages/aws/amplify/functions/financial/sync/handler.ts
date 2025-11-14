@@ -20,6 +20,8 @@ import {
   type SyncDateRange,
   type ProviderFactory,
   type FinancialProvider,
+  type EventBridgeEvent,
+  extractDetail,
 } from '@nueink/core';
 import { YnabProviderFactory } from '@nueink/ynab';
 import { PlaidProviderFactory } from '@nueink/plaid';
@@ -304,16 +306,22 @@ const syncIntegration = async (
 
 /**
  * Main handler with flexible invocation support
+ * Handles both direct invocations and EventBridge events
  */
-export const handler = async (event: FinancialSyncEvent): Promise<void> => {
+export const handler = async (
+  event: FinancialSyncEvent | EventBridgeEvent<FinancialSyncEvent>
+): Promise<void> => {
   console.log('Starting financial sync', { event });
 
   try {
+    // Extract detail from EventBridge event or use direct invocation payload
+    const syncEvent = extractDetail(event);
+
     let targets: SyncTarget[] = [];
 
-    if (event.integrations) {
+    if (syncEvent.integrations) {
       // Specific integrations provided (single or bulk)
-      targets = event.integrations;
+      targets = syncEvent.integrations;
       console.log(`Syncing ${targets.length} specific integration(s)`);
     } else {
       // No integrations specified: sync all active integrations (scheduled behavior)

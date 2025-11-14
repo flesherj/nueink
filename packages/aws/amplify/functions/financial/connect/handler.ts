@@ -2,6 +2,7 @@ import type { APIGatewayProxyHandler, APIGatewayProxyEvent, APIGatewayProxyResul
 import { env } from '$amplify/env/financial-connect';
 import { NueInkRepositoryFactory } from '@nueink/aws';
 import { CloudWatchMetricsService, SecretsManagerService } from '@nueink/aws/services';
+import { EventBridgePublisher } from '@nueink/aws/events/EventBridgePublisher';
 import {
   IntegrationConfigService,
   STANDARD_DIMENSIONS,
@@ -12,9 +13,11 @@ import {
 import { YnabOAuthProvider } from '@nueink/ynab';
 import { PlaidOAuthProvider } from '@nueink/plaid';
 import { initializeAmplifyClient } from '../../../shared/initializeClient';
+import { Environment } from './Environment';
 
 const client = await initializeAmplifyClient(env);
 const metrics = new CloudWatchMetricsService();
+const eventPublisher = new EventBridgePublisher(Environment.eventBusName);
 
 // Initialize OAuth service with configured providers
 const oauthService = new FinancialOAuthService();
@@ -202,6 +205,30 @@ export const handler: APIGatewayProxyHandler = async (
       UserId: accountId,
       Provider: provider,
     });
+
+    // Publish event to trigger immediate sync
+    try {
+      await eventPublisher.publish({
+        Source: 'nueink.financial',
+        DetailType: 'IntegrationConnected',
+        Detail: JSON.stringify({
+          integrations: [{
+            accountId,
+            provider,
+          }],
+        }),
+      });
+      console.log(`Published IntegrationConnected event for ${accountId}/${provider}`);
+    } catch (error) {
+      // Don't fail the OAuth callback if event publishing fails
+      console.error('Failed to publish IntegrationConnected event:', error);
+
+      metrics.record('INTEGRATION_SYNC_TRIGGER_FAILURE', 1, {
+        UserId: accountId,
+        Provider: provider,
+        Status: STANDARD_DIMENSIONS.STATUS.FAILURE,
+      });
+    }
 
     // Redirect back to app with success (using nueink:// scheme from app.json)
     return redirectResponse(`nueink://oauth-success?provider=${provider}`);

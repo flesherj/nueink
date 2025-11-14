@@ -11,6 +11,7 @@ import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Duration } from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import { deriveShortIdFromStackName } from './shared/sandbox-utils';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -52,6 +53,14 @@ backend.financialConnect.resources.lambda.addToRolePolicy(
   })
 );
 
+backend.financialConnect.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['events:PutEvents'],
+    resources: [`arn:aws:events:${iamStack.region}:${iamStack.account}:event-bus/*`],
+  })
+);
+
 // Grant financial-sync Lambda permission to read SSM parameters and manage Secrets Manager
 backend.financialSync.resources.lambda.addToRolePolicy(
   new iam.PolicyStatement({
@@ -78,7 +87,10 @@ backend.financialSync.resources.lambda.addToRolePolicy(
 const eventsStack = backend.createStack('nueink-events-stack');
 
 // Create EventBridge event bus for sync orchestration
-const eventBus = createEventBus(eventsStack);
+// Bus name will be: nueink-events-{sandboxId} (e.g., nueink-events-dev-sandbox-371f35b233)
+// Lambdas can derive this from their function name at runtime
+// Pass the parent stack name to extract the sandbox ID
+const eventBus = createEventBus(eventsStack, backend.stack.stackName);
 
 // ========== Financial Sync Schedule ==========
 
@@ -91,13 +103,24 @@ const eventBus = createEventBus(eventsStack);
  */
 const syncStack = backend.createStack('nueink-sync-stack');
 
-// Extract sandbox identifier from stack name for resource namespacing
-const syncStackSuffix = syncStack.stackName.split('-').slice(-1)[0] || 'default';
+// EventBridge rules have a 64-character name limit
+// CDK's Rule construct ignores ruleName when stack names are long
+// So we use minimal construct IDs and let CDK auto-generate physical names
 
-new Rule(syncStack, 'FinancialSyncSchedule', {
-  ruleName: `nueink-financial-sync-schedule-${syncStackSuffix}`,
+new Rule(syncStack, 'Sch', {
   description: 'Triggers financial data sync every 4 hours',
   schedule: Schedule.rate(Duration.hours(4)), // Run every 4 hours
+  targets: [new LambdaFunction(backend.financialSync.resources.lambda)],
+});
+
+// Create rule to trigger sync when new integration is connected
+new Rule(syncStack, 'Con', {
+  description: 'Triggers immediate sync when user connects a financial provider',
+  eventBus: eventBus,
+  eventPattern: {
+    source: ['nueink.financial'],
+    detailType: ['IntegrationConnected'],
+  },
   targets: [new LambdaFunction(backend.financialSync.resources.lambda)],
 });
 

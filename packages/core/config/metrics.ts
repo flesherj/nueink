@@ -192,6 +192,13 @@ export const METRIC_DEFINITIONS = {
     description: 'Time to process OAuth callback'
   }),
 
+  INTEGRATION_SYNC_TRIGGER_FAILURE: defineMetric({
+    metricName: 'IntegrationSyncTriggerFailure',
+    dimensions: ['UserId', 'Provider', 'Status'] as const,
+    unit: 'Count',
+    description: 'Failed to trigger immediate sync after integration connection'
+  }),
+
   // ============================================
   // Engagement Metrics
   // ============================================

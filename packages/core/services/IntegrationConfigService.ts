@@ -92,7 +92,8 @@ export class IntegrationConfigService {
   };
 
   /**
-   * Store OAuth tokens for a new integration
+   * Store OAuth tokens for an integration
+   * Creates a new secret or updates existing one
    */
   public storeTokens = async (
     accountId: string,
@@ -102,14 +103,21 @@ export class IntegrationConfigService {
     const secretName = this.computeSecretName(accountId, provider);
     const secretValue = this.serializeTokens(tokens);
 
-    // Add tags for cost allocation, auditing, and compliance
-    const tags = {
-      AccountId: accountId,
-      Provider: provider,
-      Purpose: 'oauth-tokens',
-    };
+    // Check if secret already exists
+    const exists = await this.secretManager.secretExists(secretName);
 
-    await this.secretManager.storeSecret(secretName, secretValue, tags);
+    if (exists) {
+      // Update existing secret
+      await this.secretManager.updateSecret(secretName, secretValue);
+    } else {
+      // Create new secret with tags
+      const tags = {
+        AccountId: accountId,
+        Provider: provider,
+        Purpose: 'oauth-tokens',
+      };
+      await this.secretManager.storeSecret(secretName, secretValue, tags);
+    }
   };
 
   /**

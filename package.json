@@ -23,6 +23,7 @@
     "typecheck:plaid": "yarn workspace @nueink/plaid typecheck",
     "typecheck:ui": "yarn workspace @nueink/ui typecheck",
     "typecheck:ynab": "yarn workspace @nueink/ynab typecheck",
+    "presandbox:dev": "find packages/aws/amplify -name '*.js' -type f -delete && rm -f packages/aws/.amplify/tsconfig.tsbuildinfo",
     "sandbox:dev": "yarn workspace @nueink/aws ampx sandbox --profile solotech --identifier dev",
     "sandbox:dev:delete": "yarn workspace @nueink/aws ampx sandbox delete --profile solotech --identifier dev",
     "sandbox:watch": "cd packages/aws && ./watch-packages.sh",
