@@ -1,0 +1,61 @@
+import { ExpoConfig, ConfigContext } from '@expo/config';
+
+export default ({ config }: ConfigContext): ExpoConfig =>
+  ({
+    ...config,
+    name: 'NueInk',
+    slug: 'nueink',
+    scheme: 'nueink',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'automatic',
+    newArchEnabled: true,
+    splash: {
+      image: './assets/splash-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#30166B',
+    },
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: 'com.nueink.app',
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#30166B',
+      },
+      edgeToEdgeEnabled: true,
+      package: 'com.nueink.app',
+    },
+    web: {
+      favicon: './assets/favicon.png',
+    },
+    plugins: [
+      'expo-router',
+      'expo-font',
+      [
+        'expo-splash-screen',
+        {
+          backgroundColor: '#30166B',
+          image: './assets/splash-icon.png',
+          dark: {
+            image: './assets/splash-icon.png',
+            backgroundColor: '#30166B',
+          },
+          imageWidth: 200,
+        },
+      ],
+    ],
+    extra: {
+      router: {},
+      eas: {
+        projectId: '5aeff9d7-80a2-4d29-a63e-6f381cbc8936',
+      },
+      // Inject environment variables for OAuth configuration
+      env: process.env,
+    },
+  }) as ExpoConfig;

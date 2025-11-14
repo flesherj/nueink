@@ -1,17 +1,15 @@
-import {
-  AmplifyAccountRepository,
-  AmplifyMembershipRepository,
-  AmplifyOrganizationRepository,
-  AmplifyInstitutionRepository,
-  AmplifyFinancialAccountRepository,
-  AmplifyTransactionRepository,
-  AmplifyCommentRepository,
-  AmplifyPersonRepository,
-  AmplifyBudgetRepository,
-  AmplifyDebtRepository,
-  AmplifyIntegrationConfigRepository,
-  AmplifyDataClient,
-} from '.';
+import { AmplifyAccountRepository } from './AmplifyAccountRepository';
+import { AmplifyMembershipRepository } from './AmplifyMembershipRepository';
+import { AmplifyOrganizationRepository } from './AmplifyOrganizationRepository';
+import { AmplifyInstitutionRepository } from './AmplifyInstitutionRepository';
+import { AmplifyFinancialAccountRepository } from './AmplifyFinancialAccountRepository';
+import { AmplifyTransactionRepository } from './AmplifyTransactionRepository';
+import { AmplifyCommentRepository } from './AmplifyCommentRepository';
+import { AmplifyPersonRepository } from './AmplifyPersonRepository';
+import { AmplifyBudgetRepository } from './AmplifyBudgetRepository';
+import { AmplifyDebtRepository } from './AmplifyDebtRepository';
+import { AmplifyIntegrationConfigRepository } from './AmplifyIntegrationConfigRepository';
+import { AmplifyDataClient } from './types';
 
 /**
  * Repository type mapping for type-safe factory method

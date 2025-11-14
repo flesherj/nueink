@@ -2,9 +2,10 @@
 // Lambda functions should import interfaces from '@nueink/core'
 // import { AccountRepository, OrganizationRepository } from '@nueink/core';
 
-// Infrastructure (Lambda-only)
+// Infrastructure
 export * from './NueInkDataClientBuilder';
 export * from './NueInkRepositoryFactory';
+export * from './ClientRepositoryFactory';  // Client-safe factory for React Native
 export * from './types';
 
 // Repository implementations (Lambda-only)

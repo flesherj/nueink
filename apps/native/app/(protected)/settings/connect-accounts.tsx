@@ -4,21 +4,7 @@ import { Surface, Text, Button, Card, ActivityIndicator } from 'react-native-pap
 import { useAccountProvider } from '@nueink/ui';
 import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
-
-// OAuth configuration
-// Client IDs are public and safe to expose in frontend
-// Client secrets are stored in AWS Secrets Manager (backend only)
-const OAUTH_CONFIG = {
-  ynab: {
-    authUrl: 'https://app.ynab.com/oauth/authorize',
-    clientId: process.env.EXPO_PUBLIC_YNAB_CLIENT_ID || '',
-    redirectUri: process.env.EXPO_PUBLIC_OAUTH_REDIRECT_URI || '',
-  },
-  plaid: {
-    // Plaid uses Link SDK, different flow
-    // TODO: Implement Plaid Link integration
-  },
-};
+import Environment from '../../../models/Environment';
 
 export default function ConnectAccountsScreen() {
   const { account } = useAccountProvider();
@@ -42,11 +28,27 @@ export default function ConnectAccountsScreen() {
     try {
       setConnecting(provider);
 
-      const config = OAUTH_CONFIG[provider];
-      if (!config.clientId) {
+      // Get OAuth config from Environment (loaded from build-time SSM parameters)
+      const config = Environment.oauth;
+
+      console.log('OAuth config loaded from Environment:', {
+        ynabClientId: config.ynab.clientId.substring(0, 10) + '...',
+        callbackUrl: config.callbackUrl,
+        provider,
+      });
+
+      if (!config.ynab.clientId) {
         Alert.alert(
           'Configuration Error',
-          'OAuth client ID not configured. Please add EXPO_PUBLIC_YNAB_CLIENT_ID to .env'
+          'OAuth client ID not configured. Build the app with: yarn ios'
+        );
+        return;
+      }
+
+      if (!config.callbackUrl) {
+        Alert.alert(
+          'Configuration Error',
+          'OAuth callback URL not found. Ensure amplify_outputs.json exists.'
         );
         return;
       }
@@ -56,9 +58,9 @@ export default function ConnectAccountsScreen() {
       const state = `${account.accountId}:${provider}:${organizationId}`;
 
       // Build OAuth URL
-      const authUrl = `${config.authUrl}?${new URLSearchParams({
-        client_id: config.clientId,
-        redirect_uri: config.redirectUri,
+      const authUrl = `${config.ynab.authUrl}?${new URLSearchParams({
+        client_id: config.ynab.clientId,
+        redirect_uri: config.callbackUrl,
         response_type: 'code',
         state,
       }).toString()}`;

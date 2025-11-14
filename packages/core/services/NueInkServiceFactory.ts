@@ -1,16 +1,14 @@
 import { NueInkRepositoryFactory } from '@nueink/aws';
-import {
-  AccountService,
-  OrganizationService,
-  MembershipService,
-  InstitutionService,
-  FinancialAccountService,
-  TransactionService,
-  CommentService,
-  PersonService,
-  BudgetService,
-  DebtService,
-} from './';
+import { AccountService } from './AccountService';
+import { OrganizationService } from './OrganizationService';
+import { MembershipService } from './MembershipService';
+import { InstitutionService } from './InstitutionService';
+import { FinancialAccountService } from './FinancialAccountService';
+import { TransactionService } from './TransactionService';
+import { CommentService } from './CommentService';
+import { PersonService } from './PersonService';
+import { BudgetService } from './BudgetService';
+import { DebtService } from './DebtService';
 
 /**
  * Service type mapping for type-safe factory method
