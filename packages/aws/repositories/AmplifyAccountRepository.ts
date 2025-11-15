@@ -6,20 +6,20 @@ import type { AmplifyDataClient } from './types';
 export class AmplifyAccountRepository implements AccountRepository<AccountEntity> {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<AccountEntity | null> {
+  public findById = async (id: string): Promise<AccountEntity | null> => {
     const response = await this.dbClient.models.Account.get({ accountId: id });
     if (!response.data) {
       return null;
     }
     return this.toAccount(response.data);
-  }
+  };
 
-  async findAll(): Promise<AccountEntity[]> {
+  public findAll = async (): Promise<AccountEntity[]> => {
     const response = await this.dbClient.models.Account.list({});
     return response.data.map((item: any) => this.toAccount(item));
-  }
+  };
 
-  async save(entity: AccountEntity): Promise<AccountEntity> {
+  public save = async (entity: AccountEntity): Promise<AccountEntity> => {
     const response = await this.dbClient.models.Account.create({
       accountId: entity.accountId,
       defaultOrgId: entity.defaultOrgId,
@@ -39,12 +39,12 @@ export class AmplifyAccountRepository implements AccountRepository<AccountEntity
       throw new Error('Failed to create Account: response.data is null');
     }
     return this.toAccount(response.data);
-  }
+  };
 
-  async update(
+  public update = async (
     id: string,
     entity: Partial<AccountEntity>
-  ): Promise<AccountEntity> {
+  ): Promise<AccountEntity> => {
     const updates: any = { accountId: id };
 
     if (entity.email !== undefined) updates.email = entity.email;
@@ -60,13 +60,13 @@ export class AmplifyAccountRepository implements AccountRepository<AccountEntity
       throw new Error('Failed to update Account: response.data is null');
     }
     return this.toAccount(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.Account.delete({ accountId: id });
-  }
+  };
 
-  async findByEmail(email: string): Promise<AccountEntity | null> {
+  public findByEmail = async (email: string): Promise<AccountEntity | null> => {
     const response = await this.dbClient.models.Account.listAccountByEmail({
       email,
     });
@@ -74,9 +74,9 @@ export class AmplifyAccountRepository implements AccountRepository<AccountEntity
       return null;
     }
     return this.toAccount(response.data[0]);
-  }
+  };
 
-  async findByUsername(username: string): Promise<AccountEntity | null> {
+  public findByUsername = async (username: string): Promise<AccountEntity | null> => {
     const response = await this.dbClient.models.Account.listAccountByUsername({
       username,
     });
@@ -84,7 +84,7 @@ export class AmplifyAccountRepository implements AccountRepository<AccountEntity
       return null;
     }
     return this.toAccount(response.data[0]);
-  }
+  };
 
   /**
    * Helper method to create a new Account with defaults
@@ -121,7 +121,7 @@ export class AmplifyAccountRepository implements AccountRepository<AccountEntity
   /**
    * Convert Amplify Account entity to AWS AccountEntity type
    */
-  private toAccount(data: any): AccountEntity {
+  private toAccount = (data: any): AccountEntity => {
     return {
       accountId: data.accountId,
       defaultOrgId: data.defaultOrgId,
@@ -136,5 +136,5 @@ export class AmplifyAccountRepository implements AccountRepository<AccountEntity
       meta: data.meta,
       profileOwner: data.profileOwner,
     };
-  }
+  };
 }

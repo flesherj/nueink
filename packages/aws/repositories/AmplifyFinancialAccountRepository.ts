@@ -7,7 +7,7 @@ export class AmplifyFinancialAccountRepository
 {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<FinancialAccountEntity | null> {
+  public findById = async (id: string): Promise<FinancialAccountEntity | null> => {
     const response = await this.dbClient.models.FinancialAccount.get({
       financialAccountId: id,
     });
@@ -15,14 +15,14 @@ export class AmplifyFinancialAccountRepository
       return null;
     }
     return this.toFinancialAccount(response.data);
-  }
+  };
 
-  async findAll(): Promise<FinancialAccountEntity[]> {
+  public findAll = async (): Promise<FinancialAccountEntity[]> => {
     const response = await this.dbClient.models.FinancialAccount.list({});
     return response.data.map((item: any) => this.toFinancialAccount(item));
-  }
+  };
 
-  async save(entity: FinancialAccountEntity): Promise<FinancialAccountEntity> {
+  public save = async (entity: FinancialAccountEntity): Promise<FinancialAccountEntity> => {
     const response = await this.dbClient.models.FinancialAccount.create({
       financialAccountId: entity.financialAccountId,
       institutionId: entity.institutionId,
@@ -49,12 +49,12 @@ export class AmplifyFinancialAccountRepository
       throw new Error('Failed to create FinancialAccount: response.data is null');
     }
     return this.toFinancialAccount(response.data);
-  }
+  };
 
-  async update(
+  public update = async (
     id: string,
     entity: Partial<FinancialAccountEntity>
-  ): Promise<FinancialAccountEntity> {
+  ): Promise<FinancialAccountEntity> => {
     console.log('[DEBUG] AmplifyFinancialAccountRepository.update() - Input entity:', JSON.stringify({
       id,
       entity,
@@ -92,19 +92,19 @@ export class AmplifyFinancialAccountRepository
       throw new Error('Failed to update FinancialAccount: response.data is null');
     }
     return this.toFinancialAccount(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.FinancialAccount.delete({
       financialAccountId: id,
     });
-  }
+  };
 
-  async findByOrganization(
+  public findByOrganization = async (
     organizationId: string,
     limit: number = 50,
     cursor?: string
-  ): Promise<PaginationResult<FinancialAccountEntity>> {
+  ): Promise<PaginationResult<FinancialAccountEntity>> => {
     const response =
       await this.dbClient.models.FinancialAccount.listFinancialAccountByOrganizationId(
         {
@@ -121,9 +121,9 @@ export class AmplifyFinancialAccountRepository
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
-  }
+  };
 
-  async findByInstitution(institutionId: string): Promise<FinancialAccountEntity[]> {
+  public findByInstitution = async (institutionId: string): Promise<FinancialAccountEntity[]> => {
     const response =
       await this.dbClient.models.FinancialAccount.listFinancialAccountByInstitutionId(
         {
@@ -131,11 +131,11 @@ export class AmplifyFinancialAccountRepository
         }
       );
     return response.data.map((item: any) => this.toFinancialAccount(item));
-  }
+  };
 
-  async findByExternalAccountId(
+  public findByExternalAccountId = async (
     externalAccountId: string
-  ): Promise<FinancialAccountEntity | null> {
+  ): Promise<FinancialAccountEntity | null> => {
     const response =
       await this.dbClient.models.FinancialAccount.listFinancialAccountByExternalAccountId(
         {
@@ -146,19 +146,19 @@ export class AmplifyFinancialAccountRepository
       return null;
     }
     return this.toFinancialAccount(response.data[0]);
-  }
+  };
 
-  async findByPerson(personId: string): Promise<FinancialAccountEntity[]> {
+  public findByPerson = async (personId: string): Promise<FinancialAccountEntity[]> => {
     // Note: This requires filtering - fetch all and filter client-side
     // For better performance, consider adding a GSI on personId in the future
     const allAccounts = await this.findAll();
     return allAccounts.filter((account: any) => account.personId === personId);
-  }
+  };
 
   /**
    * Convert Amplify FinancialAccount entity to FinancialAccountEntity
    */
-  private toFinancialAccount(data: any): FinancialAccountEntity {
+  private toFinancialAccount = (data: any): FinancialAccountEntity => {
     return {
       financialAccountId: data.financialAccountId,
       institutionId: data.institutionId,
@@ -180,5 +180,5 @@ export class AmplifyFinancialAccountRepository
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
-  }
+  };
 }

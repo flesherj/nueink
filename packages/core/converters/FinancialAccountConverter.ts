@@ -6,7 +6,7 @@ import { FinancialAccountEntity } from '@nueink/aws';
  * Converter for FinancialAccount domain model and FinancialAccountEntity
  */
 export class FinancialAccountConverter implements Converter<FinancialAccountEntity, FinancialAccount> {
-  toEntity(domain: FinancialAccount): FinancialAccountEntity {
+  public toEntity = (domain: FinancialAccount): FinancialAccountEntity => {
     console.log('[DEBUG] FinancialAccountConverter.toEntity() - Input domain:', JSON.stringify({
       ...domain,
       syncedAt: domain.syncedAt?.toISOString(),
@@ -39,9 +39,9 @@ export class FinancialAccountConverter implements Converter<FinancialAccountEnti
     console.log('[DEBUG] FinancialAccountConverter.toEntity() - Output entity:', JSON.stringify(entity, null, 2));
 
     return entity;
-  }
+  };
 
-  toDomain(entity: FinancialAccountEntity): FinancialAccount {
+  public toDomain = (entity: FinancialAccountEntity): FinancialAccount => {
     return {
       financialAccountId: entity.financialAccountId,
       institutionId: entity.institutionId,
@@ -63,5 +63,5 @@ export class FinancialAccountConverter implements Converter<FinancialAccountEnti
       updatedAt: new Date(entity.updatedAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

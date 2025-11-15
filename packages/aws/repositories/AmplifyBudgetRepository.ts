@@ -5,20 +5,20 @@ import { BudgetEntity } from '../models';
 export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<BudgetEntity | null> {
+  public findById = async (id: string): Promise<BudgetEntity | null> => {
     const response = await this.dbClient.models.Budget.get({ budgetId: id });
     if (!response.data) {
       return null;
     }
     return this.toBudget(response.data);
-  }
+  };
 
-  async findAll(): Promise<BudgetEntity[]> {
+  public findAll = async (): Promise<BudgetEntity[]> => {
     const response = await this.dbClient.models.Budget.list({});
     return response.data.map((item: any) => this.toBudget(item));
-  }
+  };
 
-  async save(entity: BudgetEntity): Promise<BudgetEntity> {
+  public save = async (entity: BudgetEntity): Promise<BudgetEntity> => {
     const response = await this.dbClient.models.Budget.create({
       budgetId: entity.budgetId,
       organizationId: entity.organizationId,
@@ -39,9 +39,9 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
       throw new Error('Failed to create Budget: response.data is null');
     }
     return this.toBudget(response.data);
-  }
+  };
 
-  async update(id: string, entity: Partial<BudgetEntity>): Promise<BudgetEntity> {
+  public update = async (id: string, entity: Partial<BudgetEntity>): Promise<BudgetEntity> => {
     const updates: any = { budgetId: id };
 
     if (entity.category !== undefined) updates.category = entity.category;
@@ -62,37 +62,37 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
       throw new Error('Failed to update Budget: response.data is null');
     }
     return this.toBudget(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.Budget.delete({ budgetId: id });
-  }
+  };
 
-  async findByOrganization(organizationId: string): Promise<BudgetEntity[]> {
+  public findByOrganization = async (organizationId: string): Promise<BudgetEntity[]> => {
     const response = await this.dbClient.models.Budget.listBudgetByOrganizationId({
       organizationId,
     });
     return response.data.map((item: any) => this.toBudget(item));
-  }
+  };
 
-  async findActiveByOrganization(organizationId: string): Promise<BudgetEntity[]> {
+  public findActiveByOrganization = async (organizationId: string): Promise<BudgetEntity[]> => {
     const allBudgets = await this.findByOrganization(organizationId);
     return allBudgets.filter((budget: any) => budget.status === 'active');
-  }
+  };
 
-  async findByCategory(
+  public findByCategory = async (
     organizationId: string,
     category: string
-  ): Promise<BudgetEntity | null> {
+  ): Promise<BudgetEntity | null> => {
     const allBudgets = await this.findByOrganization(organizationId);
     const found = allBudgets.find((budget: any) => budget.category === category);
     return found ?? null;
-  }
+  };
 
   /**
    * Convert Amplify Budget entity to BudgetEntity
    */
-  private toBudget(data: any): BudgetEntity {
+  private toBudget = (data: any): BudgetEntity => {
     return {
       budgetId: data.budgetId,
       organizationId: data.organizationId,
@@ -108,5 +108,5 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
-  }
+  };
 }

@@ -5,20 +5,20 @@ import type { AmplifyDataClient } from './types';
 export class AmplifyIntegrationConfigRepository implements IntegrationConfigRepository<IntegrationConfigEntity> {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<IntegrationConfigEntity | null> {
+  public findById = async (id: string): Promise<IntegrationConfigEntity | null> => {
     const response = await this.dbClient.models.IntegrationConfig.get({ integrationId: id });
     if (!response.data) {
       return null;
     }
     return this.toIntegrationConfig(response.data);
-  }
+  };
 
-  async findAll(): Promise<IntegrationConfigEntity[]> {
+  public findAll = async (): Promise<IntegrationConfigEntity[]> => {
     const response = await this.dbClient.models.IntegrationConfig.list({});
     return response.data.map((item: any) => this.toIntegrationConfig(item));
-  }
+  };
 
-  async save(entity: IntegrationConfigEntity): Promise<IntegrationConfigEntity> {
+  public save = async (entity: IntegrationConfigEntity): Promise<IntegrationConfigEntity> => {
     const response = await this.dbClient.models.IntegrationConfig.create({
       integrationId: entity.integrationId,
       accountId: entity.accountId,
@@ -38,12 +38,12 @@ export class AmplifyIntegrationConfigRepository implements IntegrationConfigRepo
       throw new Error('Failed to create IntegrationConfig: response.data is null');
     }
     return this.toIntegrationConfig(response.data);
-  }
+  };
 
-  async update(
+  public update = async (
     id: string,
     entity: Partial<IntegrationConfigEntity>
-  ): Promise<IntegrationConfigEntity> {
+  ): Promise<IntegrationConfigEntity> => {
     const updates: any = { integrationId: id };
 
     if (entity.expiresAt !== undefined) updates.expiresAt = entity.expiresAt;
@@ -58,20 +58,20 @@ export class AmplifyIntegrationConfigRepository implements IntegrationConfigRepo
       throw new Error('Failed to update IntegrationConfig: response.data is null');
     }
     return this.toIntegrationConfig(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.IntegrationConfig.delete({ integrationId: id });
-  }
+  };
 
-  async findByAccountId(accountId: string): Promise<IntegrationConfigEntity[]> {
+  public findByAccountId = async (accountId: string): Promise<IntegrationConfigEntity[]> => {
     const response = await this.dbClient.models.IntegrationConfig.listIntegrationConfigByAccountId({
       accountId,
     });
     return response.data.map((item: any) => this.toIntegrationConfig(item));
-  }
+  };
 
-  async findByAccountIdAndProvider(accountId: string, provider: string): Promise<IntegrationConfigEntity | null> {
+  public findByAccountIdAndProvider = async (accountId: string, provider: string): Promise<IntegrationConfigEntity | null> => {
     // Query by accountId, then filter by provider
     const response = await this.dbClient.models.IntegrationConfig.listIntegrationConfigByAccountId({
       accountId,
@@ -82,26 +82,26 @@ export class AmplifyIntegrationConfigRepository implements IntegrationConfigRepo
       return null;
     }
     return this.toIntegrationConfig(filtered[0]);
-  }
+  };
 
-  async findByOrganizationId(organizationId: string): Promise<IntegrationConfigEntity[]> {
+  public findByOrganizationId = async (organizationId: string): Promise<IntegrationConfigEntity[]> => {
     const response = await this.dbClient.models.IntegrationConfig.listIntegrationConfigByOrganizationId({
       organizationId,
     });
     return response.data.map((item: any) => this.toIntegrationConfig(item));
-  }
+  };
 
-  async findActiveByAccountId(accountId: string): Promise<IntegrationConfigEntity[]> {
+  public findActiveByAccountId = async (accountId: string): Promise<IntegrationConfigEntity[]> => {
     const all = await this.findByAccountId(accountId);
     return all.filter(config => config.status === 'active');
-  }
+  };
 
-  async findAllActive(): Promise<IntegrationConfigEntity[]> {
+  public findAllActive = async (): Promise<IntegrationConfigEntity[]> => {
     const all = await this.findAll();
     return all.filter(config => config.status === 'active' && config.syncEnabled);
-  }
+  };
 
-  private toIntegrationConfig(data: any): IntegrationConfigEntity {
+  private toIntegrationConfig = (data: any): IntegrationConfigEntity => {
     return {
       integrationId: data.integrationId,
       accountId: data.accountId,
@@ -116,5 +116,5 @@ export class AmplifyIntegrationConfigRepository implements IntegrationConfigRepo
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner,
     };
-  }
+  };
 }

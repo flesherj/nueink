@@ -6,7 +6,7 @@ import { IntegrationConfigEntity } from '@nueink/aws';
  * Converter for IntegrationConfig domain model and IntegrationConfigEntity
  */
 export class IntegrationConfigConverter implements Converter<IntegrationConfigEntity, IntegrationConfig> {
-  toEntity(domain: IntegrationConfig): IntegrationConfigEntity {
+  public toEntity = (domain: IntegrationConfig): IntegrationConfigEntity => {
     return {
       integrationId: domain.integrationId,
       accountId: domain.accountId,
@@ -21,9 +21,9 @@ export class IntegrationConfigConverter implements Converter<IntegrationConfigEn
       updatedAt: domain.updatedAt?.toISOString(),
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: IntegrationConfigEntity): IntegrationConfig {
+  public toDomain = (entity: IntegrationConfigEntity): IntegrationConfig => {
     return {
       integrationId: entity.integrationId,
       accountId: entity.accountId,
@@ -38,5 +38,5 @@ export class IntegrationConfigConverter implements Converter<IntegrationConfigEn
       updatedAt: new Date(entity.updatedAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

@@ -6,7 +6,7 @@ import { PersonEntity } from '@nueink/aws';
  * Converter for Person domain model and PersonEntity
  */
 export class PersonConverter implements Converter<PersonEntity, Person> {
-  toEntity(domain: Person): PersonEntity {
+  public toEntity = (domain: Person): PersonEntity => {
     return {
       personId: domain.personId,
       organizationId: domain.organizationId,
@@ -17,9 +17,9 @@ export class PersonConverter implements Converter<PersonEntity, Person> {
       createdAt: domain.createdAt.toISOString(),
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: PersonEntity): Person {
+  public toDomain = (entity: PersonEntity): Person => {
     return {
       personId: entity.personId,
       organizationId: entity.organizationId,
@@ -30,5 +30,5 @@ export class PersonConverter implements Converter<PersonEntity, Person> {
       createdAt: new Date(entity.createdAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

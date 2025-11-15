@@ -6,7 +6,7 @@ import { InstitutionEntity } from '@nueink/aws';
  * Converter for Institution domain model and InstitutionEntity
  */
 export class InstitutionConverter implements Converter<InstitutionEntity, Institution> {
-  toEntity(domain: Institution): InstitutionEntity {
+  public toEntity = (domain: Institution): InstitutionEntity => {
     return {
       institutionId: domain.institutionId,
       organizationId: domain.organizationId,
@@ -20,9 +20,9 @@ export class InstitutionConverter implements Converter<InstitutionEntity, Instit
       createdAt: domain.createdAt.toISOString(),
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: InstitutionEntity): Institution {
+  public toDomain = (entity: InstitutionEntity): Institution => {
     return {
       institutionId: entity.institutionId,
       organizationId: entity.organizationId,
@@ -36,5 +36,5 @@ export class InstitutionConverter implements Converter<InstitutionEntity, Instit
       createdAt: new Date(entity.createdAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

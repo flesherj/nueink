@@ -6,7 +6,7 @@ import { BudgetEntity } from '@nueink/aws';
  * Converter for Budget domain model and BudgetEntity
  */
 export class BudgetConverter implements Converter<BudgetEntity, Budget> {
-  toEntity(domain: Budget): BudgetEntity {
+  public toEntity = (domain: Budget): BudgetEntity => {
     return {
       budgetId: domain.budgetId,
       organizationId: domain.organizationId,
@@ -22,9 +22,9 @@ export class BudgetConverter implements Converter<BudgetEntity, Budget> {
       updatedAt: domain.updatedAt.toISOString(),
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: BudgetEntity): Budget {
+  public toDomain = (entity: BudgetEntity): Budget => {
     return {
       budgetId: entity.budgetId,
       organizationId: entity.organizationId,
@@ -40,5 +40,5 @@ export class BudgetConverter implements Converter<BudgetEntity, Budget> {
       updatedAt: new Date(entity.updatedAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

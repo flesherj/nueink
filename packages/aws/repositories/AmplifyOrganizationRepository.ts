@@ -8,20 +8,20 @@ export class AmplifyOrganizationRepository
 {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<OrganizationEntity | null> {
+  public findById = async (id: string): Promise<OrganizationEntity | null> => {
     const response = await this.dbClient.models.Organization.get({ orgId: id });
     if (!response.data) {
       return null;
     }
     return this.toOrganization(response.data);
-  }
+  };
 
-  async findAll(): Promise<OrganizationEntity[]> {
+  public findAll = async (): Promise<OrganizationEntity[]> => {
     const response = await this.dbClient.models.Organization.list({});
     return response.data.map((item: any) => this.toOrganization(item));
-  }
+  };
 
-  async save(entity: OrganizationEntity): Promise<OrganizationEntity> {
+  public save = async (entity: OrganizationEntity): Promise<OrganizationEntity> => {
     const response = await this.dbClient.models.Organization.create({
       orgId: entity.orgId,
       name: entity.name,
@@ -38,12 +38,12 @@ export class AmplifyOrganizationRepository
     }
 
     return this.toOrganization(response.data);
-  }
+  };
 
-  async update(
+  public update = async (
     id: string,
     entity: Partial<OrganizationEntity>
-  ): Promise<OrganizationEntity> {
+  ): Promise<OrganizationEntity> => {
     const updates: any = { orgId: id };
 
     if (entity.name !== undefined) updates.name = entity.name;
@@ -59,25 +59,25 @@ export class AmplifyOrganizationRepository
     }
 
     return this.toOrganization(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.Organization.delete({ orgId: id });
-  }
+  };
 
-  async findByParentOrgId(parentOrgId: string): Promise<OrganizationEntity[]> {
+  public findByParentOrgId = async (parentOrgId: string): Promise<OrganizationEntity[]> => {
     const response =
       await this.dbClient.models.Organization.listOrganizationByParentOrgId({
         parentOrgId,
       });
     return response.data.map((item: any) => this.toOrganization(item));
-  }
+  };
 
-  async findByName(name: string): Promise<OrganizationEntity[]> {
+  public findByName = async (name: string): Promise<OrganizationEntity[]> => {
     const response =
       await this.dbClient.models.Organization.listOrganizationByName({ name });
     return response.data.map((item: any) => this.toOrganization(item));
-  }
+  };
 
   /**
    * Helper method to create a new Organization with defaults
@@ -105,7 +105,7 @@ export class AmplifyOrganizationRepository
   /**
    * Convert Amplify Organization entity to AWS Organization type
    */
-  private toOrganization(data: any): OrganizationEntity {
+  private toOrganization = (data: any): OrganizationEntity => {
     return {
       orgId: data.orgId,
       name: data.name,
@@ -116,5 +116,5 @@ export class AmplifyOrganizationRepository
       status: data.status,
       profileOwner: data.profileOwner,
     };
-  }
+  };
 }

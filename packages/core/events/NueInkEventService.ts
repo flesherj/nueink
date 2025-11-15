@@ -19,16 +19,16 @@ export class NueInkEventService {
   /**
    * Publish a single domain event
    */
-  async publish<T>(event: PublishEvent<T>): Promise<void> {
+  public publish = async <T>(event: PublishEvent<T>): Promise<void> => {
     const ebEvent = this.converter.convert(event, this.eventBusName);
     await this.publisher.publish(ebEvent);
-  }
+  };
 
   /**
    * Publish multiple domain events in a batch
    */
-  async publishBatch<T>(events: PublishEvent<T>[]): Promise<void> {
+  public publishBatch = async <T>(events: PublishEvent<T>[]): Promise<void> => {
     const ebEvents = this.converter.convertBatch(events, this.eventBusName);
     await this.publisher.publishBatch(ebEvents);
-  }
+  };
 }

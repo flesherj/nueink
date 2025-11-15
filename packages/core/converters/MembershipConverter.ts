@@ -6,7 +6,7 @@ import { MembershipEntity } from '@nueink/aws';
  * Converter for Membership domain model and MembershipEntity
  */
 export class MembershipConverter implements Converter<MembershipEntity, Membership> {
-  toEntity(domain: Membership): MembershipEntity {
+  public toEntity = (domain: Membership): MembershipEntity => {
     return {
       accountId: domain.accountId,
       orgId: domain.orgId,
@@ -15,9 +15,9 @@ export class MembershipConverter implements Converter<MembershipEntity, Membersh
       joinedAt: domain.joinedAt.toISOString(),
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: MembershipEntity): Membership {
+  public toDomain = (entity: MembershipEntity): Membership => {
     return {
       accountId: entity.accountId,
       orgId: entity.orgId,
@@ -26,5 +26,5 @@ export class MembershipConverter implements Converter<MembershipEntity, Membersh
       joinedAt: new Date(entity.joinedAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

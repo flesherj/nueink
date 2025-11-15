@@ -6,7 +6,7 @@ import { AccountEntity } from '@nueink/aws';
  * Converter for Account domain model and AccountEntity
  */
 export class AccountConverter implements Converter<AccountEntity, Account> {
-  toEntity(domain: Account): AccountEntity {
+  public toEntity = (domain: Account): AccountEntity => {
     return {
       accountId: domain.accountId,
       defaultOrgId: domain.defaultOrgId,
@@ -21,9 +21,9 @@ export class AccountConverter implements Converter<AccountEntity, Account> {
       meta: domain.meta,
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: AccountEntity): Account {
+  public toDomain = (entity: AccountEntity): Account => {
     return {
       accountId: entity.accountId,
       defaultOrgId: entity.defaultOrgId,
@@ -38,5 +38,5 @@ export class AccountConverter implements Converter<AccountEntity, Account> {
       meta: entity.meta,
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

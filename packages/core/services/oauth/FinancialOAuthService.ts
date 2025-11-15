@@ -26,9 +26,9 @@ export class FinancialOAuthService {
    * @param provider - The provider identifier (e.g., 'ynab', 'plaid')
    * @param implementation - The concrete provider implementation
    */
-  registerProvider(provider: FinancialProvider, implementation: FinancialOAuthProvider): void {
+  public registerProvider = (provider: FinancialProvider, implementation: FinancialOAuthProvider): void => {
     this.providers.set(provider, implementation);
-  }
+  };
 
   /**
    * Exchange authorization code for access token
@@ -42,17 +42,17 @@ export class FinancialOAuthService {
    * @returns Token response with access token and optional refresh token
    * @throws Error if provider is not supported or token exchange fails
    */
-  async exchangeAuthorizationCode(
+  public exchangeAuthorizationCode = async (
     provider: FinancialProvider,
     authorizationCode: string
-  ): Promise<OAuthTokenResponse> {
+  ): Promise<OAuthTokenResponse> => {
     const providerImpl = this.providers.get(provider);
     if (!providerImpl) {
       throw new Error(`Unsupported OAuth provider: ${provider}`);
     }
 
     return providerImpl.exchangeAuthorizationCode(authorizationCode);
-  }
+  };
 
   /**
    * Refresh an expired access token
@@ -65,10 +65,10 @@ export class FinancialOAuthService {
    * @returns New token response with fresh access token
    * @throws Error if provider doesn't support refresh or refresh fails
    */
-  async refreshAccessToken(
+  public refreshAccessToken = async (
     provider: FinancialProvider,
     refreshToken: string
-  ): Promise<OAuthTokenResponse> {
+  ): Promise<OAuthTokenResponse> => {
     const providerImpl = this.providers.get(provider);
     if (!providerImpl) {
       throw new Error(`Unsupported OAuth provider: ${provider}`);
@@ -79,7 +79,7 @@ export class FinancialOAuthService {
     }
 
     return providerImpl.refreshAccessToken(refreshToken);
-  }
+  };
 
   /**
    * Check if a provider supports token refresh
@@ -87,8 +87,8 @@ export class FinancialOAuthService {
    * @param provider - The financial provider to check
    * @returns True if the provider supports refresh tokens
    */
-  supportsTokenRefresh(provider: FinancialProvider): boolean {
+  public supportsTokenRefresh = (provider: FinancialProvider): boolean => {
     const providerImpl = this.providers.get(provider);
     return !!providerImpl?.refreshAccessToken;
-  }
+  };
 }

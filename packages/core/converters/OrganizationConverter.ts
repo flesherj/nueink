@@ -6,7 +6,7 @@ import { OrganizationEntity } from '@nueink/aws';
  * Converter for Organization domain model and OrganizationEntity
  */
 export class OrganizationConverter implements Converter<OrganizationEntity, Organization> {
-  toEntity(domain: Organization): OrganizationEntity {
+  public toEntity = (domain: Organization): OrganizationEntity => {
     return {
       orgId: domain.orgId,
       name: domain.name,
@@ -17,9 +17,9 @@ export class OrganizationConverter implements Converter<OrganizationEntity, Orga
       status: domain.status,
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: OrganizationEntity): Organization {
+  public toDomain = (entity: OrganizationEntity): Organization => {
     return {
       orgId: entity.orgId,
       name: entity.name,
@@ -30,5 +30,5 @@ export class OrganizationConverter implements Converter<OrganizationEntity, Orga
       status: entity.status,
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

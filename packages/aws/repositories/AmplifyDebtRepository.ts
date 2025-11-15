@@ -5,20 +5,20 @@ import { DebtEntity } from '../models';
 export class AmplifyDebtRepository implements DebtRepository<DebtEntity> {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<DebtEntity | null> {
+  public findById = async (id: string): Promise<DebtEntity | null> => {
     const response = await this.dbClient.models.Debt.get({ debtId: id });
     if (!response.data) {
       return null;
     }
     return this.toDebt(response.data);
-  }
+  };
 
-  async findAll(): Promise<DebtEntity[]> {
+  public findAll = async (): Promise<DebtEntity[]> => {
     const response = await this.dbClient.models.Debt.list({});
     return response.data.map((item: any) => this.toDebt(item));
-  }
+  };
 
-  async save(entity: DebtEntity): Promise<DebtEntity> {
+  public save = async (entity: DebtEntity): Promise<DebtEntity> => {
     const response = await this.dbClient.models.Debt.create({
       debtId: entity.debtId,
       organizationId: entity.organizationId,
@@ -40,9 +40,9 @@ export class AmplifyDebtRepository implements DebtRepository<DebtEntity> {
       throw new Error('Failed to create Debt: response.data is null');
     }
     return this.toDebt(response.data);
-  }
+  };
 
-  async update(id: string, entity: Partial<DebtEntity>): Promise<DebtEntity> {
+  public update = async (id: string, entity: Partial<DebtEntity>): Promise<DebtEntity> => {
     const updates: any = { debtId: id };
 
     if (entity.name !== undefined) updates.name = entity.name;
@@ -62,39 +62,39 @@ export class AmplifyDebtRepository implements DebtRepository<DebtEntity> {
       throw new Error('Failed to update Debt: response.data is null');
     }
     return this.toDebt(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.Debt.delete({ debtId: id });
-  }
+  };
 
-  async findByOrganization(organizationId: string): Promise<DebtEntity[]> {
+  public findByOrganization = async (organizationId: string): Promise<DebtEntity[]> => {
     const response = await this.dbClient.models.Debt.listDebtByOrganizationId({
       organizationId,
     });
     return response.data.map((item: any) => this.toDebt(item));
-  }
+  };
 
-  async findActiveByOrganization(organizationId: string): Promise<DebtEntity[]> {
+  public findActiveByOrganization = async (organizationId: string): Promise<DebtEntity[]> => {
     const allDebts = await this.findByOrganization(organizationId);
     return allDebts.filter((debt: any) => debt.status === 'active');
-  }
+  };
 
-  async findByFinancialAccount(
+  public findByFinancialAccount = async (
     financialAccountId: string
-  ): Promise<DebtEntity | null> {
+  ): Promise<DebtEntity | null> => {
     // Note: This requires filtering - may want to add GSI in future
     const allDebts = await this.findAll();
     const found = allDebts.find(
       (debt: any) => debt.financialAccountId === financialAccountId
     );
     return found ?? null;
-  }
+  };
 
   /**
    * Convert Amplify Debt entity to DebtEntity
    */
-  private toDebt(data: any): DebtEntity {
+  private toDebt = (data: any): DebtEntity => {
     return {
       debtId: data.debtId,
       organizationId: data.organizationId,
@@ -111,5 +111,5 @@ export class AmplifyDebtRepository implements DebtRepository<DebtEntity> {
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
-  }
+  };
 }

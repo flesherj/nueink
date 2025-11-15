@@ -7,7 +7,7 @@ export class AmplifyInstitutionRepository
 {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<InstitutionEntity | null> {
+  public findById = async (id: string): Promise<InstitutionEntity | null> => {
     const response = await this.dbClient.models.Institution.get({
       institutionId: id,
     });
@@ -15,14 +15,14 @@ export class AmplifyInstitutionRepository
       return null;
     }
     return this.toInstitution(response.data);
-  }
+  };
 
-  async findAll(): Promise<InstitutionEntity[]> {
+  public findAll = async (): Promise<InstitutionEntity[]> => {
     const response = await this.dbClient.models.Institution.list({});
     return response.data.map((item: any) => this.toInstitution(item));
-  }
+  };
 
-  async save(entity: InstitutionEntity): Promise<InstitutionEntity> {
+  public save = async (entity: InstitutionEntity): Promise<InstitutionEntity> => {
     const response = await this.dbClient.models.Institution.create({
       institutionId: entity.institutionId,
       organizationId: entity.organizationId,
@@ -41,12 +41,12 @@ export class AmplifyInstitutionRepository
       throw new Error('Failed to create Institution: response.data is null');
     }
     return this.toInstitution(response.data);
-  }
+  };
 
-  async update(
+  public update = async (
     id: string,
     entity: Partial<InstitutionEntity>
-  ): Promise<InstitutionEntity> {
+  ): Promise<InstitutionEntity> => {
     const updates: any = { institutionId: id };
 
     if (entity.name !== undefined) updates.name = entity.name;
@@ -60,23 +60,23 @@ export class AmplifyInstitutionRepository
       throw new Error('Failed to update Institution: response.data is null');
     }
     return this.toInstitution(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.Institution.delete({ institutionId: id });
-  }
+  };
 
-  async findByOrganization(organizationId: string): Promise<InstitutionEntity[]> {
+  public findByOrganization = async (organizationId: string): Promise<InstitutionEntity[]> => {
     const response =
       await this.dbClient.models.Institution.listInstitutionByOrganizationId({
         organizationId,
       });
     return response.data.map((item: any) => this.toInstitution(item));
-  }
+  };
 
-  async findByExternalItemId(
+  public findByExternalItemId = async (
     externalItemId: string
-  ): Promise<InstitutionEntity | null> {
+  ): Promise<InstitutionEntity | null> => {
     const response =
       await this.dbClient.models.Institution.listInstitutionByExternalItemId({
         externalItemId,
@@ -85,21 +85,21 @@ export class AmplifyInstitutionRepository
       return null;
     }
     return this.toInstitution(response.data[0]);
-  }
+  };
 
-  async findByProvider(
+  public findByProvider = async (
     organizationId: string,
     provider: string
-  ): Promise<InstitutionEntity[]> {
+  ): Promise<InstitutionEntity[]> => {
     // Note: This requires filtering - fetch all for org and filter client-side
     const allInstitutions = await this.findByOrganization(organizationId);
     return allInstitutions.filter((inst: any) => inst.provider === provider);
-  }
+  };
 
   /**
    * Convert Amplify Institution entity to InstitutionEntity
    */
-  private toInstitution(data: any): InstitutionEntity {
+  private toInstitution = (data: any): InstitutionEntity => {
     return {
       institutionId: data.institutionId,
       organizationId: data.organizationId,
@@ -113,5 +113,5 @@ export class AmplifyInstitutionRepository
       createdAt: data.createdAt,
       profileOwner: data.profileOwner ?? undefined,
     };
-  }
+  };
 }

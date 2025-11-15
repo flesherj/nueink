@@ -97,7 +97,7 @@ export class CloudWatchMetricsService implements MetricsService {
   /**
    * Auto-detect environment from Amplify env vars
    */
-  private detectEnvironment(): Environment {
+  private detectEnvironment = (): Environment => {
     // Amplify sandbox
     if (
       process.env.AWS_BRANCH === 'sandbox' ||
@@ -122,42 +122,42 @@ export class CloudWatchMetricsService implements MetricsService {
 
     // Default to dev for safety (don't pollute prod metrics)
     return STANDARD_DIMENSIONS.ENVIRONMENT.DEV;
-  }
+  };
 
   /**
    * Set session ID for current session
    */
-  public setSessionId(sessionId: string): void {
+  public setSessionId = (sessionId: string): void => {
     this.sessionId = sessionId;
-  }
+  };
 
   /**
    * Set user properties for segmentation
    */
-  public setUserProperties(properties: UserProperties): void {
+  public setUserProperties = (properties: UserProperties): void => {
     this.userProperties = properties;
-  }
+  };
 
   /**
    * Set context for current screen/feature
    */
-  public setContext(context: MetricContext): void {
+  public setContext = (context: MetricContext): void => {
     this.context = {
       ...(context.screen && { Screen: context.screen }),
       ...(context.feature && { Feature: context.feature }),
       ...(context.flow && { Flow: context.flow }),
     };
-  }
+  };
 
   /**
    * Record a metric with type-safe dimensions
    */
-  public record<K extends MetricKey>(
+  public record = <K extends MetricKey>(
     metricKey: K,
     value: number,
     dimensions: MetricDimensionsObject<K>,
     metadata?: Record<string, any>
-  ): void {
+  ): void => {
     const definition = METRIC_DEFINITIONS[metricKey];
 
     // Validate dimensions (optional runtime check)
@@ -192,19 +192,19 @@ export class CloudWatchMetricsService implements MetricsService {
       definition.unit,
       allMetadata
     );
-  }
+  };
 
   /**
    * Record multiple metrics in a batch
    */
-  public recordBatch(
+  public recordBatch = (
     metrics: Array<{
       key: MetricKey;
       value: number;
       dimensions: Record<string, string>;
       metadata?: Record<string, any>;
     }>
-  ): void {
+  ): void => {
     for (const metric of metrics) {
       this.record(
         metric.key,
@@ -213,40 +213,40 @@ export class CloudWatchMetricsService implements MetricsService {
         metric.metadata
       );
     }
-  }
+  };
 
   /**
    * Start tracking an operation
    */
-  public startOperation(
+  public startOperation = (
     operation: string,
     dimensions: Record<string, string>
-  ): Operation {
+  ): Operation => {
     return new CloudWatchOperation(this, operation, dimensions);
-  }
+  };
 
   /**
    * Publish EMF-formatted metric to CloudWatch
    */
-  private publishMetric(
+  private publishMetric = (
     metrics: { [key: string]: number },
     dimensions: Record<string, string>,
     unit: MetricUnit,
     metadata: Record<string, any> = {}
-  ): void {
+  ): void => {
     const emfLog = this.buildEMFLog(metrics, dimensions, unit, metadata);
     console.log(JSON.stringify(emfLog));
-  }
+  };
 
   /**
    * Build EMF-compliant JSON log
    */
-  private buildEMFLog(
+  private buildEMFLog = (
     metrics: { [key: string]: number },
     dimensions: Record<string, string>,
     unit: MetricUnit,
     metadata: Record<string, any>
-  ): EMFLog {
+  ): EMFLog => {
     const dimensionKeys = Object.keys(dimensions);
     const metricEntries = Object.entries(metrics).map(([name, _value]) => ({
       Name: name,
@@ -268,12 +268,12 @@ export class CloudWatchMetricsService implements MetricsService {
       ...metrics,
       ...metadata,
     };
-  }
+  };
 
   /**
    * Categorize error into standard error types
    */
-  public static categorizeError(error: string | Error): string {
+  public static categorizeError = (error: string | Error): string => {
     const errorMessage = error instanceof Error ? error.message : error;
     const errorLower = errorMessage.toLowerCase();
 
@@ -300,7 +300,7 @@ export class CloudWatchMetricsService implements MetricsService {
     }
 
     return 'Unknown';
-  }
+  };
 }
 
 /**
@@ -321,7 +321,7 @@ class CloudWatchOperation implements Operation {
   /**
    * Mark operation as successful
    */
-  public succeed(metadata?: Record<string, any>): void {
+  public succeed = (metadata?: Record<string, any>): void => {
     if (this.completed) {
       console.warn(`[CloudWatchOperation] Operation ${this.operation} already completed`);
       return;
@@ -343,12 +343,12 @@ class CloudWatchOperation implements Operation {
         ...metadata,
       }
     );
-  }
+  };
 
   /**
    * Mark operation as failed
    */
-  public fail(error: Error | string): void {
+  public fail = (error: Error | string): void => {
     if (this.completed) {
       console.warn(`[CloudWatchOperation] Operation ${this.operation} already completed`);
       return;
@@ -374,5 +374,5 @@ class CloudWatchOperation implements Operation {
         duration,
       }
     );
-  }
+  };
 }

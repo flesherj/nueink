@@ -6,7 +6,7 @@ import { CommentEntity } from '@nueink/aws';
  * Converter for Comment domain model and CommentEntity
  */
 export class CommentConverter implements Converter<CommentEntity, Comment> {
-  toEntity(domain: Comment): CommentEntity {
+  public toEntity = (domain: Comment): CommentEntity => {
     return {
       commentId: domain.commentId,
       transactionId: domain.transactionId,
@@ -17,9 +17,9 @@ export class CommentConverter implements Converter<CommentEntity, Comment> {
       updatedAt: domain.updatedAt.toISOString(),
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: CommentEntity): Comment {
+  public toDomain = (entity: CommentEntity): Comment => {
     return {
       commentId: entity.commentId,
       transactionId: entity.transactionId,
@@ -30,5 +30,5 @@ export class CommentConverter implements Converter<CommentEntity, Comment> {
       updatedAt: new Date(entity.updatedAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

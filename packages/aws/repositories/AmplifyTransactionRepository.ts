@@ -7,7 +7,7 @@ export class AmplifyTransactionRepository
 {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<TransactionEntity | null> {
+  public findById = async (id: string): Promise<TransactionEntity | null> => {
     const response = await this.dbClient.models.Transaction.get({
       transactionId: id,
     });
@@ -15,14 +15,14 @@ export class AmplifyTransactionRepository
       return null;
     }
     return this.toTransaction(response.data);
-  }
+  };
 
-  async findAll(): Promise<TransactionEntity[]> {
+  public findAll = async (): Promise<TransactionEntity[]> => {
     const response = await this.dbClient.models.Transaction.list({});
     return response.data.map((item: any) => this.toTransaction(item));
-  }
+  };
 
-  async save(entity: TransactionEntity): Promise<TransactionEntity> {
+  public save = async (entity: TransactionEntity): Promise<TransactionEntity> => {
     const response = await this.dbClient.models.Transaction.create({
       transactionId: entity.transactionId,
       financialAccountId: entity.financialAccountId,
@@ -51,12 +51,12 @@ export class AmplifyTransactionRepository
       throw new Error('Failed to create Transaction: response.data is null');
     }
     return this.toTransaction(response.data);
-  }
+  };
 
-  async update(
+  public update = async (
     id: string,
     entity: Partial<TransactionEntity>
-  ): Promise<TransactionEntity> {
+  ): Promise<TransactionEntity> => {
     const updates: any = { transactionId: id };
 
     // Only include defined, non-null values in the update
@@ -85,17 +85,17 @@ export class AmplifyTransactionRepository
       throw new Error('Failed to update Transaction: response.data is null');
     }
     return this.toTransaction(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.Transaction.delete({ transactionId: id });
-  }
+  };
 
-  async findByOrganization(
+  public findByOrganization = async (
     organizationId: string,
     limit: number = 50,
     cursor?: string
-  ): Promise<PaginationResult<TransactionEntity>> {
+  ): Promise<PaginationResult<TransactionEntity>> => {
     const response =
       await this.dbClient.models.Transaction.listTransactionByOrganizationIdAndDate(
         {
@@ -112,13 +112,13 @@ export class AmplifyTransactionRepository
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
-  }
+  };
 
-  async findByFinancialAccount(
+  public findByFinancialAccount = async (
     financialAccountId: string,
     limit: number = 50,
     cursor?: string
-  ): Promise<PaginationResult<TransactionEntity>> {
+  ): Promise<PaginationResult<TransactionEntity>> => {
     const response =
       await this.dbClient.models.Transaction.listTransactionByFinancialAccountIdAndDate(
         {
@@ -135,13 +135,13 @@ export class AmplifyTransactionRepository
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
-  }
+  };
 
-  async findByPerson(
+  public findByPerson = async (
     personId: string,
     limit: number = 50,
     cursor?: string
-  ): Promise<PaginationResult<TransactionEntity>> {
+  ): Promise<PaginationResult<TransactionEntity>> => {
     const response =
       await this.dbClient.models.Transaction.listTransactionByPersonIdAndDate(
         {
@@ -158,13 +158,13 @@ export class AmplifyTransactionRepository
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
-  }
+  };
 
-  async findByDateRange(
+  public findByDateRange = async (
     organizationId: string,
     startDate: string,
     endDate: string
-  ): Promise<TransactionEntity[]> {
+  ): Promise<TransactionEntity[]> => {
     // Note: DynamoDB range queries work on sort keys
     // We'll fetch all for the org and filter client-side
     // For better performance, consider using query with date range filter
@@ -172,11 +172,11 @@ export class AmplifyTransactionRepository
     return allTransactions.items.filter(
       (txn: any) => txn.date >= startDate && txn.date <= endDate
     );
-  }
+  };
 
-  async findByExternalTransactionId(
+  public findByExternalTransactionId = async (
     externalTransactionId: string
-  ): Promise<TransactionEntity | null> {
+  ): Promise<TransactionEntity | null> => {
     const response =
       await this.dbClient.models.Transaction.listTransactionByExternalTransactionId(
         {
@@ -187,12 +187,12 @@ export class AmplifyTransactionRepository
       return null;
     }
     return this.toTransaction(response.data[0]);
-  }
+  };
 
-  async findRecent(
+  public findRecent = async (
     organizationId: string,
     limit: number
-  ): Promise<TransactionEntity[]> {
+  ): Promise<TransactionEntity[]> => {
     const response =
       await this.dbClient.models.Transaction.listTransactionByOrganizationIdAndDate(
         {
@@ -204,12 +204,12 @@ export class AmplifyTransactionRepository
       );
 
     return response.data.map((item: any) => this.toTransaction(item));
-  }
+  };
 
   /**
    * Convert Amplify Transaction entity to TransactionEntity
    */
-  private toTransaction(data: any): TransactionEntity {
+  private toTransaction = (data: any): TransactionEntity => {
     return {
       transactionId: data.transactionId,
       financialAccountId: data.financialAccountId,
@@ -233,5 +233,5 @@ export class AmplifyTransactionRepository
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
-  }
+  };
 }

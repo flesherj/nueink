@@ -6,7 +6,7 @@ import { DebtEntity } from '@nueink/aws';
  * Converter for Debt domain model and DebtEntity
  */
 export class DebtConverter implements Converter<DebtEntity, Debt> {
-  toEntity(domain: Debt): DebtEntity {
+  public toEntity = (domain: Debt): DebtEntity => {
     return {
       debtId: domain.debtId,
       organizationId: domain.organizationId,
@@ -23,9 +23,9 @@ export class DebtConverter implements Converter<DebtEntity, Debt> {
       updatedAt: domain.updatedAt.toISOString(),
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: DebtEntity): Debt {
+  public toDomain = (entity: DebtEntity): Debt => {
     return {
       debtId: entity.debtId,
       organizationId: entity.organizationId,
@@ -42,5 +42,5 @@ export class DebtConverter implements Converter<DebtEntity, Debt> {
       updatedAt: new Date(entity.updatedAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

@@ -6,7 +6,7 @@ import { TransactionEntity } from '@nueink/aws';
  * Converter for Transaction domain model and TransactionEntity
  */
 export class TransactionConverter implements Converter<TransactionEntity, Transaction> {
-  toEntity(domain: Transaction): TransactionEntity {
+  public toEntity = (domain: Transaction): TransactionEntity => {
     return {
       transactionId: domain.transactionId,
       financialAccountId: domain.financialAccountId,
@@ -30,9 +30,9 @@ export class TransactionConverter implements Converter<TransactionEntity, Transa
       updatedAt: domain.updatedAt?.toISOString(),
       profileOwner: domain.profileOwner,
     };
-  }
+  };
 
-  toDomain(entity: TransactionEntity): Transaction {
+  public toDomain = (entity: TransactionEntity): Transaction => {
     return {
       transactionId: entity.transactionId,
       financialAccountId: entity.financialAccountId,
@@ -56,5 +56,5 @@ export class TransactionConverter implements Converter<TransactionEntity, Transa
       updatedAt: new Date(entity.updatedAt),
       profileOwner: entity.profileOwner!,
     };
-  }
+  };
 }

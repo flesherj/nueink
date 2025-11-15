@@ -15,7 +15,7 @@ export class AxiosHttpClient implements HttpClient {
     this.axiosInstance = axiosInstance || axios.create();
   }
 
-  async post<T = any>(url: string, data?: any, config?: HttpRequestConfig): Promise<HttpResponse<T>> {
+  public post = async <T = any>(url: string, data?: any, config?: HttpRequestConfig): Promise<HttpResponse<T>> => {
     const response = await this.axiosInstance.post<T>(url, data, config);
     return {
       data: response.data,
@@ -23,9 +23,9 @@ export class AxiosHttpClient implements HttpClient {
       statusText: response.statusText,
       headers: response.headers as Record<string, string>,
     };
-  }
+  };
 
-  async get<T = any>(url: string, config?: HttpRequestConfig): Promise<HttpResponse<T>> {
+  public get = async <T = any>(url: string, config?: HttpRequestConfig): Promise<HttpResponse<T>> => {
     const response = await this.axiosInstance.get<T>(url, config);
     return {
       data: response.data,
@@ -33,5 +33,5 @@ export class AxiosHttpClient implements HttpClient {
       statusText: response.statusText,
       headers: response.headers as Record<string, string>,
     };
-  }
+  };
 }

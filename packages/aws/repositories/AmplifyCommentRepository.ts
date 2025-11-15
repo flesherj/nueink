@@ -7,20 +7,20 @@ export class AmplifyCommentRepository
 {
   constructor(private dbClient: AmplifyDataClient) {}
 
-  async findById(id: string): Promise<CommentEntity | null> {
+  public findById = async (id: string): Promise<CommentEntity | null> => {
     const response = await this.dbClient.models.Comment.get({ commentId: id });
     if (!response.data) {
       return null;
     }
     return this.toComment(response.data);
-  }
+  };
 
-  async findAll(): Promise<CommentEntity[]> {
+  public findAll = async (): Promise<CommentEntity[]> => {
     const response = await this.dbClient.models.Comment.list({});
     return response.data.map((item: any) => this.toComment(item));
-  }
+  };
 
-  async save(entity: CommentEntity): Promise<CommentEntity> {
+  public save = async (entity: CommentEntity): Promise<CommentEntity> => {
     const response = await this.dbClient.models.Comment.create({
       commentId: entity.commentId,
       transactionId: entity.transactionId,
@@ -36,9 +36,9 @@ export class AmplifyCommentRepository
       throw new Error('Failed to create Comment: response.data is null');
     }
     return this.toComment(response.data);
-  }
+  };
 
-  async update(id: string, entity: Partial<CommentEntity>): Promise<CommentEntity> {
+  public update = async (id: string, entity: Partial<CommentEntity>): Promise<CommentEntity> => {
     const updates: any = { commentId: id };
 
     if (entity.text !== undefined) updates.text = entity.text;
@@ -50,25 +50,25 @@ export class AmplifyCommentRepository
       throw new Error('Failed to update Comment: response.data is null');
     }
     return this.toComment(response.data);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.dbClient.models.Comment.delete({ commentId: id });
-  }
+  };
 
-  async findByTransaction(transactionId: string): Promise<CommentEntity[]> {
+  public findByTransaction = async (transactionId: string): Promise<CommentEntity[]> => {
     const response =
       await this.dbClient.models.Comment.listCommentByTransactionIdAndCreatedAt({
         transactionId,
       });
     return response.data.map((item: any) => this.toComment(item));
-  }
+  };
 
-  async findByOrganization(
+  public findByOrganization = async (
     organizationId: string,
     limit: number = 50,
     cursor?: string
-  ): Promise<PaginationResult<CommentEntity>> {
+  ): Promise<PaginationResult<CommentEntity>> => {
     const response =
       await this.dbClient.models.Comment.listCommentByOrganizationIdAndCreatedAt(
         {
@@ -85,19 +85,19 @@ export class AmplifyCommentRepository
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
-  }
+  };
 
-  async findByAccount(accountId: string): Promise<CommentEntity[]> {
+  public findByAccount = async (accountId: string): Promise<CommentEntity[]> => {
     // Note: This requires filtering - fetch all and filter client-side
     // For better performance, consider adding a GSI on accountId in the future
     const allComments = await this.findAll();
     return allComments.filter((comment: any) => comment.accountId === accountId);
-  }
+  };
 
   /**
    * Convert Amplify Comment entity to CommentEntity
    */
-  private toComment(data: any): CommentEntity {
+  private toComment = (data: any): CommentEntity => {
     return {
       commentId: data.commentId,
       transactionId: data.transactionId,
@@ -108,5 +108,5 @@ export class AmplifyCommentRepository
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
     };
-  }
+  };
 }
