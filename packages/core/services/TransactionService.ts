@@ -13,21 +13,21 @@ export class TransactionService {
     this.converter = new TransactionConverter();
   }
 
-  async findById(id: string): Promise<Transaction | null> {
+  public findById = async (id: string): Promise<Transaction | null> => {
     const entity = await this.repository.findById(id);
     return entity ? this.converter.toDomain(entity) : null;
-  }
+  };
 
-  async findAll(): Promise<Transaction[]> {
+  public findAll = async (): Promise<Transaction[]> => {
     const entities = await this.repository.findAll();
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async findByOrganization(
+  public findByOrganization = async (
     organizationId: string,
     limit?: number,
     cursor?: string
-  ): Promise<PaginationResult<Transaction>> {
+  ): Promise<PaginationResult<Transaction>> => {
     const result = await this.repository.findByOrganization(
       organizationId,
       limit,
@@ -38,13 +38,13 @@ export class TransactionService {
       nextCursor: result.nextCursor,
       hasMore: result.hasMore,
     };
-  }
+  };
 
-  async findByFinancialAccount(
+  public findByFinancialAccount = async (
     financialAccountId: string,
     limit?: number,
     cursor?: string
-  ): Promise<PaginationResult<Transaction>> {
+  ): Promise<PaginationResult<Transaction>> => {
     const result = await this.repository.findByFinancialAccount(
       financialAccountId,
       limit,
@@ -55,60 +55,60 @@ export class TransactionService {
       nextCursor: result.nextCursor,
       hasMore: result.hasMore,
     };
-  }
+  };
 
-  async findByPerson(
+  public findByPerson = async (
     personId: string,
     limit?: number,
     cursor?: string
-  ): Promise<PaginationResult<Transaction>> {
+  ): Promise<PaginationResult<Transaction>> => {
     const result = await this.repository.findByPerson(personId, limit, cursor);
     return {
       items: result.items.map((entity) => this.converter.toDomain(entity)),
       nextCursor: result.nextCursor,
       hasMore: result.hasMore,
     };
-  }
+  };
 
-  async findByDateRange(
+  public findByDateRange = async (
     organizationId: string,
     startDate: Date,
     endDate: Date
-  ): Promise<Transaction[]> {
+  ): Promise<Transaction[]> => {
     const entities = await this.repository.findByDateRange(
       organizationId,
       startDate.toISOString(),
       endDate.toISOString()
     );
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async findByExternalTransactionId(
+  public findByExternalTransactionId = async (
     externalId: string
-  ): Promise<Transaction | null> {
+  ): Promise<Transaction | null> => {
     const entity =
       await this.repository.findByExternalTransactionId(externalId);
     return entity ? this.converter.toDomain(entity) : null;
-  }
+  };
 
-  async findRecent(
+  public findRecent = async (
     organizationId: string,
     limit: number
-  ): Promise<Transaction[]> {
+  ): Promise<Transaction[]> => {
     const entities = await this.repository.findRecent(organizationId, limit);
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async create(transaction: Transaction): Promise<Transaction> {
+  public create = async (transaction: Transaction): Promise<Transaction> => {
     const entity = this.converter.toEntity(transaction);
     const saved = await this.repository.save(entity);
     return this.converter.toDomain(saved);
-  }
+  };
 
-  async update(
+  public update = async (
     id: string,
     updates: Partial<Transaction>
-  ): Promise<Transaction> {
+  ): Promise<Transaction> => {
     // Automatically set updatedAt to now
     const updatesWithTimestamp = {
       ...updates,
@@ -117,9 +117,9 @@ export class TransactionService {
     const entityUpdates = this.converter.toEntity(updatesWithTimestamp as Transaction);
     const updated = await this.repository.update(id, entityUpdates);
     return this.converter.toDomain(updated);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.repository.delete(id);
-  }
+  };
 }

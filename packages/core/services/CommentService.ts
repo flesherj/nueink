@@ -13,52 +13,52 @@ export class CommentService {
     this.converter = new CommentConverter();
   }
 
-  async findById(id: string): Promise<Comment | null> {
+  public findById = async (id: string): Promise<Comment | null> => {
     const entity = await this.repository.findById(id);
     return entity ? this.converter.toDomain(entity) : null;
-  }
+  };
 
-  async findAll(): Promise<Comment[]> {
+  public findAll = async (): Promise<Comment[]> => {
     const entities = await this.repository.findAll();
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async findByTransaction(transactionId: string): Promise<Comment[]> {
+  public findByTransaction = async (transactionId: string): Promise<Comment[]> => {
     const entities = await this.repository.findByTransaction(transactionId);
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async findByOrganization(
+  public findByOrganization = async (
     organizationId: string,
     limit?: number,
     cursor?: string
-  ): Promise<PaginationResult<Comment>> {
+  ): Promise<PaginationResult<Comment>> => {
     const result = await this.repository.findByOrganization(organizationId, limit, cursor);
     return {
       items: result.items.map((entity) => this.converter.toDomain(entity)),
       nextCursor: result.nextCursor,
       hasMore: result.hasMore,
     };
-  }
+  };
 
-  async findByAccount(accountId: string): Promise<Comment[]> {
+  public findByAccount = async (accountId: string): Promise<Comment[]> => {
     const entities = await this.repository.findByAccount(accountId);
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async create(comment: Comment): Promise<Comment> {
+  public create = async (comment: Comment): Promise<Comment> => {
     const entity = this.converter.toEntity(comment);
     const saved = await this.repository.save(entity);
     return this.converter.toDomain(saved);
-  }
+  };
 
-  async update(id: string, updates: Partial<Comment>): Promise<Comment> {
+  public update = async (id: string, updates: Partial<Comment>): Promise<Comment> => {
     const entityUpdates = this.converter.toEntity(updates as Comment);
     const updated = await this.repository.update(id, entityUpdates);
     return this.converter.toDomain(updated);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.repository.delete(id);
-  }
+  };
 }

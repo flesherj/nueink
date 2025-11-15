@@ -13,44 +13,44 @@ export class MembershipService {
     this.converter = new MembershipConverter();
   }
 
-  async findById(id: string): Promise<Membership | null> {
+  public findById = async (id: string): Promise<Membership | null> => {
     const entity = await this.repository.findById(id);
     return entity ? this.converter.toDomain(entity) : null;
-  }
+  };
 
-  async findAll(): Promise<Membership[]> {
+  public findAll = async (): Promise<Membership[]> => {
     const entities = await this.repository.findAll();
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async findByOrganization(orgId: string): Promise<Membership[]> {
+  public findByOrganization = async (orgId: string): Promise<Membership[]> => {
     const entities = await this.repository.findByOrganization(orgId);
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async findByAccount(accountId: string): Promise<Membership[]> {
+  public findByAccount = async (accountId: string): Promise<Membership[]> => {
     const entities = await this.repository.findByAccount(accountId);
     return entities.map((entity) => this.converter.toDomain(entity));
-  }
+  };
 
-  async findByAccountAndOrganization(accountId: string, orgId: string): Promise<Membership | null> {
+  public findByAccountAndOrganization = async (accountId: string, orgId: string): Promise<Membership | null> => {
     const entity = await this.repository.findByAccountAndOrganization(accountId, orgId);
     return entity ? this.converter.toDomain(entity) : null;
-  }
+  };
 
-  async create(membership: Membership): Promise<Membership> {
+  public create = async (membership: Membership): Promise<Membership> => {
     const entity = this.converter.toEntity(membership);
     const saved = await this.repository.save(entity);
     return this.converter.toDomain(saved);
-  }
+  };
 
-  async update(id: string, updates: Partial<Membership>): Promise<Membership> {
+  public update = async (id: string, updates: Partial<Membership>): Promise<Membership> => {
     const entityUpdates = this.converter.toEntity(updates as Membership);
     const updated = await this.repository.update(id, entityUpdates);
     return this.converter.toDomain(updated);
-  }
+  };
 
-  async delete(id: string): Promise<void> {
+  public delete = async (id: string): Promise<void> => {
     await this.repository.delete(id);
-  }
+  };
 }

@@ -30,6 +30,8 @@ export { serviceFactory, awsFactory };
 // Import routers
 import AccountRouter from './routers/AccountRouter';
 import IntegrationRouter from './routers/IntegrationRouter';
+import FinancialAccountRouter from './routers/FinancialAccountRouter';
+import TransactionRouter from './routers/TransactionRouter';
 
 // Create Express app
 const app = express();
@@ -39,6 +41,8 @@ app.use(cors());
 // Mount routers
 app.use('/account', AccountRouter);
 app.use('/integration', IntegrationRouter);
+app.use('/financial-account', FinancialAccountRouter);
+app.use('/transaction', TransactionRouter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

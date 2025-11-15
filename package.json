@@ -15,7 +15,7 @@
     "build:aws": "yarn workspace @nueink/aws build",
     "build:core": "yarn workspace @nueink/core build",
     "build:plaid": "yarn workspace @nueink/plaid build",
-    "build:sdk": "yarn workspace @nueink/skd build",
+    "build:sdk": "yarn workspace @nueink/sdk build",
     "build:ui": "yarn workspace @nueink/ui build",
     "build:ynab": "yarn workspace @nueink/ynab build",
     "typecheck": "yarn typecheck:core && yarn typecheck:aws && yarn typecheck:ui && yarn typecheck:plaid && yarn typecheck:ynab && yarn typecheck:sdk",

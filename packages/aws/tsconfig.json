@@ -1,11 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["**/*.ts"],
   "compilerOptions": {
     "paths": {
       "$amplify/*": [
         "../.amplify/generated/*"
       ]
     }
-  }
+  },
+  "include": ["**/*.ts"],
+  "references": [
+    { "path": "../core" }
+  ]
 }
