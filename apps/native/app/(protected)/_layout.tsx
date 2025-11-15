@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuthenticator } from '@aws-amplify/ui-react-native';
 import { Stack } from 'expo-router';
 import { generateClient } from 'aws-amplify/data';
+import { useTheme } from 'react-native-paper';
 
 import type { Schema } from '@nueink/aws/amplify/data/resource';
 import { NueInkRepositoryFactory } from '@nueink/aws';
@@ -19,6 +20,7 @@ const accountService = serviceFactory.account();
 
 export const ProtectedLayout = () => {
   const { user } = useAuthenticator();
+  const theme = useTheme();
   const [account, setAccount] = useState<Account>();
 
   useEffect(() => {
@@ -55,7 +57,38 @@ export const ProtectedLayout = () => {
 
   return (
     <AccountProvider account={account}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack>
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="settings/connect-accounts"
+          options={{
+            headerShown: true,
+            presentation: 'modal',
+            headerStyle: {
+              backgroundColor: theme.colors.surface,
+            },
+            headerTintColor: theme.colors.onSurface,
+          }}
+        />
+        <Stack.Screen
+          name="accounts/[id]"
+          options={{
+            headerShown: true,
+            headerBackTitle: 'Back',
+            headerStyle: {
+              backgroundColor: theme.colors.surface,
+            },
+            headerTintColor: theme.colors.onSurface,
+          }}
+        />
+        <Stack.Screen
+          name="onboard"
+          options={{ headerShown: false }}
+        />
+      </Stack>
     </AccountProvider>
   );
 };

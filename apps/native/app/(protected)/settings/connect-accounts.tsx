@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { Surface, Text, Button, Card, ActivityIndicator } from 'react-native-paper';
+import { Surface, Text, Button, Card, ActivityIndicator, useTheme } from 'react-native-paper';
 import { useAccountProvider } from '@nueink/ui';
 import * as WebBrowser from 'expo-web-browser';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { IntegrationApi } from '@nueink/sdk';
 import Environment from '../../../models/Environment';
 
@@ -13,6 +13,7 @@ const integrationApi = IntegrationApi.create();
 export default function ConnectAccountsScreen() {
   const { account } = useAccountProvider();
   const router = useRouter();
+  const theme = useTheme();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [ynabConnected, setYnabConnected] = useState(false);
@@ -169,13 +170,19 @@ export default function ConnectAccountsScreen() {
   };
 
   return (
-    <Surface style={styles.container}>
-      <View style={styles.header}>
-        <Text variant="headlineMedium">Connect Accounts</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Connect your financial accounts to start syncing transactions
-        </Text>
-      </View>
+    <>
+      <Stack.Screen
+        options={{
+          title: 'Connect Accounts',
+          headerShown: true,
+        }}
+      />
+      <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.header}>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Connect your financial accounts to start syncing transactions
+          </Text>
+        </View>
 
       <View style={styles.providers}>
         {/* YNAB Card */}
@@ -237,7 +244,8 @@ export default function ConnectAccountsScreen() {
           <Text style={styles.loadingText}>Opening {connecting.toUpperCase()}...</Text>
         </View>
       )}
-    </Surface>
+      </Surface>
+    </>
   );
 }
 

@@ -1,12 +1,35 @@
 # NueInk - Current Sprint & Tasks
 
-**Last Updated:** November 14, 2025
+**Last Updated:** November 15, 2025
 **Current Phase:** Phase 1 - Financial Data Integration
 **Sprint:** Week 1 (Nov 11-17, 2025)
 
 ---
 
 ## 🚀 Current Sprint (Week 1: Nov 11-17, 2025)
+
+### Completed Nov 15 ✅
+
+- [x] **Mobile UI Screens Complete** (Nov 15 - DONE)
+  - ✅ Created tab navigation (Feed, Accounts, Settings)
+  - ✅ Transaction feed with Instagram-style layout
+  - ✅ Financial accounts list screen (shows 19 synced accounts)
+  - ✅ Account detail screen with transactions
+  - ✅ Pull-to-refresh on all data screens
+  - ✅ Infinite scroll pagination
+
+- [x] **REST API & Lambda Fixes** (Nov 15 - DONE)
+  - ✅ Fixed nueInkApi Lambda authorization (Data layer access)
+  - ✅ Added Secrets Manager permissions to nueInkApi
+  - ✅ Added CloudWatch metrics permissions to nueInkApi
+  - ✅ Fixed transaction sort order (DESC - most recent first)
+  - ✅ DynamoDB query optimization with sortDirection
+
+- [x] **UI/UX Improvements** (Nov 15 - DONE)
+  - ✅ Dark theme applied to all screens
+  - ✅ Category chip display fixed
+  - ✅ Navigation back buttons improved
+  - ✅ Modal presentation for Connect Accounts
 
 ### Completed Nov 14 ✅
 
@@ -49,10 +72,11 @@
 
 ### Up Next ⏭️
 
-1. **Mobile UI for Accounts** - Display synced financial accounts in app
-2. **Transaction Feed UI** - Show transactions in social feed format
-3. **Pull-to-Refresh** - Add manual sync trigger from mobile app
-4. **Real-time Sync Notifications** - AWS IoT Core for sync status updates
+1. **Transaction Detail Screen** - Click transaction to see details, comments, person assignment
+2. **Manual Sync Trigger** - API endpoint to trigger sync from mobile app
+3. **Comments on Transactions** - Basic comment functionality
+4. **Person Assignment UI** - Manual person assignment for transactions
+5. **Onboarding Flow** - Guide new users through account connection
 
 ---
 
@@ -71,8 +95,8 @@
 **Core MVP Features:**
 1. ✅ Connect YNAB/Plaid (OAuth)
 2. ✅ Sync accounts and transactions
-3. ⏭️ Display accounts in UI
-4. ⏭️ Display transactions in feed
+3. ✅ Display accounts in UI
+4. ✅ Display transactions in feed
 5. ⏭️ Basic comments on transactions
 6. ⏭️ Manual person assignment
 
@@ -136,45 +160,44 @@
     - Updated YNAB_REDIRECT_URI in SSM to match current API Gateway URL
     - Added `secretsmanager:TagResource` permission to financial-connect Lambda IAM role
 
-### Step 3: Display Synced Data ⏭️ NEXT
+### Step 3: Display Synced Data ✅ COMPLETE
 
 **Goal:** User sees their accounts and transactions in the app
 
-- [ ] **Create Accounts list screen**
-  - File: `apps/native/app/(protected)/accounts/index.tsx`
-  - Query: `client.models.FinancialAccount.list({ filter: { organizationId: { eq: orgId } } })`
+- [x] **Create Accounts list screen** ✅
+  - File: `apps/native/app/(protected)/(tabs)/accounts.tsx`
+  - Uses: REST API via FinancialAccountApi.listByOrganization()
   - Display: Account name, mask, type, current balance
   - Group: By provider or institution
-  - Acceptance: Synced accounts appear in UI
+  - Acceptance: Synced accounts appear in UI ✅
 
-- [ ] **Create Account detail screen**
+- [x] **Create Account detail screen** ✅
   - File: `apps/native/app/(protected)/accounts/[id].tsx`
   - Show: Account details, current balance, available balance
   - Show: Recent transactions for this account
-  - Action: "Refresh balance" button (triggers sync)
-  - Acceptance: Can view account details
+  - Pull-to-refresh: Triggers manual data reload
+  - Acceptance: Can view account details ✅
 
-- [ ] **Create Transactions feed**
-  - File: `apps/native/app/(protected)/transactions/index.tsx`
-  - Query: `client.models.Transaction.list({ filter: { organizationId: { eq: orgId } } })`
-  - Sort: By date descending
-  - Display: Date, merchant, amount, account
-  - Pagination: Load more as user scrolls
-  - Acceptance: Synced transactions appear in UI
+- [x] **Create Transactions feed** ✅
+  - File: `apps/native/app/(protected)/(tabs)/index.tsx`
+  - Uses: REST API via TransactionApi.listByOrganization()
+  - Sort: By date descending (sortDirection: 'DESC' in DynamoDB)
+  - Display: Date, merchant, amount, category
+  - Pagination: Infinite scroll with cursor-based pagination
+  - Acceptance: Synced transactions appear in UI ✅
 
-- [ ] **Add pull-to-refresh**
-  - Action: Trigger sync for user's integrations
-  - UI: Show loading indicator
-  - Update: Refresh data after sync completes
-  - Acceptance: User can manually refresh data
+- [x] **Add pull-to-refresh** ✅
+  - Action: Reloads data from API
+  - UI: RefreshControl with loading indicator
+  - Update: Clears and refreshes data after pull
+  - Acceptance: User can manually refresh data ✅
 
-- [ ] **Test data display end-to-end**
-  - Setup: Complete OAuth for YNAB
-  - Wait: For scheduled sync OR trigger manual sync
-  - Verify: Accounts appear in accounts list
-  - Verify: Transactions appear in feed
-  - Verify: Balances are correct
-  - Acceptance: Can see real financial data
+- [x] **Test data display end-to-end** ✅
+  - Setup: Complete OAuth for YNAB ✅
+  - Verify: Accounts appear in accounts list (19 accounts) ✅
+  - Verify: Transactions appear in feed (sorted by date DESC) ✅
+  - Verify: Balances are correct ✅
+  - Acceptance: Can see real financial data ✅
 
 ### Step 4: End-to-End Validation
 
@@ -212,13 +235,13 @@
 
 **Foundation:** ██████████ 100% (Existing infrastructure reusable)
 **Phase 0 (Architecture):** ██████████ 100% ✅ (Completed Nov 11, 2025)
-**Phase 1 (Integration):** ████░░░░░░ 40% (OAuth complete, account sync working)
-**Phase 2 (Social Feed):** ░░░░░░░░░░ 0%
+**Phase 1 (Integration):** ████████░░ 80% ✅ (OAuth, sync, UI complete - Nov 15, 2025)
+**Phase 2 (Social Feed):** ██░░░░░░░░ 20% (Feed UI created, comments/assignment pending)
 **Phase 3 (Intelligence):** ░░░░░░░░░░ 0%
 **Phase 4 (Receipts/Bills):** ░░░░░░░░░░ 0%
 **Phase 5 (Polish):** ░░░░░░░░░░ 0%
 
-**Timeline to MVP:** 4-6 weeks remaining
+**Timeline to MVP:** 2-4 weeks remaining
 
 ### Key Milestones
 
@@ -232,9 +255,10 @@
 - ✅ **OAuth Integration Complete** (Nov 14 - YNAB OAuth working)
 - ✅ **Financial Account Sync Working** (Nov 14 - 19 accounts synced)
 - ✅ **Transaction Sync Working** (Nov 14 - Transactions syncing to DynamoDB)
-- ⏭️ **Social Feed MVP** (Target: Week 4)
-- ⏭️ **Beta Launch** (Target: Week 8)
+- ✅ **Mobile UI Complete** (Nov 15 - All core screens working)
+- ⏭️ **Social Features** (Comments, Person Assignment - Target: Week 2)
+- ⏭️ **Beta Launch** (Target: Week 4)
 
 ---
 
-*Last updated: November 14, 2025 by James Flesher*
+*Last updated: November 15, 2025 by James Flesher*

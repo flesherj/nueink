@@ -104,6 +104,7 @@ export class AmplifyTransactionRepository
         {
           limit,
           nextToken: cursor,
+          sortDirection: 'DESC', // Most recent first
         }
       );
 
@@ -127,6 +128,7 @@ export class AmplifyTransactionRepository
         {
           limit,
           nextToken: cursor,
+          sortDirection: 'DESC', // Most recent first
         }
       );
 
@@ -150,6 +152,7 @@ export class AmplifyTransactionRepository
         {
           limit,
           nextToken: cursor,
+          sortDirection: 'DESC', // Most recent first
         }
       );
 
@@ -200,6 +203,7 @@ export class AmplifyTransactionRepository
         },
         {
           limit,
+          sortDirection: 'DESC', // Most recent first
         }
       );
 

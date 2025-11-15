@@ -9,7 +9,8 @@ const AppIndex = () => {
   useEffect(() => {
     console.log('user', user);
     if (user) {
-      router.navigate('onboard');
+      // Navigate to main tabs (transaction feed)
+      router.replace('/(protected)/(tabs)');
     }
   }, [user, router]);
 

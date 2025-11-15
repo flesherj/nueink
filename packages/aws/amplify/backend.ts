@@ -292,6 +292,15 @@ backend.nueInkApi.resources.lambda.addToRolePolicy(
   })
 );
 
+// Grant nueInk API Lambda permission to publish CloudWatch metrics
+backend.nueInkApi.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['cloudwatch:PutMetricData'],
+    resources: ['*'],
+  })
+);
+
 // Pass event bus name to API Lambda
 (backend.nueInkApi.resources.lambda as any).addEnvironment('EVENT_BUS_NAME', eventBus.eventBusName);
 

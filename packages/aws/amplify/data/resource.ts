@@ -2,6 +2,7 @@ import {type ClientSchema, a, defineData} from '@aws-amplify/backend';
 import {postConfirmation} from '../auth/post-confirmation/resource';
 import {financialConnect} from '../functions/financial/connect/resource';
 import {financialSync} from '../functions/financial/sync/resource';
+import {nueInkApi} from '../functions/api/resource';
 
 const schema = a.schema({
         Account: a.model({
@@ -280,6 +281,7 @@ const schema = a.schema({
             allow.resource(postConfirmation),
             allow.resource(financialConnect),
             allow.resource(financialSync),
+            allow.resource(nueInkApi),
         ])
 ;
 
