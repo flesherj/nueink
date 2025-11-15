@@ -15,7 +15,7 @@ export class TransactionConverter implements Converter<TransactionEntity, Transa
       externalTransactionId: domain.externalTransactionId,
       amount: domain.amount,
       currency: domain.currency,
-      date: domain.date.toISOString(),
+      date: domain.date?.toISOString(),
       authorizedDate: domain.authorizedDate?.toISOString(),
       merchantName: domain.merchantName,
       name: domain.name,
@@ -24,8 +24,10 @@ export class TransactionConverter implements Converter<TransactionEntity, Transa
       pending: domain.pending,
       personId: domain.personId,
       receiptUrls: domain.receiptUrls,
-      createdAt: domain.createdAt.toISOString(),
-      updatedAt: domain.updatedAt.toISOString(),
+      rawData: domain.rawData ? JSON.stringify(domain.rawData) : undefined,  // AWSJSON requires string
+      syncedAt: domain.syncedAt?.toISOString(),
+      createdAt: domain.createdAt?.toISOString(),
+      updatedAt: domain.updatedAt?.toISOString(),
       profileOwner: domain.profileOwner,
     };
   }
@@ -48,6 +50,8 @@ export class TransactionConverter implements Converter<TransactionEntity, Transa
       pending: entity.pending,
       personId: entity.personId,
       receiptUrls: entity.receiptUrls,
+      rawData: entity.rawData ? JSON.parse(entity.rawData) : undefined,  // Parse AWSJSON string back to object
+      syncedAt: entity.syncedAt ? new Date(entity.syncedAt) : undefined,
       createdAt: new Date(entity.createdAt),
       updatedAt: new Date(entity.updatedAt),
       profileOwner: entity.profileOwner!,

@@ -7,7 +7,14 @@ import { FinancialAccountEntity } from '@nueink/aws';
  */
 export class FinancialAccountConverter implements Converter<FinancialAccountEntity, FinancialAccount> {
   toEntity(domain: FinancialAccount): FinancialAccountEntity {
-    return {
+    console.log('[DEBUG] FinancialAccountConverter.toEntity() - Input domain:', JSON.stringify({
+      ...domain,
+      syncedAt: domain.syncedAt?.toISOString(),
+      createdAt: domain.createdAt?.toISOString(),
+      updatedAt: domain.updatedAt?.toISOString(),
+    }, null, 2));
+
+    const entity = {
       financialAccountId: domain.financialAccountId,
       institutionId: domain.institutionId,
       organizationId: domain.organizationId,
@@ -22,10 +29,16 @@ export class FinancialAccountConverter implements Converter<FinancialAccountEnti
       currency: domain.currency,
       personId: domain.personId,
       status: domain.status,
-      createdAt: domain.createdAt.toISOString(),
-      updatedAt: domain.updatedAt.toISOString(),
+      rawData: domain.rawData ? JSON.stringify(domain.rawData) : undefined,  // AWSJSON requires string
+      syncedAt: domain.syncedAt?.toISOString(),
+      createdAt: domain.createdAt?.toISOString(),
+      updatedAt: domain.updatedAt?.toISOString(),
       profileOwner: domain.profileOwner,
     };
+
+    console.log('[DEBUG] FinancialAccountConverter.toEntity() - Output entity:', JSON.stringify(entity, null, 2));
+
+    return entity;
   }
 
   toDomain(entity: FinancialAccountEntity): FinancialAccount {
@@ -44,6 +57,8 @@ export class FinancialAccountConverter implements Converter<FinancialAccountEnti
       currency: entity.currency,
       personId: entity.personId,
       status: entity.status,
+      rawData: entity.rawData ? JSON.parse(entity.rawData) : undefined,  // Parse AWSJSON string back to object
+      syncedAt: entity.syncedAt ? new Date(entity.syncedAt) : undefined,
       createdAt: new Date(entity.createdAt),
       updatedAt: new Date(entity.updatedAt),
       profileOwner: entity.profileOwner!,

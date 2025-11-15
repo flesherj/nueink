@@ -4,14 +4,19 @@ import { data } from './data/resource';
 import { postConfirmation } from './auth/post-confirmation/resource';
 import { financialConnect } from './functions/financial/connect/resource';
 import { financialSync } from './functions/financial/sync/resource';
+import { nueInkApi } from './functions/api/resource';
 import { createEventBus } from './events/resource';
 import { HttpApi, HttpMethod, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import {
+  RestApi,
+  LambdaIntegration,
+  Cors,
+} from 'aws-cdk-lib/aws-apigateway';
 import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
-import { Duration } from 'aws-cdk-lib';
+import { Duration, Stack } from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import { deriveShortIdFromStackName } from './shared/sandbox-utils';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -22,6 +27,7 @@ const backend = defineBackend({
   postConfirmation,
   financialConnect,
   financialSync,
+  nueInkApi,
 });
 
 // ========== Grant IAM Permissions to Financial Lambdas ==========
@@ -87,10 +93,12 @@ backend.financialSync.resources.lambda.addToRolePolicy(
 const eventsStack = backend.createStack('nueink-events-stack');
 
 // Create EventBridge event bus for sync orchestration
-// Bus name will be: nueink-events-{sandboxId} (e.g., nueink-events-dev-sandbox-371f35b233)
-// Lambdas can derive this from their function name at runtime
-// Pass the parent stack name to extract the sandbox ID
-const eventBus = createEventBus(eventsStack, backend.stack.stackName);
+// CDK auto-generates unique name to support multiple sandboxes in same AWS account
+const eventBus = createEventBus(eventsStack);
+
+// Pass the event bus name to financial Lambdas via environment variable
+// Using 'as any' to access underlying Lambda's addEnvironment method
+(backend.financialConnect.resources.lambda as any).addEnvironment('EVENT_BUS_NAME', eventBus.eventBusName);
 
 // ========== Financial Sync Schedule ==========
 
@@ -103,23 +111,32 @@ const eventBus = createEventBus(eventsStack, backend.stack.stackName);
  */
 const syncStack = backend.createStack('nueink-sync-stack');
 
-// EventBridge rules have a 64-character name limit
-// CDK's Rule construct ignores ruleName when stack names are long
-// So we use minimal construct IDs and let CDK auto-generate physical names
-
+// EventBridge rules - Explicit short names to avoid 64 char limit
 new Rule(syncStack, 'Sch', {
+  ruleName: 'nueink-sync-schedule',
   description: 'Triggers financial data sync every 4 hours',
-  schedule: Schedule.rate(Duration.hours(4)), // Run every 4 hours
+  schedule: Schedule.rate(Duration.hours(4)),
   targets: [new LambdaFunction(backend.financialSync.resources.lambda)],
 });
 
-// Create rule to trigger sync when new integration is connected
 new Rule(syncStack, 'Con', {
+  ruleName: 'nueink-sync-on-connect',
   description: 'Triggers immediate sync when user connects a financial provider',
   eventBus: eventBus,
   eventPattern: {
     source: ['nueink.financial'],
     detailType: ['IntegrationConnected'],
+  },
+  targets: [new LambdaFunction(backend.financialSync.resources.lambda)],
+});
+
+new Rule(syncStack, 'Man', {
+  ruleName: 'nueink-sync-manual',
+  description: 'Triggers sync when user manually requests it from UI',
+  eventBus: eventBus,
+  eventPattern: {
+    source: ['nueink.financial.manual'],
+    detailType: ['ManualSyncTriggered'],
   },
   targets: [new LambdaFunction(backend.financialSync.resources.lambda)],
 });
@@ -140,7 +157,7 @@ const stackSuffix = oauthStack.stackName.split('-').slice(-1)[0] || 'default';
 
 const httpApi = new HttpApi(oauthStack, 'OAuthHttpApi', {
   apiName: `nueink-oauth-api-${stackSuffix}`,
-  description: 'HTTP API for OAuth callbacks from financial providers (YNAB, Plaid)',
+  description: 'HTTP API for OAuth callbacks from financial providers',
   corsPreflight: {
     allowOrigins: ['*'],
     allowMethods: [CorsHttpMethod.GET],
@@ -148,7 +165,7 @@ const httpApi = new HttpApi(oauthStack, 'OAuthHttpApi', {
   },
 });
 
-// Create Lambda integration for financial-connect function
+// Create Lambda integration for OAuth callback
 const financialConnectIntegration = new HttpLambdaIntegration(
   'FinancialConnectIntegration',
   backend.financialConnect.resources.lambda
@@ -173,5 +190,120 @@ oauthStack.exportValue(httpApi.url!, {
 backend.addOutput({
   custom: {
     oauthCallbackUrl: `${httpApi.url!}oauth/callback`,
+  },
+});
+
+// ========== REST API for Client Operations ==========
+
+/**
+ * Create REST API Gateway for all client-side operations
+ * Replaces direct AppSync access from clients
+ *
+ * Endpoints:
+ * - GET /account/:accountId - Get account
+ * - GET /account - List accounts
+ * - GET /integration/:accountId - List integrations
+ * - POST /integration/:accountId/sync - Trigger sync
+ */
+const apiStack = backend.createStack('nueink-rest-api-stack');
+
+// Extract sandbox identifier for resource naming
+const apiStackSuffix = apiStack.stackName.split('-').slice(-1)[0] || 'default';
+
+// Create REST API
+const restApi = new RestApi(apiStack, 'NueInkRestApi', {
+  restApiName: `nueink-api-${apiStackSuffix}`,
+  description: 'REST API for NueInk client applications',
+  deploy: true,
+  deployOptions: {
+    stageName: 'dev',
+  },
+  defaultCorsPreflightOptions: {
+    allowOrigins: Cors.ALL_ORIGINS,
+    allowMethods: Cors.ALL_METHODS,
+    allowHeaders: Cors.DEFAULT_HEADERS,
+  },
+});
+
+// Create Lambda integration
+const apiLambdaIntegration = new LambdaIntegration(backend.nueInkApi.resources.lambda);
+
+// Add proxy route (/* catches all paths)
+restApi.root.addProxy({
+  anyMethod: true,
+  defaultIntegration: apiLambdaIntegration,
+});
+
+// Note: Cognito authorizer can be added later when needed for protected routes
+// Example:
+// const cognitoAuth = new CognitoUserPoolsAuthorizer(apiStack, 'CognitoAuth', {
+//   cognitoUserPools: [backend.auth.resources.userPool],
+// });
+// const protectedPath = restApi.root.addResource('protected');
+// protectedPath.addMethod('GET', apiLambdaIntegration, {
+//   authorizationType: AuthorizationType.COGNITO,
+//   authorizer: cognitoAuth,
+// });
+
+// Grant API invoke permissions to authenticated/unauthenticated users
+const apiPolicy = new iam.Policy(apiStack, 'RestApiPolicy', {
+  statements: [
+    new iam.PolicyStatement({
+      actions: ['execute-api:Invoke'],
+      resources: [
+        `${restApi.arnForExecuteApi('*', '/*', 'dev')}`,
+      ],
+    }),
+  ],
+});
+
+backend.auth.resources.authenticatedUserIamRole.attachInlinePolicy(apiPolicy);
+backend.auth.resources.unauthenticatedUserIamRole.attachInlinePolicy(apiPolicy);
+
+// Grant nueInk API Lambda permission to publish events
+backend.nueInkApi.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['events:PutEvents'],
+    resources: [`arn:aws:events:${apiStack.region}:${apiStack.account}:event-bus/*`],
+  })
+);
+
+// Grant nueInk API Lambda permission to read SSM parameters
+backend.nueInkApi.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['ssm:GetParameter', 'ssm:GetParameters'],
+    resources: [`arn:aws:ssm:${apiStack.region}:${apiStack.account}:parameter/amplify/*`],
+  })
+);
+
+// Grant nueInk API Lambda permission to manage Secrets Manager
+backend.nueInkApi.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: [
+      'secretsmanager:GetSecretValue',
+      'secretsmanager:PutSecretValue',
+      'secretsmanager:UpdateSecret',
+      'secretsmanager:DescribeSecret',
+    ],
+    resources: [`arn:aws:secretsmanager:${apiStack.region}:${apiStack.account}:secret:nueink/integration/*`],
+  })
+);
+
+// Pass event bus name to API Lambda
+(backend.nueInkApi.resources.lambda as any).addEnvironment('EVENT_BUS_NAME', eventBus.eventBusName);
+
+// Add REST API URL to outputs
+backend.addOutput({
+  custom: {
+    API: {
+      [restApi.restApiName]: {
+        endpoint: restApi.url,
+        region: Stack.of(restApi).region,
+        apiName: restApi.restApiName,
+      },
+    },
   },
 });

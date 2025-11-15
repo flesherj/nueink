@@ -8,17 +8,18 @@ export type TransactionEntity = {
   externalTransactionId?: string; // Provider's transaction ID
   amount: number;
   currency: Currency;
-  date: string; // Transaction date (for sorting)
-  authorizedDate?: string;
+  date: string; // Transaction date (ISO string for sorting)
+  authorizedDate?: string; // ISO string
   merchantName?: string;
   name: string;
-  category?: string[]; // Categories (array for flexibility)
+  category?: Array<string>; // Categories (array for flexibility)
   primaryCategory?: string; // First category for filtering
   pending: boolean;
   personId?: string; // FK to Person (auto-assigned)
-  receiptUrls?: string[]; // S3 keys for receipts (Phase 2)
-  syncedAt?: string; // Last sync timestamp from provider
-  createdAt: string;
-  updatedAt: string;
+  receiptUrls?: Array<string>; // S3 keys for receipts (Phase 2)
+  rawData?: string; // Complete provider response as JSON string (AWSJSON type)
+  syncedAt?: string; // Last sync timestamp from provider (ISO string)
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
   profileOwner?: string;
 };

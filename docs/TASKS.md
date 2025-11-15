@@ -59,7 +59,7 @@
 - ✅ **Phase 1 Started** (Nov 11 - Data model review)
 - ✅ **OAuth Integration Complete** (Nov 14 - YNAB OAuth working)
 - ✅ **Financial Account Sync Working** (Nov 14 - 19 accounts synced)
-- 🔄 **Transaction Sync** (Next: Implement DynamoDB storage)
+- ✅ **Transaction Sync Working** (Nov 14 - Transactions syncing to DynamoDB)
 - ⏭️ **Social Feed MVP** (Target: Week 4)
 - ⏭️ **Beta Launch** (Target: Week 8)
 
@@ -79,7 +79,9 @@
   - ✅ EventBridge rules configured (schedule + event-driven)
   - ✅ Financial sync Lambda triggered on integration connect
   - ✅ Account sync working (19 YNAB accounts synced)
-  - ✅ Transaction sync fetching (258 transactions retrieved)
+  - ✅ Transaction sync working (transactions stored in DynamoDB)
+  - ✅ AWSJSON type fixes (rawData field properly stringified)
+  - ✅ EventBridge rule naming fixed (explicit ruleName properties)
   - ✅ Event bus naming fixed (sandbox ID resolution)
 
 - [x] **Build System Improvements** (Nov 14 - DONE)
@@ -106,12 +108,10 @@
 
 ### Up Next ⏭️
 
-1. **Transaction DynamoDB Storage** - Implement transaction storage with deduplication
-2. **Transaction Sync Testing** - Verify transactions appear in DynamoDB
-3. **Mobile UI for Accounts** - Display synced financial accounts in app
-4. **Transaction Feed UI** - Show transactions in social feed format
-3. Update Amplify schema
-4. Begin Lambda integration factory
+1. **Mobile UI for Accounts** - Display synced financial accounts in app
+2. **Transaction Feed UI** - Show transactions in social feed format
+3. **Pull-to-Refresh** - Add manual sync trigger from mobile app
+4. **Real-time Sync Notifications** - AWS IoT Core for sync status updates
 
 ---
 
@@ -2818,3 +2818,88 @@ Update TASKS.md: [what changed]
 ---
 
 *Last updated: November 11, 2025 by James Flesher*
+
+---
+
+## 🔮 Future: Real-Time Communication Architecture (Deferred)
+
+**Date Discussed:** November 14, 2025  
+**Status:** ⏸️ Documented for future implementation  
+**Decision:** Use AWS IoT Core for real-time sync notifications
+
+### Context
+
+During SDK package creation and REST API implementation, discussed how to provide real-time sync status updates without requiring polling. Evaluated multiple approaches for server → client push notifications.
+
+### Options Evaluated
+
+| Solution | Cost (1K users/month) | Pros | Cons | Verdict |
+|----------|----------------------|------|------|---------|
+| **AWS IoT Core** | $1.50 | ✅ Cheapest<br>✅ Real-time<br>✅ Scalable<br>✅ Native AWS | ⚠️ Moderate setup | ✅ **Recommended** |
+| **AppSync Subscriptions** | $30 | ✅ Already configured<br>✅ Integrated with data | ❌ 20x more expensive<br>❌ Couples to schema | ❌ Too costly |
+| **PubNub** | Free-$49 | ✅ Simple API | ❌ External dependency<br>❌ Data leaves AWS | ❌ External risk |
+| **SNS Mobile Push** | $0.50 | ✅ Very cheap<br>✅ Works in background | ❌ Only for closed apps<br>❌ Requires permissions | ⚠️ Supplement only |
+| **REST Polling** | $0.35 | ✅ Dead simple | ❌ Not real-time<br>❌ Higher latency | ✅ **Use for MVP** |
+
+### Recommended Architecture
+
+**Phase 1 (Current - MVP):**
+- Use REST API polling for sync status
+- Simple, works for testing, no extra infrastructure
+
+**Phase 2 (Post-MVP):**
+- Add AWS IoT Core for in-app real-time updates
+- Add SNS Mobile Push for background notifications
+
+**Phase 3 (Scale):**
+- Keep IoT Core (cheapest at scale)
+- Avoid CQRS/materialized views unless read/write ratio > 10:1
+
+### Implementation Notes (For Later)
+
+When implementing IoT Core:
+
+1. **Backend (packages/aws/amplify/backend.ts):**
+   - Create IoT policy for authenticated Cognito users
+   - Grant Lambda publish permissions
+   - Export IoT endpoint to amplify_outputs.json
+
+2. **Lambda (financial-sync handler):**
+   - Publish to `nueink/{accountId}/sync` topic after completion
+   - Include status, counts, timestamps
+
+3. **Client (React Native):**
+   - Configure Amplify PubSub with AWSIoTProvider
+   - Subscribe to account-specific topics
+   - Handle updates with UI refresh
+
+**Cost at scale:** ~$150/month for 100K active users (10-20x cheaper than AppSync subscriptions)
+
+### Why Not CQRS/Materialized Views?
+
+Also evaluated Command Query Responsibility Segregation (CQRS) pattern with materialized view models in DynamoDB. **Decided against** for now:
+
+**Concerns:**
+- ❌ Doubles storage costs (domain + view tables)
+- ❌ Consistency complexity (DynamoDB Streams or EventBridge projectors)
+- ❌ Premature optimization - no evidence of need yet
+- ❌ Adds cognitive load during MVP development
+
+**When to reconsider:**
+- Read/write ratio > 10:1 (heavy read traffic)
+- Complex aggregations needed for UI (feeds, dashboards)
+- Performance issues with domain model queries
+- Multiple client types with different view needs
+
+**Current approach is better:**
+- Domain models + REST API for all operations
+- IoT Core for real-time events (stateless)
+- Clients fetch fresh data after event notification
+- Simple, maintainable, cost-effective
+
+### Related Documents
+
+- REST API implementation: `packages/aws/amplify/functions/api/`
+- SDK package: `packages/sdk/`
+- Architecture discussion: See conversation session Nov 14, 2025
+
