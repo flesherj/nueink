@@ -58,4 +58,5 @@ storybook-static
 packages/**/*.js
 packages/**/*.js.map
 packages/**/*.d.ts
+*.tsbuildinfo
 !packages/**/jest.config.js
