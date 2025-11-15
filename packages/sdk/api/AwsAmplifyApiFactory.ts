@@ -65,20 +65,20 @@ export class AwsAmplifyApiFactory {
   /**
    * GET request with automatic Cognito auth
    */
-  public get = (path: string) => {
+  public get = (path: string): ReturnType<typeof get> => {
     return get({ ...this.apiConfig, path });
   };
 
   /**
    * POST request with automatic Cognito auth
    */
-  public post = <T = any>(path: string, body?: T) => {
+  public post = <T = any>(path: string, body?: T): ReturnType<typeof post> => {
     return post({
       ...this.apiConfig,
       path,
       options: {
         ...this.apiConfig.options,
-        body,
+        body: body as any,
       },
     });
   };
@@ -86,13 +86,13 @@ export class AwsAmplifyApiFactory {
   /**
    * PUT request with automatic Cognito auth
    */
-  public put = <T = any>(path: string, body?: T) => {
+  public put = <T = any>(path: string, body?: T): ReturnType<typeof put> => {
     return put({
       ...this.apiConfig,
       path,
       options: {
         ...this.apiConfig.options,
-        body,
+        body: body as any,
       },
     });
   };
@@ -100,7 +100,7 @@ export class AwsAmplifyApiFactory {
   /**
    * DELETE request with automatic Cognito auth
    */
-  public del = (path: string) => {
+  public del = (path: string): ReturnType<typeof del> => {
     return del({ ...this.apiConfig, path });
   };
 }

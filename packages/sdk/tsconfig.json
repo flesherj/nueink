@@ -1,8 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "composite": false
-  },
   "include": ["**/*.ts"],
   "references": [
     { "path": "../core" }

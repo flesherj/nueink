@@ -1,3 +1,6 @@
+// Shared Types
+export * from './types';
+
 // API Factory
 export * from './AwsAmplifyApiFactory';
 

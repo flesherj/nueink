@@ -1,11 +1,6 @@
 import { AwsAmplifyApiFactory } from './AwsAmplifyApiFactory';
 import type { Transaction } from '@nueink/core';
-
-export type PaginationResult<T> = {
-  items: T[];
-  nextCursor?: string;
-  hasMore: boolean;
-};
+import type { PaginationResult } from './types';
 
 /**
  * Transaction API Client
@@ -32,7 +27,7 @@ export class TransactionApi {
 
     const url = `/transaction/organization/${organizationId}${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await this.api.get(url).response;
-    return (await response.body.json()) as PaginationResult<Transaction>;
+    return (await response.body.json()) as unknown as PaginationResult<Transaction>;
   };
 
   /**
@@ -49,7 +44,7 @@ export class TransactionApi {
 
     const url = `/transaction/account/${financialAccountId}${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await this.api.get(url).response;
-    return (await response.body.json()) as PaginationResult<Transaction>;
+    return (await response.body.json()) as unknown as PaginationResult<Transaction>;
   };
 
   /**
@@ -58,6 +53,6 @@ export class TransactionApi {
    */
   public getTransaction = async (transactionId: string): Promise<Transaction> => {
     const response = await this.api.get(`/transaction/${transactionId}`).response;
-    return (await response.body.json()) as Transaction;
+    return (await response.body.json()) as unknown as Transaction;
   };
 }

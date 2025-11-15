@@ -1,11 +1,6 @@
 import { AwsAmplifyApiFactory } from './AwsAmplifyApiFactory';
 import type { FinancialAccount } from '@nueink/core';
-
-export type PaginationResult<T> = {
-  items: T[];
-  nextCursor?: string;
-  hasMore: boolean;
-};
+import type { PaginationResult } from './types';
 
 /**
  * Financial Account API Client
@@ -32,7 +27,7 @@ export class FinancialAccountApi {
 
     const url = `/financial-account/organization/${organizationId}${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await this.api.get(url).response;
-    return (await response.body.json()) as PaginationResult<FinancialAccount>;
+    return (await response.body.json()) as unknown as PaginationResult<FinancialAccount>;
   };
 
   /**
@@ -41,7 +36,7 @@ export class FinancialAccountApi {
    */
   public getAccount = async (financialAccountId: string): Promise<FinancialAccount> => {
     const response = await this.api.get(`/financial-account/${financialAccountId}`).response;
-    return (await response.body.json()) as FinancialAccount;
+    return (await response.body.json()) as unknown as FinancialAccount;
   };
 
   /**
@@ -50,6 +45,6 @@ export class FinancialAccountApi {
    */
   public listByInstitution = async (institutionId: string): Promise<FinancialAccount[]> => {
     const response = await this.api.get(`/financial-account/institution/${institutionId}`).response;
-    return (await response.body.json()) as FinancialAccount[];
+    return (await response.body.json()) as unknown as FinancialAccount[];
   };
 }

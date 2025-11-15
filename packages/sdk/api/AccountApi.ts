@@ -18,7 +18,7 @@ export class AccountApi {
    */
   public getAccount = async (accountId: string): Promise<Account> => {
     const response = await this.api.get(`/account/${accountId}`).response;
-    return (await response.body.json()) as Account;
+    return (await response.body.json()) as unknown as Account;
   };
 
   /**
@@ -27,6 +27,6 @@ export class AccountApi {
    */
   public listAccounts = async (): Promise<Account[]> => {
     const response = await this.api.get('/account').response;
-    return (await response.body.json()) as Account[];
+    return (await response.body.json()) as unknown as Account[];
   };
 }

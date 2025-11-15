@@ -18,7 +18,7 @@ export class IntegrationApi {
    */
   public listByAccount = async (accountId: string): Promise<IntegrationConfig[]> => {
     const response = await this.api.get(`/integration/${accountId}`).response;
-    return (await response.body.json()) as IntegrationConfig[];
+    return (await response.body.json()) as unknown as IntegrationConfig[];
   };
 
   /**
@@ -30,6 +30,6 @@ export class IntegrationApi {
     provider: 'ynab' | 'plaid'
   ): Promise<{ message: string; accountId: string; provider: string }> => {
     const response = await this.api.post(`/integration/${accountId}/sync`, { provider }).response;
-    return await response.body.json();
+    return (await response.body.json()) as unknown as { message: string; accountId: string; provider: string };
   };
 }
