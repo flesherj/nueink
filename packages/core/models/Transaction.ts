@@ -7,6 +7,16 @@ import { FinancialProvider, Currency } from './types';
  * Note: All monetary amounts are stored as integers in cents (or smallest currency unit).
  * Example: $10.50 is stored as 1050
  */
+/**
+ * Transaction domain model
+ *
+ * This is the complete domain model representing the full business entity.
+ * It includes both normalized fields (for business logic) and raw provider data
+ * (for advanced features, debugging, and future-proofing).
+ *
+ * Note: When exposing to clients via API/GraphQL, transform to a View Model
+ * that excludes rawData and includes only fields appropriate for that context.
+ */
 export interface Transaction {
   transactionId: string;
   financialAccountId: string;
@@ -24,6 +34,7 @@ export interface Transaction {
   pending: boolean;
   personId?: string;               // Auto-assigned person
   receiptUrls?: Array<string>;     // S3 keys for receipts (Phase 2)
+  rawData?: Record<string, any>;   // Complete provider response (for debugging, backfill, advanced features)
   syncedAt?: Date;                 // Last sync timestamp from provider
   createdAt: Date;
   updatedAt: Date;

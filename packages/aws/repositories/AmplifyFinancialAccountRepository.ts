@@ -38,6 +38,8 @@ export class AmplifyFinancialAccountRepository
       currency: entity.currency,
       personId: entity.personId,
       status: entity.status,
+      rawData: entity.rawData,
+      syncedAt: entity.syncedAt,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       profileOwner: entity.profileOwner,
@@ -53,22 +55,39 @@ export class AmplifyFinancialAccountRepository
     id: string,
     entity: Partial<FinancialAccountEntity>
   ): Promise<FinancialAccountEntity> {
+    console.log('[DEBUG] AmplifyFinancialAccountRepository.update() - Input entity:', JSON.stringify({
+      id,
+      entity,
+    }, null, 2));
+
     const updates: any = { financialAccountId: id };
 
-    if (entity.name !== undefined) updates.name = entity.name;
-    if (entity.officialName !== undefined)
+    // Only include defined, non-null values in the update
+    if (entity.name !== undefined && entity.name !== null) updates.name = entity.name;
+    if (entity.officialName !== undefined && entity.officialName !== null)
       updates.officialName = entity.officialName;
-    if (entity.mask !== undefined) updates.mask = entity.mask;
-    if (entity.currentBalance !== undefined)
+    if (entity.mask !== undefined && entity.mask !== null) updates.mask = entity.mask;
+    if (entity.currentBalance !== undefined && entity.currentBalance !== null)
       updates.currentBalance = entity.currentBalance;
-    if (entity.availableBalance !== undefined)
+    if (entity.availableBalance !== undefined && entity.availableBalance !== null)
       updates.availableBalance = entity.availableBalance;
-    if (entity.personId !== undefined) updates.personId = entity.personId;
-    if (entity.status !== undefined) updates.status = entity.status;
-    if (entity.updatedAt !== undefined)
+    if (entity.personId !== undefined && entity.personId !== null) updates.personId = entity.personId;
+    if (entity.status !== undefined && entity.status !== null) updates.status = entity.status;
+    if (entity.rawData !== undefined && entity.rawData !== null) updates.rawData = entity.rawData;
+    if (entity.syncedAt !== undefined && entity.syncedAt !== null) updates.syncedAt = entity.syncedAt;
+    if (entity.updatedAt !== undefined && entity.updatedAt !== null)
       updates.updatedAt = entity.updatedAt;
 
+    console.log('[DEBUG] AmplifyFinancialAccountRepository.update() - Filtered updates object:', JSON.stringify(updates, null, 2));
+
     const response = await this.dbClient.models.FinancialAccount.update(updates);
+
+    console.log('[DEBUG] AmplifyFinancialAccountRepository.update() - AppSync response:', JSON.stringify({
+      hasData: !!response.data,
+      data: response.data,
+      errors: response.errors,
+    }, null, 2));
+
     if (!response.data) {
       throw new Error('Failed to update FinancialAccount: response.data is null');
     }
@@ -155,6 +174,8 @@ export class AmplifyFinancialAccountRepository
       currency: data.currency,
       personId: data.personId ?? undefined,
       status: data.status,
+      rawData: data.rawData ?? undefined,
+      syncedAt: data.syncedAt ?? undefined,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,

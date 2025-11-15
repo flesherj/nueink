@@ -1,0 +1,26 @@
+{
+  "name": "@nueink/sdk",
+  "version": "0.1.0",
+  "description": "NueInk Client SDK - Type-safe API client for NueInk applications",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "nueink",
+    "sdk",
+    "client",
+    "api"
+  ],
+  "author": "NueInk",
+  "license": "MIT",
+  "dependencies": {
+    "@nueink/core": "*",
+    "aws-amplify": "^6.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

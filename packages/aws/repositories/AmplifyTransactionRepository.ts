@@ -40,6 +40,8 @@ export class AmplifyTransactionRepository
       pending: entity.pending,
       personId: entity.personId,
       receiptUrls: entity.receiptUrls,
+      rawData: entity.rawData,
+      syncedAt: entity.syncedAt,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       profileOwner: entity.profileOwner,
@@ -57,22 +59,25 @@ export class AmplifyTransactionRepository
   ): Promise<TransactionEntity> {
     const updates: any = { transactionId: id };
 
-    if (entity.amount !== undefined) updates.amount = entity.amount;
-    if (entity.date !== undefined)
+    // Only include defined, non-null values in the update
+    if (entity.amount !== undefined && entity.amount !== null) updates.amount = entity.amount;
+    if (entity.date !== undefined && entity.date !== null)
       updates.date = entity.date;
-    if (entity.authorizedDate !== undefined)
+    if (entity.authorizedDate !== undefined && entity.authorizedDate !== null)
       updates.authorizedDate = entity.authorizedDate;
-    if (entity.merchantName !== undefined)
+    if (entity.merchantName !== undefined && entity.merchantName !== null)
       updates.merchantName = entity.merchantName;
-    if (entity.name !== undefined) updates.name = entity.name;
-    if (entity.category !== undefined) updates.category = entity.category;
-    if (entity.primaryCategory !== undefined)
+    if (entity.name !== undefined && entity.name !== null) updates.name = entity.name;
+    if (entity.category !== undefined && entity.category !== null) updates.category = entity.category;
+    if (entity.primaryCategory !== undefined && entity.primaryCategory !== null)
       updates.primaryCategory = entity.primaryCategory;
-    if (entity.pending !== undefined) updates.pending = entity.pending;
-    if (entity.personId !== undefined) updates.personId = entity.personId;
-    if (entity.receiptUrls !== undefined)
+    if (entity.pending !== undefined && entity.pending !== null) updates.pending = entity.pending;
+    if (entity.personId !== undefined && entity.personId !== null) updates.personId = entity.personId;
+    if (entity.receiptUrls !== undefined && entity.receiptUrls !== null)
       updates.receiptUrls = entity.receiptUrls;
-    if (entity.updatedAt !== undefined)
+    if (entity.rawData !== undefined && entity.rawData !== null) updates.rawData = entity.rawData;
+    if (entity.syncedAt !== undefined && entity.syncedAt !== null) updates.syncedAt = entity.syncedAt;
+    if (entity.updatedAt !== undefined && entity.updatedAt !== null)
       updates.updatedAt = entity.updatedAt;
 
     const response = await this.dbClient.models.Transaction.update(updates);
@@ -222,6 +227,8 @@ export class AmplifyTransactionRepository
       pending: data.pending,
       personId: data.personId ?? undefined,
       receiptUrls: data.receiptUrls ?? [],
+      rawData: data.rawData ?? undefined,
+      syncedAt: data.syncedAt ?? undefined,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,

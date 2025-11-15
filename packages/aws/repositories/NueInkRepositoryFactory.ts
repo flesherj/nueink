@@ -12,36 +12,8 @@ import { AmplifyIntegrationConfigRepository } from './AmplifyIntegrationConfigRe
 import { AmplifyDataClient } from './types';
 
 /**
- * Repository type mapping for type-safe factory method
- */
-type RepositoryMap = {
-  account: AmplifyAccountRepository;
-  organization: AmplifyOrganizationRepository;
-  membership: AmplifyMembershipRepository;
-  institution: AmplifyInstitutionRepository;
-  financialAccount: AmplifyFinancialAccountRepository;
-  transaction: AmplifyTransactionRepository;
-  comment: AmplifyCommentRepository;
-  person: AmplifyPersonRepository;
-  budget: AmplifyBudgetRepository;
-  debt: AmplifyDebtRepository;
-  integrationConfig: AmplifyIntegrationConfigRepository;
-};
-
-/**
- * Valid repository type keys
- */
-export type RepositoryType = keyof RepositoryMap;
-
-/**
- * Factory for creating Amplify repository instances
+ * Factory for creating Amplify repository instances with lazy initialization
  * All repositories share the same Amplify client instance
- *
- * @example
- * const client = await initializeAmplifyClient(env);
- * const factory = NueInkRepositoryFactory.getInstance(client);
- * const accountRepo = factory.repository('account');
- * const transactionRepo = factory.repository('transaction');
  */
 export class NueInkRepositoryFactory {
   private static _instance: NueInkRepositoryFactory;
@@ -65,30 +37,27 @@ export class NueInkRepositoryFactory {
     return this._instance;
   }
 
-  /**
-   * Generic repository factory method with type inference
-   * @param type - The repository type to create
-   * @returns Typed repository instance
-   */
-  public repository<T extends RepositoryType>(type: T): RepositoryMap[T] {
-    const repositories: {
-      [K in RepositoryType]: () => RepositoryMap[K];
-    } = {
-      account: () => new AmplifyAccountRepository(this._dataClient),
-      organization: () => new AmplifyOrganizationRepository(this._dataClient),
-      membership: () => new AmplifyMembershipRepository(this._dataClient),
-      institution: () => new AmplifyInstitutionRepository(this._dataClient),
-      financialAccount: () =>
-        new AmplifyFinancialAccountRepository(this._dataClient),
-      transaction: () => new AmplifyTransactionRepository(this._dataClient),
-      comment: () => new AmplifyCommentRepository(this._dataClient),
-      person: () => new AmplifyPersonRepository(this._dataClient),
-      budget: () => new AmplifyBudgetRepository(this._dataClient),
-      debt: () => new AmplifyDebtRepository(this._dataClient),
-      integrationConfig: () =>
-        new AmplifyIntegrationConfigRepository(this._dataClient),
-    };
-
-    return repositories[type]();
-  }
+  // Public property-based accessors with lazy initialization
+  public account = (): AmplifyAccountRepository =>
+    new AmplifyAccountRepository(this._dataClient);
+  public organization = (): AmplifyOrganizationRepository =>
+    new AmplifyOrganizationRepository(this._dataClient);
+  public membership = (): AmplifyMembershipRepository =>
+    new AmplifyMembershipRepository(this._dataClient);
+  public institution = (): AmplifyInstitutionRepository =>
+    new AmplifyInstitutionRepository(this._dataClient);
+  public financialAccount = (): AmplifyFinancialAccountRepository =>
+    new AmplifyFinancialAccountRepository(this._dataClient);
+  public transaction = (): AmplifyTransactionRepository =>
+    new AmplifyTransactionRepository(this._dataClient);
+  public comment = (): AmplifyCommentRepository =>
+    new AmplifyCommentRepository(this._dataClient);
+  public person = (): AmplifyPersonRepository =>
+    new AmplifyPersonRepository(this._dataClient);
+  public budget = (): AmplifyBudgetRepository =>
+    new AmplifyBudgetRepository(this._dataClient);
+  public debt = (): AmplifyDebtRepository =>
+    new AmplifyDebtRepository(this._dataClient);
+  public integrationConfig = (): AmplifyIntegrationConfigRepository =>
+    new AmplifyIntegrationConfigRepository(this._dataClient);
 }

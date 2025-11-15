@@ -102,7 +102,10 @@ const schema = a.schema({
             profileOwner: a.string(),
         })
             .identifier(['institutionId'])
-            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey()
+            ])
             .secondaryIndexes(index => [
                 index('organizationId'),
                 index('externalItemId')
@@ -123,13 +126,17 @@ const schema = a.schema({
             currency: a.string().required(),            // USD|EUR|etc
             personId: a.string(),                       // FK to Person (for auto-assignment)
             status: a.string().required(),              // active|inactive|closed
+            rawData: a.json(),                          // Complete provider response (YNAB/Plaid/etc)
             syncedAt: a.datetime(),                     // Last sync timestamp from provider
             createdAt: a.datetime().required(),
             updatedAt: a.datetime().required(),
             profileOwner: a.string(),
         })
             .identifier(['financialAccountId'])
-            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey()
+            ])
             .secondaryIndexes(index => [
                 index('organizationId'),
                 index('institutionId'),
@@ -153,13 +160,17 @@ const schema = a.schema({
             pending: a.boolean().required(),            // Is pending?
             personId: a.string(),                       // FK to Person (auto-assigned)
             receiptUrls: a.string().array(),            // S3 keys for receipts (Phase 2)
+            rawData: a.json(),                          // Complete provider response (YNAB/Plaid/etc)
             syncedAt: a.datetime(),                     // Last sync timestamp from provider
             createdAt: a.datetime().required(),
             updatedAt: a.datetime().required(),
             profileOwner: a.string(),
         })
             .identifier(['transactionId'])
-            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey()
+            ])
             .secondaryIndexes(index => [
                 index('organizationId').sortKeys(['date']),
                 index('financialAccountId').sortKeys(['date']),
@@ -255,7 +266,10 @@ const schema = a.schema({
             profileOwner: a.string(),
         })
             .identifier(['integrationId'])
-            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey()
+            ])
             .secondaryIndexes(index => [
                 index('accountId'),
                 index('organizationId'),

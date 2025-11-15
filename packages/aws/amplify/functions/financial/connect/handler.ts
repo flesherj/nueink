@@ -1,14 +1,13 @@
 import type { APIGatewayProxyHandler, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { env } from '$amplify/env/financial-connect';
 import { NueInkRepositoryFactory } from '@nueink/aws';
-import { CloudWatchMetricsService, SecretsManagerService } from '@nueink/aws/services';
-import { EventBridgePublisher } from '@nueink/aws/events/EventBridgePublisher';
+import { AwsServiceFactory } from '@nueink/aws/services';
 import {
-  IntegrationConfigService,
   STANDARD_DIMENSIONS,
   type FinancialProvider,
   FINANCIAL_PROVIDERS,
-  FinancialOAuthService
+  FinancialOAuthService,
+  NueInkServiceFactory,
 } from '@nueink/core';
 import { YnabOAuthProvider } from '@nueink/ynab';
 import { PlaidOAuthProvider } from '@nueink/plaid';
@@ -16,8 +15,15 @@ import { initializeAmplifyClient } from '../../../shared/initializeClient';
 import { Environment } from './Environment';
 
 const client = await initializeAmplifyClient(env);
-const metrics = new CloudWatchMetricsService();
-const eventPublisher = new EventBridgePublisher(Environment.eventBusName);
+
+// Initialize factories
+const repositoryFactory = NueInkRepositoryFactory.getInstance(client);
+const serviceFactory = NueInkServiceFactory.getInstance(repositoryFactory);
+const awsFactory = AwsServiceFactory.getInstance();
+
+// AWS infrastructure services
+const metrics = awsFactory.metrics();
+const eventPublisher = awsFactory.eventBridge(Environment.eventBusName);
 
 // Initialize OAuth service with configured providers
 const oauthService = new FinancialOAuthService();
@@ -142,14 +148,8 @@ export const handler: APIGatewayProxyHandler = async (
       return errorResponse(400, 'unsupported_provider', `Provider '${providerString}' is not supported`);
     }
 
-    // Initialize services
-    const factory = NueInkRepositoryFactory.getInstance(client);
-    const integrationConfigRepository = factory.repository('integrationConfig');
-    const secretManager = new SecretsManagerService();
-    const integrationConfigService = new IntegrationConfigService(
-      integrationConfigRepository,
-      secretManager
-    );
+    // Get integration config service
+    const integrationConfigService = serviceFactory.integrationConfig(awsFactory.secretsManager());
 
     // Exchange code for tokens using core OAuth service
     // (providers were configured with their specific configs during registration)

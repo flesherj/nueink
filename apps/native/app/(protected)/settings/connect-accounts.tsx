@@ -1,15 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { Surface, Text, Button, Card, ActivityIndicator } from 'react-native-paper';
 import { useAccountProvider } from '@nueink/ui';
 import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
+import { IntegrationApi } from '@nueink/sdk';
 import Environment from '../../../models/Environment';
+
+// Create API client (uses Amplify API with Cognito auth)
+const integrationApi = IntegrationApi.create();
 
 export default function ConnectAccountsScreen() {
   const { account } = useAccountProvider();
   const router = useRouter();
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const [ynabConnected, setYnabConnected] = useState(false);
+  const [plaidConnected, setPlaidConnected] = useState(false);
+
+  useEffect(() => {
+    checkConnectedProviders();
+  }, [account]);
+
+  /**
+   * Check which providers are already connected
+   * Uses REST API client with automatic Cognito authentication
+   */
+  const checkConnectedProviders = async () => {
+    if (!account) return;
+
+    try {
+      // Call REST API - authenticated with Cognito credentials
+      const integrations = await integrationApi.listByAccount(account.accountId);
+
+      setYnabConnected(integrations.some(i => i.provider === 'ynab' && i.status === 'active'));
+      setPlaidConnected(integrations.some(i => i.provider === 'plaid' && i.status === 'active'));
+    } catch (error) {
+      console.error('Error checking connected providers:', error);
+    }
+  };
+
+  /**
+   * Trigger manual sync for a provider
+   * Uses REST API client with automatic Cognito authentication
+   */
+  const syncProvider = async (provider: 'ynab' | 'plaid') => {
+    if (!account) {
+      Alert.alert('Error', 'Account not loaded');
+      return;
+    }
+
+    try {
+      setSyncing(provider);
+
+      console.log('Triggering sync:', { accountId: account.accountId, provider });
+
+      // Call REST API - authenticated with Cognito credentials
+      const result = await integrationApi.triggerSync(account.accountId, provider);
+
+      console.log('Sync triggered:', result);
+
+      Alert.alert(
+        'Sync Started',
+        `Syncing your ${provider.toUpperCase()} data. This may take a few moments.`,
+        [{ text: 'OK' }]
+      );
+
+      // Refresh provider status after a short delay
+      setTimeout(checkConnectedProviders, 2000);
+    } catch (error) {
+      console.error('Sync error:', error);
+      Alert.alert(
+        'Sync Error',
+        error instanceof Error ? error.message : 'Failed to trigger sync'
+      );
+    } finally {
+      setSyncing(null);
+    }
+  };
 
   /**
    * Initiate OAuth flow for a provider
@@ -115,18 +183,31 @@ export default function ConnectAccountsScreen() {
           <Card.Content>
             <Text variant="titleLarge">YNAB</Text>
             <Text variant="bodyMedium" style={styles.description}>
-              Sync your budgets, accounts, and transactions from You Need A Budget
+              {ynabConnected
+                ? 'Connected - syncs automatically every 4 hours'
+                : 'Sync your budgets, accounts, and transactions from You Need A Budget'}
             </Text>
           </Card.Content>
           <Card.Actions>
-            <Button
-              mode="contained"
-              onPress={() => connectProvider('ynab')}
-              disabled={connecting !== null}
-              loading={connecting === 'ynab'}
-            >
-              {connecting === 'ynab' ? 'Connecting...' : 'Connect YNAB'}
-            </Button>
+            {ynabConnected ? (
+              <Button
+                mode="outlined"
+                onPress={() => syncProvider('ynab')}
+                disabled={syncing !== null || connecting !== null}
+                loading={syncing === 'ynab'}
+              >
+                {syncing === 'ynab' ? 'Syncing...' : 'Sync Now'}
+              </Button>
+            ) : (
+              <Button
+                mode="contained"
+                onPress={() => connectProvider('ynab')}
+                disabled={connecting !== null || syncing !== null}
+                loading={connecting === 'ynab'}
+              >
+                {connecting === 'ynab' ? 'Connecting...' : 'Connect YNAB'}
+              </Button>
+            )}
           </Card.Actions>
         </Card>
 

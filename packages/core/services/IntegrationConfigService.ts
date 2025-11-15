@@ -15,11 +15,11 @@ import type { SecretManager } from './SecretManager';
  */
 export class IntegrationConfigService {
   private converter: IntegrationConfigConverter;
-  private secretManager: SecretManager;
+  private secretManager?: SecretManager;
 
   constructor(
     repository: IntegrationConfigRepository<IntegrationConfigEntity>,
-    secretManager: SecretManager
+    secretManager?: SecretManager
   ) {
     this.repository = repository;
     this.converter = new IntegrationConfigConverter();
@@ -27,6 +27,19 @@ export class IntegrationConfigService {
   }
 
   private repository: IntegrationConfigRepository<IntegrationConfigEntity>;
+
+  /**
+   * Ensure SecretManager is available for token operations
+   * Throws error if called from client-side without SecretManager
+   */
+  private requireSecretManager = (): SecretManager => {
+    if (!this.secretManager) {
+      throw new Error(
+        'SecretManager not available - token operations can only be performed server-side (Lambda)'
+      );
+    }
+    return this.secretManager;
+  };
 
   // ========== Integration CRUD Operations ==========
 
@@ -100,15 +113,16 @@ export class IntegrationConfigService {
     provider: FinancialProvider,
     tokens: IntegrationTokens
   ): Promise<void> => {
+    const secretManager = this.requireSecretManager();
     const secretName = this.computeSecretName(accountId, provider);
     const secretValue = this.serializeTokens(tokens);
 
     // Check if secret already exists
-    const exists = await this.secretManager.secretExists(secretName);
+    const exists = await secretManager.secretExists(secretName);
 
     if (exists) {
       // Update existing secret
-      await this.secretManager.updateSecret(secretName, secretValue);
+      await secretManager.updateSecret(secretName, secretValue);
     } else {
       // Create new secret with tags
       const tags = {
@@ -116,7 +130,7 @@ export class IntegrationConfigService {
         Provider: provider,
         Purpose: 'oauth-tokens',
       };
-      await this.secretManager.storeSecret(secretName, secretValue, tags);
+      await secretManager.storeSecret(secretName, secretValue, tags);
     }
   };
 
@@ -127,8 +141,9 @@ export class IntegrationConfigService {
     accountId: string,
     provider: FinancialProvider
   ): Promise<IntegrationTokens | null> => {
+    const secretManager = this.requireSecretManager();
     const secretName = this.computeSecretName(accountId, provider);
-    const secretValue = await this.secretManager.getSecret(secretName);
+    const secretValue = await secretManager.getSecret(secretName);
 
     if (!secretValue) {
       return null;
@@ -146,6 +161,8 @@ export class IntegrationConfigService {
     provider: FinancialProvider,
     updates: IntegrationTokenUpdate
   ): Promise<void> => {
+    const secretManager = this.requireSecretManager();
+
     // Get existing tokens to merge
     const existing = await this.getTokens(accountId, provider);
     if (!existing) {
@@ -161,15 +178,16 @@ export class IntegrationConfigService {
 
     const secretName = this.computeSecretName(accountId, provider);
     const secretValue = this.serializeTokens(merged);
-    await this.secretManager.updateSecret(secretName, secretValue);
+    await secretManager.updateSecret(secretName, secretValue);
   };
 
   /**
    * Delete OAuth tokens (e.g., when user disconnects integration)
    */
   public deleteTokens = async (accountId: string, provider: FinancialProvider): Promise<void> => {
+    const secretManager = this.requireSecretManager();
     const secretName = this.computeSecretName(accountId, provider);
-    await this.secretManager.deleteSecret(secretName);
+    await secretManager.deleteSecret(secretName);
   };
 
   /**

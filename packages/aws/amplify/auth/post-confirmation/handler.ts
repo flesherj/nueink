@@ -13,9 +13,9 @@ export const handler: PostConfirmationTriggerHandler = async (event) => {
   const startTime = Date.now();
 
   const factory = NueInkRepositoryFactory.getInstance(client);
-  const accountService = factory.repository('account');
-  const organizationService = factory.repository('organization');
-  const membershipService = factory.repository('membership');
+  const accountService = factory.account();
+  const organizationService = factory.organization();
+  const membershipService = factory.membership();
 
   const provider = event.request.userAttributes.identities
     ? JSON.parse(event.request.userAttributes.identities)[0].providerName

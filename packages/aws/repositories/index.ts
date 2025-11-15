@@ -5,7 +5,6 @@
 // Infrastructure
 export * from './NueInkDataClientBuilder';
 export * from './NueInkRepositoryFactory';
-export * from './ClientRepositoryFactory';  // Client-safe factory for React Native
 export * from './types';
 
 // Repository implementations (Lambda-only)

@@ -11,7 +11,8 @@ import {
 } from '@nueink/ui';
 import { NueInkAmplifyBuilder } from '@nueink/aws';
 
-NueInkAmplifyBuilder.builder().build();
+// Configure Amplify with REST API support
+NueInkAmplifyBuilder.builder().withApiSupport().build();
 
 const RootLayout = () => {
   const colorScheme = useColorScheme();

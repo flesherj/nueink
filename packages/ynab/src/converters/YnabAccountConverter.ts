@@ -37,6 +37,8 @@ export class YnabAccountConverter {
       currency: 'USD' as Currency,
       personId: undefined, // Enriched downstream by event handlers
       status: source.closed ? 'closed' : 'active',
+      rawData: source as unknown as Record<string, any>, // Preserve complete YNAB response
+      syncedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
       profileOwner: context.profileOwner,

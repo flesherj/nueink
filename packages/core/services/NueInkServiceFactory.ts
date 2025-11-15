@@ -9,6 +9,8 @@ import { CommentService } from './CommentService';
 import { PersonService } from './PersonService';
 import { BudgetService } from './BudgetService';
 import { DebtService } from './DebtService';
+import { IntegrationConfigService } from './IntegrationConfigService';
+import type { SecretManager } from './SecretManager';
 
 /**
  * Service type mapping for type-safe factory method
@@ -24,6 +26,7 @@ type ServiceMap = {
   person: PersonService;
   budget: BudgetService;
   debt: DebtService;
+  integrationConfig: IntegrationConfigService;
 };
 
 /**
@@ -36,63 +39,48 @@ export type ServiceType = keyof ServiceMap;
  * All services share the same repository factory instance
  *
  * @example
- * const factory = NueInkServiceFactory.getInstance();
- * const accountService = factory.service('account');
- * const transactionService = factory.service('transaction');
+ * const factory = NueInkServiceFactory.getInstance(repositoryFactory);
+ * const accountService = factory.account();
+ * const txnService = factory.transaction();
  */
 export class NueInkServiceFactory {
   private static _instance: NueInkServiceFactory;
   private _repositoryFactory: NueInkRepositoryFactory;
 
-  private constructor() {
-    this._repositoryFactory = NueInkRepositoryFactory.getInstance();
+  private constructor(repositoryFactory: NueInkRepositoryFactory) {
+    this._repositoryFactory = repositoryFactory;
   }
 
-  public static getInstance(): NueInkServiceFactory {
+  public static getInstance(
+    repositoryFactory = NueInkRepositoryFactory.getInstance()
+  ): NueInkServiceFactory {
     if (!this._instance) {
-      this._instance = new NueInkServiceFactory();
+      this._instance = new NueInkServiceFactory(repositoryFactory);
     }
     return this._instance;
   }
 
-  /**
-   * Generic service factory method with type inference
-   * @param type - The service type to create
-   * @returns Typed service instance
-   */
-  public service<T extends ServiceType>(type: T): ServiceMap[T] {
-    const services: {
-      [K in ServiceType]: () => ServiceMap[K];
-    } = {
-      account: () =>
-        new AccountService(this._repositoryFactory.repository('account')),
-      organization: () =>
-        new OrganizationService(
-          this._repositoryFactory.repository('organization')
-        ),
-      membership: () =>
-        new MembershipService(this._repositoryFactory.repository('membership')),
-      institution: () =>
-        new InstitutionService(
-          this._repositoryFactory.repository('institution')
-        ),
-      financialAccount: () =>
-        new FinancialAccountService(
-          this._repositoryFactory.repository('financialAccount')
-        ),
-      transaction: () =>
-        new TransactionService(
-          this._repositoryFactory.repository('transaction')
-        ),
-      comment: () =>
-        new CommentService(this._repositoryFactory.repository('comment')),
-      person: () =>
-        new PersonService(this._repositoryFactory.repository('person')),
-      budget: () =>
-        new BudgetService(this._repositoryFactory.repository('budget')),
-      debt: () => new DebtService(this._repositoryFactory.repository('debt')),
-    };
-
-    return services[type]();
-  }
+  // Public property-based accessors
+  public account = (): AccountService =>
+    new AccountService(this._repositoryFactory.account());
+  public organization = (): OrganizationService =>
+    new OrganizationService(this._repositoryFactory.organization());
+  public membership = (): MembershipService =>
+    new MembershipService(this._repositoryFactory.membership());
+  public institution = (): InstitutionService =>
+    new InstitutionService(this._repositoryFactory.institution());
+  public financialAccount = (): FinancialAccountService =>
+    new FinancialAccountService(this._repositoryFactory.financialAccount());
+  public transaction = (): TransactionService =>
+    new TransactionService(this._repositoryFactory.transaction());
+  public comment = (): CommentService =>
+    new CommentService(this._repositoryFactory.comment());
+  public person = (): PersonService =>
+    new PersonService(this._repositoryFactory.person());
+  public budget = (): BudgetService =>
+    new BudgetService(this._repositoryFactory.budget());
+  public debt = (): DebtService =>
+    new DebtService(this._repositoryFactory.debt());
+  public integrationConfig = (secretManager?: SecretManager): IntegrationConfigService =>
+    new IntegrationConfigService(this._repositoryFactory.integrationConfig(), secretManager);
 }

@@ -38,6 +38,8 @@ export class YnabTransactionConverter {
       pending: source.cleared === TransactionDetail.ClearedEnum.Uncleared,
       personId: undefined, // Enriched downstream by event handlers
       receiptUrls: undefined,
+      rawData: source as unknown as Record<string, any>, // Preserve complete YNAB response
+      syncedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
       profileOwner: context.profileOwner,

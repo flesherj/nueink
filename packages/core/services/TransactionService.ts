@@ -109,7 +109,12 @@ export class TransactionService {
     id: string,
     updates: Partial<Transaction>
   ): Promise<Transaction> {
-    const entityUpdates = this.converter.toEntity(updates as Transaction);
+    // Automatically set updatedAt to now
+    const updatesWithTimestamp = {
+      ...updates,
+      updatedAt: new Date(),
+    };
+    const entityUpdates = this.converter.toEntity(updatesWithTimestamp as Transaction);
     const updated = await this.repository.update(id, entityUpdates);
     return this.converter.toDomain(updated);
   }

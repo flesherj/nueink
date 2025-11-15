@@ -48,7 +48,36 @@ export class FinancialAccountService {
   }
 
   async update(id: string, updates: Partial<FinancialAccount>): Promise<FinancialAccount> {
-    const entityUpdates = this.converter.toEntity(updates as FinancialAccount);
+    console.log('[DEBUG] FinancialAccountService.update() - Input:', JSON.stringify({
+      id,
+      updates: {
+        ...updates,
+        syncedAt: updates.syncedAt?.toISOString(),
+      },
+    }, null, 2));
+
+    // Automatically set updatedAt to now
+    const updatesWithTimestamp = {
+      ...updates,
+      updatedAt: new Date(),
+    };
+
+    console.log('[DEBUG] FinancialAccountService.update() - After adding timestamp:', JSON.stringify({
+      id,
+      updatesWithTimestamp: {
+        ...updatesWithTimestamp,
+        syncedAt: updatesWithTimestamp.syncedAt?.toISOString(),
+        updatedAt: updatesWithTimestamp.updatedAt?.toISOString(),
+      },
+    }, null, 2));
+
+    const entityUpdates = this.converter.toEntity(updatesWithTimestamp as FinancialAccount);
+
+    console.log('[DEBUG] FinancialAccountService.update() - After converter.toEntity():', JSON.stringify({
+      id,
+      entityUpdates,
+    }, null, 2));
+
     const updated = await this.repository.update(id, entityUpdates);
     return this.converter.toDomain(updated);
   }

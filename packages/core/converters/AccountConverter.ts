@@ -16,7 +16,7 @@ export class AccountConverter implements Converter<AccountEntity, Account> {
       middleName: domain.middleName,
       lastName: domain.lastName,
       provider: domain.provider,
-      createdAt: domain.createdAt.toISOString(),
+      createdAt: domain.createdAt?.toISOString(),
       status: domain.status,
       meta: domain.meta,
       profileOwner: domain.profileOwner,

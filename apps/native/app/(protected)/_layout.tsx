@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useAuthenticator } from '@aws-amplify/ui-react-native';
 import { Stack } from 'expo-router';
+import { generateClient } from 'aws-amplify/data';
 
-import { ClientRepositoryFactory } from '@nueink/aws';
-import { AccountService } from '@nueink/core';
-import type { Account } from '@nueink/core';
+import type { Schema } from '@nueink/aws/amplify/data/resource';
+import { NueInkRepositoryFactory } from '@nueink/aws';
+import { NueInkServiceFactory, type Account } from '@nueink/core';
 import { AccountProvider } from '@nueink/ui';
 
-// Create client-safe service using ClientRepositoryFactory
-const repositoryFactory = ClientRepositoryFactory.getInstance();
-const accountService = new AccountService(repositoryFactory.repository('account'));
+// Create Amplify client with userPool auth (client-safe)
+const client = generateClient<Schema>({ authMode: 'userPool' });
+
+// Use the same factories as Lambda!
+// @ts-expect-error - Amplify generated types cause excessive stack depth, but runtime works fine
+const repositoryFactory = NueInkRepositoryFactory.getInstance(client);
+const serviceFactory = NueInkServiceFactory.getInstance(repositoryFactory);
+const accountService = serviceFactory.account();
 
 export const ProtectedLayout = () => {
   const { user } = useAuthenticator();
