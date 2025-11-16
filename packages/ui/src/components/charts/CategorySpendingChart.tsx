@@ -98,40 +98,49 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
 
       const categoryColor = getCategoryColor(categoryData.category, index);
 
-      // Find highlighted point
+      // Find highlighted point and calculate daily total
       const highlightPoint = categoryData.highlightIndex >= 0
-        ? {
-            coord: [
-              dates[categoryData.highlightIndex],
-              amounts[categoryData.highlightIndex]
-            ],
-            name: 'Current',
-            value: amounts[categoryData.highlightIndex],
-            symbol: 'circle',
-            symbolSize: 14,
-            itemStyle: {
-              color: theme.colors.background,
-              borderColor: categoryColor,
-              borderWidth: 4,
-            },
-            label: {
-              show: true,
-              // Smart positioning: left if in right half of chart, right if in left half
-              position: (params: any) => {
-                const dataIndex = categoryData.highlightIndex;
-                const totalPoints = dates.length;
-                // If point is in the right 40% of the chart, place label on left
-                return dataIndex > totalPoints * 0.6 ? 'left' : 'right';
+        ? (() => {
+            const currentCumulative = amounts[categoryData.highlightIndex];
+            const previousCumulative = categoryData.highlightIndex > 0
+              ? amounts[categoryData.highlightIndex - 1]
+              : 0;
+            // Calculate total spent on this day (includes all transactions on this date)
+            const dailyTotal = currentCumulative - previousCumulative;
+
+            return {
+              coord: [
+                dates[categoryData.highlightIndex],
+                amounts[categoryData.highlightIndex]
+              ],
+              name: 'Current',
+              value: dailyTotal, // Show daily total, not cumulative
+              symbol: 'circle',
+              symbolSize: 14,
+              itemStyle: {
+                color: theme.colors.background,
+                borderColor: categoryColor,
+                borderWidth: 4,
               },
-              offset: [15, 0],
-              formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
-              color: '#FFFFFF',
-              fontSize: 16,
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              borderRadius: 6,
-              padding: [6, 12],
-            },
-          }
+              label: {
+                show: true,
+                // Smart positioning: left if in right half of chart, right if in left half
+                position: (params: any) => {
+                  const dataIndex = categoryData.highlightIndex;
+                  const totalPoints = dates.length;
+                  // If point is in the right 40% of the chart, place label on left
+                  return dataIndex > totalPoints * 0.6 ? 'left' : 'right';
+                },
+                offset: [15, 0],
+                formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
+                color: '#FFFFFF',
+                fontSize: 16,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                borderRadius: 6,
+                padding: [6, 12],
+              },
+            };
+          })()
         : null;
 
       return {
