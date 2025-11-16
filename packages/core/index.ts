@@ -15,6 +15,9 @@ export * from './converters';
 // Services
 export * from './services';
 
+// Analytics types
+export * from './types/analytics';
+
 // Metrics configuration (platform-agnostic)
 export * from './config/metrics';
 

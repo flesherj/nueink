@@ -11,15 +11,24 @@
   "dependencies": {
     "react-native-paper": "^5.14.5"
   },
+  "peerDependencies": {
+    "@nueink/core": "*",
+    "@wuba/react-native-echarts": "^2.0.3",
+    "echarts": "^6.0.0",
+    "react-native-svg": "^15.0.0"
+  },
   "devDependencies": {
     "@babel/core": "^7.27.4",
     "@gorhom/bottom-sheet": "^5.1.6",
+    "@nueink/core": "*",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "^8.4.2",
     "@react-native-community/slider": "^4.5.7",
     "@types/react": "^19.1.8",
     "@types/react-native": "^0.73.0",
+    "@wuba/react-native-echarts": "^2.0.3",
     "babel-loader": "^8.4.1",
+    "echarts": "^6.0.0",
     "react-dom": "19.0.0",
     "react-native-gesture-handler": "^2.26.0",
     "react-native-reanimated": "^3.18.0",

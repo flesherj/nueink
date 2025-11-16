@@ -4,6 +4,8 @@ export * from './MembershipService';
 export * from './InstitutionService';
 export * from './FinancialAccountService';
 export * from './TransactionService';
+export * from './TransactionSplitService';
+export * from './AnalyticsService';
 export * from './CommentService';
 export * from './PersonService';
 export * from './BudgetService';
