@@ -5,9 +5,10 @@ import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Surface, Text, Card, Chip, ActivityIndicator, Divider, List, TextInput, Button, Avatar, useTheme, IconButton } from 'react-native-paper';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
-import { useAccountProvider } from '@nueink/ui';
-import { TransactionApi, TransactionSplitApi, CommentApi, FinancialAccountApi } from '@nueink/sdk';
-import type { Transaction, TransactionSplit, Comment, FinancialAccount } from '@nueink/core';
+import { useAccountProvider, CategorySpendingChart } from '@nueink/ui';
+import { TransactionApi, TransactionSplitApi, CommentApi, FinancialAccountApi, AnalyticsApi } from '@nueink/sdk';
+import type { Transaction, TransactionSplit, Comment, FinancialAccount, CategoryTimelineData } from '@nueink/core';
+import { getCurrentMonthRange } from '@nueink/core';
 import * as Clipboard from 'expo-clipboard';
 
 // Create API clients
@@ -15,6 +16,7 @@ const transactionApi = TransactionApi.create();
 const transactionSplitApi = TransactionSplitApi.create();
 const commentApi = CommentApi.create();
 const financialAccountApi = FinancialAccountApi.create();
+const analyticsApi = AnalyticsApi.create();
 
 // Common budget categories with icons
 // Note: "Uncategorized" is handled separately as a read-only remainder
@@ -49,6 +51,11 @@ export default function TransactionDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Analytics chart state
+  const [chartData, setChartData] = useState<CategoryTimelineData | null>(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartError, setChartError] = useState<string | null>(null);
 
   // Category selection bottom sheet state
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -113,12 +120,59 @@ export default function TransactionDetailScreen() {
           // Don't fail the whole screen if account fetch fails
         }
       }
+
+      // Load analytics data for primary category
+      loadAnalyticsData(txData, splitsData);
     } catch (err) {
       console.error('Error loading transaction detail:', err);
       setError(err instanceof Error ? err.message : 'Failed to load transaction');
     } finally {
       setLoading(false);
       setLoadingComments(false);
+    }
+  };
+
+  /**
+   * Load analytics timeline data for the primary category
+   * Shows spending context for the category with the highest allocation
+   */
+  const loadAnalyticsData = async (txData: Transaction, splitsData: TransactionSplit[]) => {
+    if (!account) return;
+
+    try {
+      // Find primary category (highest allocation, excluding Uncategorized)
+      const categorizedSplits = splitsData.filter(s => s.category !== 'Uncategorized');
+      if (categorizedSplits.length === 0) {
+        setChartData(null);
+        return;
+      }
+
+      // Get category with highest allocation
+      const primarySplit = categorizedSplits.reduce((max, split) =>
+        Math.abs(split.amount) > Math.abs(max.amount) ? split : max
+      );
+
+      setChartLoading(true);
+      setChartError(null);
+
+      // Get current month date range
+      const { startDate, endDate } = getCurrentMonthRange();
+
+      // Fetch timeline data for primary category
+      const timelineData = await analyticsApi.getCategoryTimeline(
+        account.defaultOrgId,
+        primarySplit.category,
+        startDate,
+        endDate,
+        txData.transactionId // Highlight this transaction
+      );
+
+      setChartData(timelineData);
+    } catch (err) {
+      console.error('Error loading analytics data:', err);
+      setChartError(err instanceof Error ? err.message : 'Failed to load spending insights');
+    } finally {
+      setChartLoading(false);
     }
   };
 
@@ -389,6 +443,9 @@ export default function TransactionDetailScreen() {
       // Reload splits silently (no modal close, no alert)
       const updatedSplits = await transactionSplitApi.listByTransaction(transaction.transactionId);
       setSplits(updatedSplits);
+
+      // Reload analytics data to reflect updated splits
+      loadAnalyticsData(transaction, updatedSplits);
     } catch (err) {
       console.error('Error auto-saving splits:', err);
       console.error('Error details:', {
@@ -646,6 +703,51 @@ export default function TransactionDetailScreen() {
             </Card.Content>
           </Card>
         </TouchableOpacity>
+
+        {/* Spending Insights Chart */}
+        {chartData && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Spending Insights
+              </Text>
+              <Text variant="bodySmall" style={styles.sectionDescription}>
+                {chartData.category} spending this month
+              </Text>
+
+              <CategorySpendingChart
+                data={chartData}
+                height={250}
+                showBudget={false}
+              />
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Chart Loading State */}
+        {chartLoading && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <View style={styles.chartLoadingContainer}>
+                <ActivityIndicator size="small" />
+                <Text style={styles.chartLoadingText}>Loading spending insights...</Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Chart Error State */}
+        {chartError && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <View style={styles.chartErrorContainer}>
+                <Text variant="bodySmall" style={styles.chartErrorText}>
+                  {chartError}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
 
         {/* Transaction Details */}
         <Card style={styles.card}>
@@ -1451,5 +1553,25 @@ const styles = StyleSheet.create({
   categorySlider: {
     width: '100%',
     height: 40,
+  },
+  // Chart loading/error states
+  chartLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  chartLoadingText: {
+    opacity: 0.7,
+  },
+  chartErrorContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  chartErrorText: {
+    textAlign: 'center',
+    opacity: 0.7,
+    color: '#d32f2f',
   },
 });
