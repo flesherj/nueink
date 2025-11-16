@@ -4,6 +4,7 @@ import { AmplifyOrganizationRepository } from './AmplifyOrganizationRepository';
 import { AmplifyInstitutionRepository } from './AmplifyInstitutionRepository';
 import { AmplifyFinancialAccountRepository } from './AmplifyFinancialAccountRepository';
 import { AmplifyTransactionRepository } from './AmplifyTransactionRepository';
+import { AmplifyTransactionSplitRepository } from './AmplifyTransactionSplitRepository';
 import { AmplifyCommentRepository } from './AmplifyCommentRepository';
 import { AmplifyPersonRepository } from './AmplifyPersonRepository';
 import { AmplifyBudgetRepository } from './AmplifyBudgetRepository';
@@ -50,6 +51,8 @@ export class NueInkRepositoryFactory {
     new AmplifyFinancialAccountRepository(this._dataClient);
   public transaction = (): AmplifyTransactionRepository =>
     new AmplifyTransactionRepository(this._dataClient);
+  public transactionSplit = (): AmplifyTransactionSplitRepository =>
+    new AmplifyTransactionSplitRepository(this._dataClient);
   public comment = (): AmplifyCommentRepository =>
     new AmplifyCommentRepository(this._dataClient);
   public person = (): AmplifyPersonRepository =>
