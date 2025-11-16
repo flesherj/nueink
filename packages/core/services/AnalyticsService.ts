@@ -28,16 +28,28 @@ export class AnalyticsService {
    * @param startDate - Start of the analysis period
    * @param endDate - End of the analysis period
    * @param highlightTransactionId - Optional transaction ID to highlight in the timeline
+   * @param merchantName - Optional merchant name to filter transactions (case-insensitive partial match)
    * @returns Timeline data with cumulative spending and highlighted transaction position
    *
    * @example
    * ```typescript
+   * // All merchants
    * const timeline = await analytics.getCategorySpendingTimeline(
    *   'org-123',
    *   'Groceries',
    *   new Date('2025-11-01'),
    *   new Date('2025-11-30'),
    *   'tx-current'
+   * );
+   *
+   * // Specific merchant only
+   * const wholefoods = await analytics.getCategorySpendingTimeline(
+   *   'org-123',
+   *   'Groceries',
+   *   new Date('2025-11-01'),
+   *   new Date('2025-11-30'),
+   *   'tx-current',
+   *   'Whole Foods'
    * );
    *
    * console.log(`Total spent: $${timeline.totalSpent / 100}`);
@@ -49,7 +61,8 @@ export class AnalyticsService {
     category: string,
     startDate: Date,
     endDate: Date,
-    highlightTransactionId?: string
+    highlightTransactionId?: string,
+    merchantName?: string
   ): Promise<CategoryTimelineData> => {
     // Get all splits for this category in the period
     // Note: We'll fetch all with pagination if needed
@@ -82,6 +95,14 @@ export class AnalyticsService {
       // Filter by date range
       const txDate = new Date(transaction.date);
       if (txDate < startDate || txDate > endDate) continue;
+
+      // Filter by merchant if specified (case-insensitive partial match)
+      if (merchantName) {
+        const txMerchant = transaction.merchantName || transaction.name || '';
+        if (!txMerchant.toLowerCase().includes(merchantName.toLowerCase())) {
+          continue;
+        }
+      }
 
       dataPoints.push({
         date: txDate,

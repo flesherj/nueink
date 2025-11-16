@@ -14,20 +14,24 @@ export class AnalyticsApi {
 
   /**
    * Get category spending timeline
-   * GET /analytics/category-timeline/:organizationId/:category?startDate=...&endDate=...&highlightTransactionId=...
+   * GET /analytics/category-timeline/:organizationId/:category?startDate=...&endDate=...&highlightTransactionId=...&merchantName=...
    */
   public getCategoryTimeline = async (
     organizationId: string,
     category: string,
     startDate: Date,
     endDate: Date,
-    highlightTransactionId?: string
+    highlightTransactionId?: string,
+    merchantName?: string
   ): Promise<CategoryTimelineData> => {
     const params = new URLSearchParams();
     params.append('startDate', startDate.toISOString());
     params.append('endDate', endDate.toISOString());
     if (highlightTransactionId) {
       params.append('highlightTransactionId', highlightTransactionId);
+    }
+    if (merchantName) {
+      params.append('merchantName', merchantName);
     }
 
     const url = `/analytics/category-timeline/${organizationId}/${encodeURIComponent(category)}?${params.toString()}`;

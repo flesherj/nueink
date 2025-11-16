@@ -56,6 +56,7 @@ export default function TransactionDetailScreen() {
   const [chartData, setChartData] = useState<CategoryTimelineData[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
+  const [merchantFilterEnabled, setMerchantFilterEnabled] = useState(false);
 
   // Category selection bottom sheet state
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -153,6 +154,11 @@ export default function TransactionDetailScreen() {
       // Get current month date range
       const { startDate, endDate } = getCurrentMonthRange();
 
+      // Get merchant name if filter is enabled
+      const merchantFilter = merchantFilterEnabled
+        ? (txData.merchantName || txData.name)
+        : undefined;
+
       // Fetch timeline data for all categories in parallel
       const timelinePromises = categorizedSplits.map(split =>
         analyticsApi.getCategoryTimeline(
@@ -160,7 +166,8 @@ export default function TransactionDetailScreen() {
           split.category,
           startDate,
           endDate,
-          txData.transactionId // Highlight this transaction
+          txData.transactionId, // Highlight this transaction
+          merchantFilter // Filter by merchant if enabled
         )
       );
 
@@ -173,6 +180,15 @@ export default function TransactionDetailScreen() {
       setChartLoading(false);
     }
   };
+
+  /**
+   * Reload analytics data when merchant filter changes
+   */
+  useEffect(() => {
+    if (transaction && splits.length > 0) {
+      loadAnalyticsData(transaction, splits);
+    }
+  }, [merchantFilterEnabled]);
 
   /**
    * Format amount with sign and color
@@ -706,12 +722,27 @@ export default function TransactionDetailScreen() {
         {chartData.length > 0 && (
           <Card style={styles.card}>
             <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Spending Insights
-              </Text>
-              <Text variant="bodySmall" style={styles.sectionDescription}>
-                Category spending this month
-              </Text>
+              <View style={styles.chartHeader}>
+                <View>
+                  <Text variant="titleMedium" style={styles.sectionTitle}>
+                    Spending Insights
+                  </Text>
+                  <Text variant="bodySmall" style={styles.sectionDescription}>
+                    Category spending this month
+                  </Text>
+                </View>
+                <Chip
+                  mode={merchantFilterEnabled ? 'flat' : 'outlined'}
+                  selected={merchantFilterEnabled}
+                  onPress={() => setMerchantFilterEnabled(!merchantFilterEnabled)}
+                  style={styles.merchantFilterChip}
+                  compact
+                >
+                  {merchantFilterEnabled
+                    ? transaction?.merchantName || transaction?.name || 'This Merchant'
+                    : 'All Merchants'}
+                </Chip>
+              </View>
 
               <CategorySpendingChart
                 data={chartData}
@@ -1551,6 +1582,16 @@ const styles = StyleSheet.create({
   categorySlider: {
     width: '100%',
     height: 40,
+  },
+  // Chart header and filter
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  merchantFilterChip: {
+    marginTop: 4,
   },
   // Chart loading/error states
   chartLoadingContainer: {

@@ -8,17 +8,18 @@ import { serviceFactory } from '../handler';
 class AnalyticsController {
   /**
    * Get category spending timeline
-   * GET /analytics/category-timeline/:organizationId/:category?startDate=...&endDate=...&highlightTransactionId=...
+   * GET /analytics/category-timeline/:organizationId/:category?startDate=...&endDate=...&highlightTransactionId=...&merchantName=...
    *
    * Query params:
    * - startDate (required): ISO date string for period start
    * - endDate (required): ISO date string for period end
    * - highlightTransactionId (optional): Transaction ID to highlight in timeline
+   * - merchantName (optional): Merchant name to filter transactions (case-insensitive partial match)
    */
   public getCategoryTimeline = async (req: Request, res: Response): Promise<void> => {
     try {
       const { organizationId, category } = req.params;
-      const { startDate, endDate, highlightTransactionId } = req.query;
+      const { startDate, endDate, highlightTransactionId, merchantName } = req.query;
 
       // Validate required parameters
       if (!startDate || !endDate) {
@@ -54,7 +55,8 @@ class AnalyticsController {
         category,
         start,
         end,
-        highlightTransactionId as string | undefined
+        highlightTransactionId as string | undefined,
+        merchantName as string | undefined
       );
 
       res.json(timeline);
