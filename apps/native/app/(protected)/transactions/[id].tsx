@@ -64,6 +64,12 @@ export default function TransactionDetailScreen() {
   // Helper to get absolute transaction amount in cents
   const getAbsoluteAmount = useCallback(() => Math.abs(transaction?.amount || 0), [transaction]);
 
+  // Helper to get category icon
+  const getCategoryIcon = (categoryName: string): string => {
+    const category = CATEGORIES.find(c => c.name === categoryName);
+    return category?.icon || 'tag';
+  };
+
   // Calculate uncategorized (unallocated) amount
   const getUncategorizedAmount = useCallback(() => {
     if (!transaction) return 0;
@@ -524,62 +530,33 @@ export default function TransactionDetailScreen() {
           </Card.Content>
         </Card>
 
-        {/* Category Splits */}
+        {/* Category Splits - Grid View */}
         <TouchableOpacity onPress={handleOpenCategoryModal} activeOpacity={0.7}>
           <Card style={styles.card}>
             <Card.Content>
-              <View style={styles.categoryHeaderRow}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Categories
-                </Text>
-                <IconButton icon="pencil" size={18} />
-              </View>
-
-              {splits.length === 0 ? (
-                <View style={styles.uncategorizedButton}>
-                  <List.Icon icon="tag-plus" color={theme.colors.primary} />
-                  <View style={styles.uncategorizedContent}>
-                    <Text variant="titleMedium" style={styles.uncategorizedText}>
-                      Uncategorized
-                    </Text>
-                    <Text variant="bodySmall" style={styles.uncategorizedDescription}>
-                      Tap to add categories
-                    </Text>
-                  </View>
-                  <List.Icon icon="chevron-right" color={theme.colors.primary} />
+              {splits.filter(split => split.category !== 'Uncategorized').length === 0 ? (
+                <View style={styles.categoryDisplayContainer}>
+                  <Chip mode="outlined" textStyle={styles.feedCategoryChipText}>
+                    Uncategorized
+                  </Chip>
                 </View>
               ) : (
-                <>
-                  <Text variant="bodySmall" style={styles.sectionDescription}>
-                    {splits.length === 1
-                      ? 'This transaction has one category'
-                      : `This transaction is split across ${splits.length} categories`}
-                  </Text>
-                  <Divider style={styles.divider} />
-                  {splits.map((split, index) => (
-                    <View key={split.splitId}>
-                      <View style={styles.splitRow}>
-                        <Chip mode="outlined" style={styles.categoryChip}>
-                          {split.category}
-                        </Chip>
-                        <Text variant="titleMedium" style={styles.splitAmount}>
+                <View style={styles.categoriesGrid}>
+                  {splits
+                    .filter(split => split.category !== 'Uncategorized')
+                    .map((split) => (
+                      <View key={split.splitId} style={styles.categoryGridItem}>
+                        <Avatar.Icon
+                          size={40}
+                          icon={getCategoryIcon(split.category)}
+                          style={styles.categoryGridIcon}
+                        />
+                        <Text variant="bodySmall" style={styles.categoryGridAmount}>
                           {formatAmount(split.amount, transaction.currency || 'USD')}
                         </Text>
                       </View>
-                      {split.percentage && (
-                        <Text variant="bodySmall" style={styles.splitPercentage}>
-                          {split.percentage.toFixed(1)}% of total
-                        </Text>
-                      )}
-                      {split.notes && (
-                        <Text variant="bodySmall" style={styles.splitNotes}>
-                          {split.notes}
-                        </Text>
-                      )}
-                      {index < splits.length - 1 && <Divider style={styles.divider} />}
-                    </View>
-                  ))}
-                </>
+                    ))}
+                </View>
               )}
             </Card.Content>
           </Card>
@@ -1047,29 +1024,6 @@ const styles = StyleSheet.create({
   divider: {
     marginVertical: 12,
   },
-  splitRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  categoryChip: {
-    alignSelf: 'flex-start',
-  },
-  splitAmount: {
-    fontWeight: '600',
-  },
-  splitPercentage: {
-    opacity: 0.6,
-    marginLeft: 12,
-    marginBottom: 4,
-  },
-  splitNotes: {
-    marginLeft: 12,
-    marginTop: 4,
-    opacity: 0.7,
-    fontStyle: 'italic',
-  },
   placeholderSection: {
     paddingVertical: 16,
     alignItems: 'center',
@@ -1144,30 +1098,36 @@ const styles = StyleSheet.create({
   addCommentButton: {
     alignSelf: 'flex-end',
   },
-  categoryHeaderRow: {
+  // Category display
+  categoryDisplayContainer: {
+    paddingVertical: 8,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
   },
-  uncategorizedButton: {
+  feedCategoryChipText: {
+    fontSize: 13,
+    paddingHorizontal: 2,
+  },
+  // Grid layout for categories
+  categoriesGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    paddingVertical: 8,
+  },
+  categoryGridItem: {
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    width: 70,
   },
-  uncategorizedContent: {
-    flex: 1,
-    marginLeft: 8,
+  categoryGridIcon: {
+    backgroundColor: 'rgba(103, 80, 164, 0.25)',
+    marginBottom: 6,
   },
-  uncategorizedText: {
-    color: '#1976d2',
-  },
-  uncategorizedDescription: {
-    opacity: 0.6,
-    marginTop: 2,
+  categoryGridAmount: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(103, 80, 164, 1)',
   },
   bottomSheetBackground: {
     backgroundColor: '#1e1e1e',

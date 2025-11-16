@@ -1,12 +1,21 @@
 # NueInk - Current Sprint & Tasks
 
-**Last Updated:** November 15, 2025
+**Last Updated:** November 16, 2025
 **Current Phase:** Phase 1 - Financial Data Integration
 **Sprint:** Week 1 (Nov 11-17, 2025)
 
 ---
 
 ## 🚀 Current Sprint (Week 1: Nov 11-17, 2025)
+
+### Completed Nov 16 ✅
+
+- [x] **Transaction Details UI Improvements** (Nov 16 - DONE)
+  - ✅ Updated "Uncategorized" display to match feed styling
+  - ✅ Changed from button-style to chip/badge component
+  - ✅ Chip auto-sizes to content (not full width)
+  - ✅ Consistent styling between feed and details screens
+  - File: `apps/native/app/(protected)/transactions/[id].tsx`
 
 ### Completed Nov 15 ✅
 
@@ -236,7 +245,7 @@
 **Foundation:** ██████████ 100% (Existing infrastructure reusable)
 **Phase 0 (Architecture):** ██████████ 100% ✅ (Completed Nov 11, 2025)
 **Phase 1 (Integration):** ████████░░ 80% ✅ (OAuth, sync, UI complete - Nov 15, 2025)
-**Phase 2 (Social Feed):** ██░░░░░░░░ 20% (Feed UI created, comments/assignment pending)
+**Phase 2 (Social Feed):** ███░░░░░░░ 25% (Feed & details UI polished, comments/assignment pending - Nov 16, 2025)
 **Phase 3 (Intelligence):** ░░░░░░░░░░ 0%
 **Phase 4 (Receipts/Bills):** ░░░░░░░░░░ 0%
 **Phase 5 (Polish):** ░░░░░░░░░░ 0%
