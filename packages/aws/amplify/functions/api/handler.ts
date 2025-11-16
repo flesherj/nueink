@@ -34,6 +34,7 @@ import IntegrationRouter from './routers/IntegrationRouter';
 import FinancialAccountRouter from './routers/FinancialAccountRouter';
 import TransactionRouter from './routers/TransactionRouter';
 import SyncRouter from './routers/SyncRouter';
+import CommentRouter from './routers/CommentRouter';
 
 // Create Express app
 const app = express();
@@ -46,6 +47,7 @@ app.use('/integration', IntegrationRouter);
 app.use('/financial-account', FinancialAccountRouter);
 app.use('/transaction', TransactionRouter);
 app.use('/sync', SyncRouter);
+app.use('/comment', CommentRouter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

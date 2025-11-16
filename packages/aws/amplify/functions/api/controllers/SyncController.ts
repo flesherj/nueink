@@ -43,9 +43,11 @@ class SyncController {
         message: 'Sync triggered successfully',
         organizationId,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error triggering manual sync:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to trigger manual sync'
+      });
     }
   };
 }

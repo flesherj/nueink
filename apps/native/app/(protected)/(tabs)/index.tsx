@@ -3,11 +3,12 @@ import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Surface, Text, Card, Chip, ActivityIndicator, Button, Avatar, IconButton } from 'react-native-paper';
 import { useAccountProvider } from '@nueink/ui';
 import { useRouter } from 'expo-router';
-import { TransactionApi } from '@nueink/sdk';
+import { TransactionApi, CommentApi } from '@nueink/sdk';
 import type { Transaction } from '@nueink/core';
 
-// Create API client
+// Create API clients
 const transactionApi = TransactionApi.create();
+const commentApi = CommentApi.create();
 
 export default function TransactionsFeedScreen() {
   const { account } = useAccountProvider();
@@ -18,6 +19,7 @@ export default function TransactionsFeedScreen() {
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>();
   const [hasMore, setHasMore] = useState(true);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadTransactions();
@@ -54,6 +56,12 @@ export default function TransactionsFeedScreen() {
 
       setCursor(result.nextCursor);
       setHasMore(!!result.nextCursor);
+
+      // Load comment counts for the new transactions
+      const txIds = (result.items || []).map((tx) => tx.transactionId);
+      if (txIds.length > 0) {
+        loadCommentCounts(txIds);
+      }
     } catch (err) {
       console.error('Error loading transactions:', err);
       setError(err instanceof Error ? err.message : 'Failed to load transactions');
@@ -77,6 +85,33 @@ export default function TransactionsFeedScreen() {
   const loadMore = async () => {
     if (!loading && hasMore && cursor) {
       await loadTransactions(cursor);
+    }
+  };
+
+  /**
+   * Load comment counts for visible transactions
+   */
+  const loadCommentCounts = async (txIds: string[]) => {
+    try {
+      // Load comments for each transaction and count them
+      const counts: Record<string, number> = {};
+
+      // Load in parallel
+      await Promise.all(
+        txIds.map(async (txId) => {
+          try {
+            const comments = await commentApi.listByTransaction(txId);
+            counts[txId] = comments.length;
+          } catch (err) {
+            console.error(`Error loading comments for transaction ${txId}:`, err);
+            counts[txId] = 0;
+          }
+        })
+      );
+
+      setCommentCounts((prev) => ({ ...prev, ...counts }));
+    } catch (err) {
+      console.error('Error loading comment counts:', err);
     }
   };
 
@@ -220,17 +255,24 @@ export default function TransactionsFeedScreen() {
           </View>
         </View>
 
-        {/* Action Buttons (for future: comments, person assignment) */}
+        {/* Action Buttons */}
         <View style={styles.actionRow}>
-          <IconButton
-            icon="comment-outline"
-            size={20}
-            onPress={() => console.log('Comment on transaction:', tx.transactionId)}
-          />
+          <View style={styles.commentButton}>
+            <IconButton
+              icon="comment-outline"
+              size={20}
+              onPress={() => router.push(`/transactions/${tx.transactionId}`)}
+            />
+            {(commentCounts[tx.transactionId] || 0) > 0 && (
+              <Text variant="bodySmall" style={styles.commentCount}>
+                {commentCounts[tx.transactionId]}
+              </Text>
+            )}
+          </View>
           <IconButton
             icon="account-outline"
             size={20}
-            onPress={() => console.log('Assign person:', tx.transactionId)}
+            onPress={() => router.push(`/transactions/${tx.transactionId}`)}
           />
         </View>
       </Card.Content>
@@ -438,6 +480,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 4,
     marginLeft: 48, // Align with content after avatar
+  },
+  commentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: -8,
+  },
+  commentCount: {
+    marginLeft: -4,
+    opacity: 0.7,
   },
   footer: {
     paddingVertical: 16,

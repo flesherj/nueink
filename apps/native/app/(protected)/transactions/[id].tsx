@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Surface, Text, Card, Chip, ActivityIndicator, Button, Avatar, Divider, List, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { Surface, Text, Card, Chip, ActivityIndicator, Button, Avatar, Divider, List, useTheme, TextInput, IconButton } from 'react-native-paper';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useAccountProvider } from '@nueink/ui';
-import { TransactionApi, FinancialAccountApi } from '@nueink/sdk';
-import type { Transaction, FinancialAccount } from '@nueink/core';
+import { TransactionApi, FinancialAccountApi, CommentApi } from '@nueink/sdk';
+import type { Transaction, FinancialAccount, Comment } from '@nueink/core';
 
 // Create API clients
 const transactionApi = TransactionApi.create();
 const financialAccountApi = FinancialAccountApi.create();
+const commentApi = CommentApi.create();
 
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,6 +20,10 @@ export default function TransactionDetailScreen() {
   const [financialAccount, setFinancialAccount] = useState<FinancialAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   useEffect(() => {
     loadTransaction();
@@ -51,11 +56,76 @@ export default function TransactionDetailScreen() {
           // Don't fail the whole screen if account fetch fails
         }
       }
+
+      // Load comments for this transaction
+      loadComments();
     } catch (err) {
       console.error('Error loading transaction:', err);
       setError(err instanceof Error ? err.message : 'Failed to load transaction');
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Load comments for the transaction
+   */
+  const loadComments = async () => {
+    if (!id) return;
+
+    try {
+      setLoadingComments(true);
+      console.log('Loading comments for transaction:', id);
+
+      const commentData = await commentApi.listByTransaction(id);
+      setComments(commentData);
+    } catch (err) {
+      console.error('Error loading comments:', err);
+      // Don't fail the whole screen if comments fail to load
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  /**
+   * Add a new comment to the transaction
+   */
+  const addComment = async () => {
+    if (!newCommentText.trim()) {
+      Alert.alert('Error', 'Comment text cannot be empty');
+      return;
+    }
+
+    if (!account || !transaction) {
+      Alert.alert('Error', 'Account or transaction not loaded');
+      return;
+    }
+
+    try {
+      setSubmittingComment(true);
+      console.log('Adding comment to transaction:', id);
+
+      const newComment = await commentApi.create({
+        transactionId: id!,
+        accountId: account.accountId,
+        organizationId: account.defaultOrgId,
+        text: newCommentText.trim(),
+        profileOwner: account.profileOwner,
+      });
+
+      // Add new comment to the list
+      setComments([...comments, newComment]);
+      setNewCommentText('');
+
+      Alert.alert('Success', 'Comment added successfully');
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to add comment'
+      );
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -276,22 +346,81 @@ export default function TransactionDetailScreen() {
           </Card.Content>
         </Card>
 
-        {/* Comments Section (Placeholder) */}
+        {/* Comments Section */}
         <Card style={styles.detailsCard}>
           <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Comments</Text>
-            <View style={styles.placeholderSection}>
-              <Text style={styles.placeholderText}>
-                No comments yet. Add a comment to start a conversation about this transaction.
-              </Text>
-              <Button
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Comments ({comments.length})
+            </Text>
+
+            {loadingComments ? (
+              <View style={styles.loadingCommentsContainer}>
+                <ActivityIndicator size="small" />
+                <Text style={styles.loadingCommentsText}>Loading comments...</Text>
+              </View>
+            ) : comments.length === 0 ? (
+              <View style={styles.emptyCommentsContainer}>
+                <Text style={styles.emptyCommentsText}>
+                  No comments yet. Be the first to add a comment!
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.commentsList}>
+                {comments.map((comment, index) => (
+                  <View key={comment.commentId}>
+                    {index > 0 && <Divider style={styles.commentDivider} />}
+                    <View style={styles.commentItem}>
+                      <View style={styles.commentHeader}>
+                        <Avatar.Text
+                          size={32}
+                          label={comment.accountId.substring(0, 2).toUpperCase()}
+                          style={styles.commentAvatar}
+                        />
+                        <View style={styles.commentMeta}>
+                          <Text variant="bodySmall" style={styles.commentAuthor}>
+                            {comment.accountId === account?.accountId ? 'You' : comment.accountId}
+                          </Text>
+                          <Text variant="bodySmall" style={styles.commentDate}>
+                            {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text variant="bodyMedium" style={styles.commentText}>
+                        {comment.text}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Add Comment Input */}
+            <Divider style={styles.addCommentDivider} />
+            <View style={styles.addCommentContainer}>
+              <TextInput
                 mode="outlined"
-                icon="comment-plus"
-                onPress={() => console.log('Add comment - coming soon')}
-                style={styles.placeholderButton}
-                disabled
+                placeholder="Add a comment..."
+                value={newCommentText}
+                onChangeText={setNewCommentText}
+                multiline
+                numberOfLines={3}
+                style={styles.commentInput}
+                disabled={submittingComment}
+              />
+              <Button
+                mode="contained"
+                icon="send"
+                onPress={addComment}
+                loading={submittingComment}
+                disabled={submittingComment || !newCommentText.trim()}
+                style={styles.addCommentButton}
               >
-                Add Comment (Coming Soon)
+                {submittingComment ? 'Adding...' : 'Add Comment'}
               </Button>
             </View>
           </Card.Content>
@@ -429,5 +558,67 @@ const styles = StyleSheet.create({
   },
   placeholderButton: {
     marginTop: 8,
+  },
+  loadingCommentsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  loadingCommentsText: {
+    opacity: 0.7,
+  },
+  emptyCommentsContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  emptyCommentsText: {
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+  commentsList: {
+    marginTop: 8,
+  },
+  commentDivider: {
+    marginVertical: 12,
+  },
+  commentItem: {
+    paddingVertical: 8,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  commentAvatar: {
+    marginRight: 8,
+  },
+  commentMeta: {
+    flex: 1,
+  },
+  commentAuthor: {
+    fontWeight: '600',
+  },
+  commentDate: {
+    opacity: 0.6,
+    marginTop: 2,
+  },
+  commentText: {
+    marginLeft: 40,
+    lineHeight: 20,
+  },
+  addCommentDivider: {
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  addCommentContainer: {
+    gap: 12,
+  },
+  commentInput: {
+    minHeight: 80,
+  },
+  addCommentButton: {
+    alignSelf: 'flex-end',
   },
 });

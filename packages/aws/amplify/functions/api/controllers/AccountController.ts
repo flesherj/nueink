@@ -19,9 +19,11 @@ class AccountController {
       }
 
       res.json(account);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching account:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to fetch account'
+      });
     }
   };
 
@@ -34,9 +36,11 @@ class AccountController {
       const accountService = serviceFactory.account();
       const accounts = await accountService.findAll();
       res.json(accounts);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error listing accounts:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to list accounts'
+      });
     }
   };
 }

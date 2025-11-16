@@ -31,7 +31,7 @@ export class SyncApi {
       };
     } catch (e) {
       console.error('Error triggering manual sync', e);
-      return { success: false, message: e.message };
+      return { success: false, message: (e as Error).message };
     }
   };
 }

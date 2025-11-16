@@ -26,4 +26,5 @@ export type {
   IntegrationConfig,
   Transaction,
   FinancialAccount,
+  Comment,
 } from '@nueink/core';

@@ -10,3 +10,4 @@ export * from './IntegrationApi';
 export * from './FinancialAccountApi';
 export * from './TransactionApi';
 export * from './SyncApi';
+export * from './CommentApi';

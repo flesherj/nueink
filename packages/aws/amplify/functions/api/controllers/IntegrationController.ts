@@ -36,9 +36,11 @@ class IntegrationController {
       }));
 
       res.json(sanitized);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error listing integrations:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to list integrations'
+      });
     }
   };
 
@@ -82,9 +84,11 @@ class IntegrationController {
         accountId,
         provider,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error triggering sync:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to trigger sync'
+      });
     }
   };
 }
