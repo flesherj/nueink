@@ -12,3 +12,4 @@ export * from './TransactionApi';
 export * from './TransactionSplitApi';
 export * from './SyncApi';
 export * from './CommentApi';
+export * from './AnalyticsApi';

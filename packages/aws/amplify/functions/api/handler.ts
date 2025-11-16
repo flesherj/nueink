@@ -36,6 +36,7 @@ import TransactionRouter from './routers/TransactionRouter';
 import TransactionSplitRouter from './routers/TransactionSplitRouter';
 import SyncRouter from './routers/SyncRouter';
 import CommentRouter from './routers/CommentRouter';
+import AnalyticsRouter from './routers/AnalyticsRouter';
 
 // Create Express app
 const app = express();
@@ -50,6 +51,7 @@ app.use('/transaction', TransactionRouter);
 app.use('/transaction-split', TransactionSplitRouter);
 app.use('/sync', SyncRouter);
 app.use('/comment', CommentRouter);
+app.use('/analytics', AnalyticsRouter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
