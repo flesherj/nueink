@@ -1,6 +1,6 @@
 # NueInk Product Roadmap
 
-**Last Updated:** November 14, 2025
+**Last Updated:** November 16, 2025
 **Status:** Phase 1 - Financial Data Integration (40% complete)
 
 ---
@@ -134,24 +134,40 @@
 
 **Goal:** Instagram-style feed for financial activities with comments
 
-**Features:**
+**Core Features:**
 - Social transaction feed (Facebook-style)
 - Comments on transactions (discuss spending in context)
 - @mentions for family members
 - Real-time updates via AppSync subscriptions
 - Reactions and engagement
 
+**Visual Enhancements (NEW):**
+- **Category Allocation Progress** - Progress bar + badge showing allocation status
+  - "72% allocated" or "$25.88 of $35.88 categorized"
+  - Visual indicator of incomplete categorization
+  - Quick glance at how transaction is split
+
+- **Contextual Spending Charts** - Mini charts showing transaction in context
+  - **Category Context:** Where this transaction fits in monthly category spending
+  - **Timeline:** X-axis = days in period, Y-axis = cumulative spending
+  - **Highlight:** Pointer showing where THIS transaction occurred
+  - **Budget Line:** Optional overlay showing budget threshold
+  - Example: "This was your 3rd grocery purchase, putting you at 32% of budget on day 9"
+
 **Architecture:**
 - Dedicated FeedItem table
 - DynamoDB Streams → Feed Generation Lambda
 - Single AppSync subscription per client
 - Server-side aggregation
+- Chart library: `victory-native` or `react-native-svg`
 
 **Success Criteria:**
 - Feed shows transactions, budget alerts, account updates
 - Can comment on any feed item
 - Real-time updates appear instantly
 - Infinite scroll works smoothly
+- Users can see allocation status at a glance
+- Charts provide meaningful spending context
 
 **Reference:** See ARCHITECTURE.md for feed architecture decisions
 
@@ -161,20 +177,61 @@
 
 **Target:** Weeks 5-6
 
-**Goal:** Budgets, spending insights, alerts
+**Goal:** Budgets, spending insights, alerts, intelligent feed generation
 
-**Features:**
+**Core Features:**
 - Budget creation and tracking
 - Spending aggregation by category
 - Budget alerts and notifications
 - Analytics dashboard
 - Smart insights ("You spent 30% more on dining this month")
 
+**Enhanced Features (NEW):**
+
+**Merchant Intelligence:**
+- **Merchant Grouping** - Click merchant → see all transactions from that merchant
+- **Merchant Analytics** - Spending trends at specific merchants over time
+- **Merchant Categories** - See category breakdown for each merchant
+  - Example: Target purchases split across Groceries (60%), Household (25%), Clothes (15%)
+- **Merchant Charts** - Contextual charts showing spending patterns per merchant
+- **Merchant Budget Impact** - How this merchant affects overall budget categories
+
+**Auto-Generated Feed Insights:**
+- **Algorithmic Feed Items** - System automatically generates insight cards in feed
+- **Context-Aware Triggers** - Deterministic rules that generate insights
+
+  **Feed Item Types:**
+  - 🔵 **Transactions** (blue border) - Actual purchases
+  - 🟢 **Celebrations** (green border) - Positive trends, savings achievements
+  - 🟡 **Alerts** (yellow border) - Budget warnings, attention needed
+  - 🟣 **Milestones** (purple border) - First time achievements, streaks
+  - 📊 **Summaries** (neutral) - Daily/weekly/monthly recaps
+
+  **Trigger Examples:**
+  - Daily: "Yesterday you spent $127 across 5 transactions"
+  - Weekly: "You spent $487 this week (12% above your average)"
+  - Budget: "You've used 78% of dining budget with 10 days left in month"
+  - Celebration: "You're on track to save $400 this month! 🎉"
+  - Trend: "Grocery spending down 15% vs last month"
+  - Alert: "At current rate, you'll exceed dining budget by $200"
+  - Milestone: "First week under budget in 3 months!"
+  - Comparative: "Spending 23% less than same period last year"
+
+**Technical Implementation:**
+- **Merchant Data Model** - Track merchant metadata, spending history
+- **Insight Engine** - Lambda triggered by EventBridge rules (daily/weekly/budget-based)
+- **Feed Item Generator** - Creates typed feed items based on trigger conditions
+- **Trend Detection** - Analyze spending patterns over rolling windows (3-week, 1-month, 3-month)
+- **Budget Burn Rate** - Calculate projected spending vs actual pace
+
 **Success Criteria:**
 - User can create monthly budget
 - See spending vs budget in real-time
 - Receive alerts when approaching limits
 - View spending trends and insights
+- Click merchant to see all related transactions
+- Feed shows auto-generated insights based on spending patterns
+- Insights are timely, relevant, and actionable
 
 ---
 
@@ -283,4 +340,4 @@
 
 ---
 
-*Last updated: November 14, 2025 by James Flesher*
+*Last updated: November 16, 2025 by James Flesher*

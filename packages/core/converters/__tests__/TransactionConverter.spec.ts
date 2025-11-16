@@ -23,8 +23,7 @@ describe('TransactionConverter', () => {
         authorizedDate: new Date('2024-01-14T10:00:00Z'),
         merchantName: 'Whole Foods',
         name: 'Whole Foods Market',
-        category: ['Food and Drink', 'Groceries'],
-        primaryCategory: 'Food and Drink',
+        status: 'posted',
         pending: false,
         personId: 'person-101',
         receiptUrls: ['receipts/2024/receipt-123.pdf'],
@@ -47,8 +46,7 @@ describe('TransactionConverter', () => {
         authorizedDate: '2024-01-14T10:00:00.000Z',
         merchantName: 'Whole Foods',
         name: 'Whole Foods Market',
-        category: ['Food and Drink', 'Groceries'],
-        primaryCategory: 'Food and Drink',
+        status: 'posted',
         pending: false,
         personId: 'person-101',
         receiptUrls: ['receipts/2024/receipt-123.pdf'],
@@ -68,6 +66,7 @@ describe('TransactionConverter', () => {
         currency: 'USD',
         date: new Date('2024-01-15T00:00:00Z'),
         name: 'Cash Deposit',
+        status: 'pending',
         pending: true,
         createdAt: new Date('2024-01-15T10:00:00Z'),
         updatedAt: new Date('2024-01-16T10:00:00Z'),
@@ -79,8 +78,6 @@ describe('TransactionConverter', () => {
       expect(entity.externalTransactionId).toBeUndefined();
       expect(entity.authorizedDate).toBeUndefined();
       expect(entity.merchantName).toBeUndefined();
-      expect(entity.category).toBeUndefined();
-      expect(entity.primaryCategory).toBeUndefined();
       expect(entity.personId).toBeUndefined();
       expect(entity.receiptUrls).toBeUndefined();
     });
@@ -100,8 +97,7 @@ describe('TransactionConverter', () => {
         authorizedDate: '2024-01-19T14:00:00.000Z',
         merchantName: 'Starbucks',
         name: 'Starbucks Coffee',
-        category: ['Food and Drink', 'Coffee'],
-        primaryCategory: 'Food and Drink',
+        status: 'posted',
         pending: false,
         personId: 'person-202',
         receiptUrls: ['receipts/2024/receipt-456.pdf'],
@@ -124,8 +120,7 @@ describe('TransactionConverter', () => {
         authorizedDate: new Date('2024-01-19T14:00:00.000Z'),
         merchantName: 'Starbucks',
         name: 'Starbucks Coffee',
-        category: ['Food and Drink', 'Coffee'],
-        primaryCategory: 'Food and Drink',
+        status: 'posted',
         pending: false,
         personId: 'person-202',
         receiptUrls: ['receipts/2024/receipt-456.pdf'],
@@ -150,8 +145,7 @@ describe('TransactionConverter', () => {
         authorizedDate: new Date('2024-01-24T15:30:00Z'),
         merchantName: 'Amazon',
         name: 'Amazon.com Purchase',
-        category: ['Shops', 'Online'],
-        primaryCategory: 'Shops',
+        status: 'posted',
         pending: false,
         personId: 'person-303',
         receiptUrls: ['receipts/2024/receipt-789.pdf'],

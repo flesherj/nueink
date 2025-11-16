@@ -175,6 +175,7 @@ const schema = a.schema({
                 index('organizationId').sortKeys(['date']),
                 index('financialAccountId').sortKeys(['date']),
                 index('personId').sortKeys(['date']),
+                index('merchantName').sortKeys(['date']),
                 index('externalTransactionId')
             ]),
 

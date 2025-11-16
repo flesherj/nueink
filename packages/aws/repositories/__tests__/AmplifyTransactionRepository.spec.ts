@@ -29,8 +29,7 @@ describe('AmplifyTransactionRepository', () => {
         authorizedDate: '2025-01-14T09:00:00.000Z',
         merchantName: 'Coffee Shop',
         name: 'Coffee Shop Purchase',
-        category: ['Food and Drink', 'Restaurants', 'Coffee'],
-        primaryCategory: 'Food and Drink',
+        status: 'posted',
         pending: false,
         personId: 'person-1',
         receiptUrls: ['s3://bucket/receipt.pdf'],
@@ -60,8 +59,7 @@ describe('AmplifyTransactionRepository', () => {
         authorizedDate: '2025-01-14T09:00:00.000Z',
         merchantName: 'Coffee Shop',
         name: 'Coffee Shop Purchase',
-        category: ['Food and Drink', 'Restaurants', 'Coffee'],
-        primaryCategory: 'Food and Drink',
+        status: 'posted',
         pending: false,
         personId: 'person-1',
         receiptUrls: ['s3://bucket/receipt.pdf'],
@@ -91,7 +89,7 @@ describe('AmplifyTransactionRepository', () => {
         currency: 'USD',
         date: '2025-01-15T00:00:00.000Z',
         name: 'Manual Transaction',
-        category: [],
+        status: 'posted',
         pending: false,
         receiptUrls: [],
         createdAt: '2025-01-15T12:00:00.000Z',
@@ -107,7 +105,6 @@ describe('AmplifyTransactionRepository', () => {
       expect(result?.externalTransactionId).toBeUndefined();
       expect(result?.authorizedDate).toBeUndefined();
       expect(result?.merchantName).toBeUndefined();
-      expect(result?.primaryCategory).toBeUndefined();
       expect(result?.personId).toBeUndefined();
       expect(result?.profileOwner).toBeUndefined();
     });
@@ -125,7 +122,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-15T10:30:00.000Z',
           name: 'Transaction 1',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-01-15T12:00:00.000Z',
@@ -140,7 +137,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-14T15:00:00.000Z',
           name: 'Transaction 2',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-01-14T16:00:00.000Z',
@@ -175,8 +172,7 @@ describe('AmplifyTransactionRepository', () => {
         authorizedDate: '2025-01-14T09:00:00.000Z',
         merchantName: 'Coffee Shop',
         name: 'Coffee Shop Purchase',
-        category: ['Food and Drink'],
-        primaryCategory: 'Food and Drink',
+        status: 'posted',
         pending: false,
         personId: 'person-1',
         receiptUrls: ['s3://bucket/receipt.pdf'],
@@ -209,8 +205,7 @@ describe('AmplifyTransactionRepository', () => {
         authorizedDate: '2025-01-14T09:00:00.000Z',
         merchantName: 'Coffee Shop',
         name: 'Coffee Shop Purchase',
-        category: ['Food and Drink'],
-        primaryCategory: 'Food and Drink',
+        status: 'posted',
         pending: false,
         personId: 'person-1',
         receiptUrls: ['s3://bucket/receipt.pdf'],
@@ -226,7 +221,6 @@ describe('AmplifyTransactionRepository', () => {
     it('should update transaction with partial data', async () => {
       const updates = {
         personId: 'person-2',
-        category: ['Updated Category'],
       };
 
       const mockUpdated = {
@@ -238,7 +232,7 @@ describe('AmplifyTransactionRepository', () => {
         currency: 'USD',
         date: '2025-01-15T10:30:00.000Z',
         name: 'Transaction',
-        category: ['Updated Category'],
+        status: 'posted',
         pending: false,
         personId: 'person-2',
         receiptUrls: [],
@@ -256,7 +250,6 @@ describe('AmplifyTransactionRepository', () => {
         expect.objectContaining({
           transactionId: 'txn-1',
           personId: 'person-2',
-          category: ['Updated Category'],
         })
       );
       expect(result.personId).toBe('person-2');
@@ -289,7 +282,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-15T00:00:00.000Z',
           name: 'Transaction 1',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-01-15T12:00:00.000Z',
@@ -323,7 +316,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-15T00:00:00.000Z',
           name: 'Transaction 1',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-01-15T12:00:00.000Z',
@@ -354,7 +347,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-15T00:00:00.000Z',
           name: 'Transaction 1',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-01-15T12:00:00.000Z',
@@ -388,7 +381,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-15T00:00:00.000Z',
           name: 'Transaction 1',
-          category: [],
+          status: 'posted',
           pending: false,
           personId: 'person-1',
           receiptUrls: [],
@@ -439,7 +432,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-20T10:00:00.000Z',
           name: 'Transaction 2',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-01-20T12:00:00.000Z',
@@ -454,7 +447,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-02-01T10:00:00.000Z',
           name: 'Transaction 3',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-02-01T12:00:00.000Z',
@@ -491,7 +484,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-15T00:00:00.000Z',
           name: 'Transaction',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-01-15T12:00:00.000Z',
@@ -535,7 +528,7 @@ describe('AmplifyTransactionRepository', () => {
           currency: 'USD',
           date: '2025-01-15T00:00:00.000Z',
           name: 'Transaction 1',
-          category: [],
+          status: 'posted',
           pending: false,
           receiptUrls: [],
           createdAt: '2025-01-15T12:00:00.000Z',

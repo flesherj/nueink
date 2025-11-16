@@ -12,4 +12,10 @@ router.get('/organization/:organizationId/category/:category', TransactionSplitC
 // GET /transaction-split/:splitId - Get split by ID
 router.get('/:splitId', TransactionSplitController.getSplit);
 
+// POST /transaction-split - Create a new split
+router.post('/', TransactionSplitController.create);
+
+// DELETE /transaction-split/:splitId - Delete a split
+router.delete('/:splitId', TransactionSplitController.deleteSplit);
+
 export default router;
