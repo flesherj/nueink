@@ -116,6 +116,8 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
             const datePosition = dateRange > 0 ? (currentDate - minDate) / dateRange : 0;
             // If point is in the right 40% of the chart, place label on left
             const labelPosition: 'left' | 'right' = datePosition > 0.6 ? 'left' : 'right';
+            // Adjust offset based on position - negative for left to push away from marker
+            const labelOffset: [number, number] = labelPosition === 'left' ? [-6, 0] : [6, 0];
 
             return {
               coord: [
@@ -134,7 +136,7 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
               label: {
                 show: true,
                 position: labelPosition,
-                offset: [15, 0],
+                offset: labelOffset,
                 formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
                 color: '#FFFFFF',
                 fontSize: 16,
