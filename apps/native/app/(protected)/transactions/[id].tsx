@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput as RNTextInput } from 'react-native';
+import Slider from '@react-native-community/slider';
+import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Surface, Text, Card, Chip, ActivityIndicator, Divider, List, TextInput, Button, Avatar, useTheme, IconButton } from 'react-native-paper';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useAccountProvider } from '@nueink/ui';
@@ -11,6 +14,25 @@ const transactionApi = TransactionApi.create();
 const transactionSplitApi = TransactionSplitApi.create();
 const commentApi = CommentApi.create();
 const financialAccountApi = FinancialAccountApi.create();
+
+// Common budget categories with icons
+// Note: "Uncategorized" is handled separately as a read-only remainder
+const CATEGORIES = [
+  { name: 'Groceries', icon: 'cart' },
+  { name: 'Dining Out', icon: 'silverware-fork-knife' },
+  { name: 'Transportation', icon: 'car' },
+  { name: 'Gas/Fuel', icon: 'gas-station' },
+  { name: 'Entertainment', icon: 'movie' },
+  { name: 'Shopping', icon: 'shopping' },
+  { name: 'Bills', icon: 'file-document' },
+  { name: 'Rent/Mortgage', icon: 'home' },
+  { name: 'Utilities', icon: 'lightning-bolt' },
+  { name: 'Healthcare', icon: 'medical-bag' },
+  { name: 'Insurance', icon: 'shield-account' },
+  { name: 'Savings', icon: 'piggy-bank' },
+  { name: 'Income', icon: 'cash' },
+  { name: 'Other', icon: 'dots-horizontal' },
+];
 
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,6 +48,28 @@ export default function TransactionDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Category selection bottom sheet state
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['85%'], []);
+  const [splitMode, setSplitMode] = useState(false);
+  // Store amounts as ABSOLUTE VALUES (positive) in cents for UI consistency
+  const [selectedCategories, setSelectedCategories] = useState<Array<{ category: string; amount: number }>>([]);
+  const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
+  const savingRef = useRef(false);
+  // Click-to-edit state
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editAmountInput, setEditAmountInput] = useState('');
+
+  // Helper to get absolute transaction amount in cents
+  const getAbsoluteAmount = useCallback(() => Math.abs(transaction?.amount || 0), [transaction]);
+
+  // Calculate uncategorized (unallocated) amount
+  const getUncategorizedAmount = useCallback(() => {
+    if (!transaction) return 0;
+    const totalAllocated = selectedCategories.reduce((sum, c) => sum + c.amount, 0);
+    return Math.abs(transaction.amount) - totalAllocated;
+  }, [transaction, selectedCategories]);
 
   useEffect(() => {
     if (id) {
@@ -158,6 +202,256 @@ export default function TransactionDetailScreen() {
     }
   };
 
+  /**
+   * Open category selection bottom sheet
+   */
+  const handleOpenCategoryModal = useCallback(() => {
+    console.log('Opening category modal...');
+
+    // If splits exist, load them into selected categories for editing
+    // Convert to ABSOLUTE VALUES for UI
+    // Filter out "Uncategorized" - it's calculated automatically
+    if (splits.length > 0) {
+      console.log('Loading existing splits:', splits);
+      const categorizedSplits = splits.filter((split) => split.category !== 'Uncategorized');
+      setSelectedCategories(
+        categorizedSplits.map((split) => ({
+          category: split.category,
+          amount: Math.abs(split.amount), // Store as positive
+        }))
+      );
+      setSplitMode(categorizedSplits.length > 0);
+    } else {
+      setSplitMode(false);
+      setSelectedCategories([]);
+    }
+
+    bottomSheetRef.current?.expand();
+  }, [splits]);
+
+  /**
+   * Close category selection bottom sheet
+   */
+  const handleCloseCategoryModal = useCallback(() => {
+    bottomSheetRef.current?.close();
+    setSplitMode(false);
+    setSelectedCategories([]);
+  }, []);
+
+  /**
+   * Render backdrop for bottom sheet
+   */
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.5}
+      />
+    ),
+    []
+  );
+
+  /**
+   * Handle category selection
+   * - First category: 100% split, close modal
+   * - Additional categories: Enable split mode with sliders
+   * Works with ABSOLUTE VALUES internally
+   */
+  const handleSelectCategory = async (categoryName: string) => {
+    if (!transaction || !account) return;
+
+    const absAmount = Math.abs(transaction.amount);
+
+    // Check if this is the first category being selected (in the UI)
+    if (selectedCategories.length === 0) {
+      // First category - gets full amount
+      const newCategories = [{ category: categoryName, amount: absAmount }];
+      setSelectedCategories(newCategories);
+      setSplitMode(false);
+
+      // Auto-save immediately with new categories
+      autoSaveSplits(newCategories);
+    } else {
+      // Additional category - enable split mode
+      // Check if category is already in selectedCategories
+      const exists = selectedCategories.find((c) => c.category === categoryName);
+      if (exists) {
+        // Remove it (toggle off)
+        const remaining = selectedCategories.filter((c) => c.category !== categoryName);
+        if (remaining.length > 0) {
+          setSelectedCategories(remaining);
+          autoSaveSplits(remaining);
+        } else {
+          setSelectedCategories([]);
+          setSplitMode(false);
+          autoSaveSplits([]);
+        }
+      } else {
+        // Add new category starting at $0 (user will drag slider to allocate)
+        // This preserves existing allocations
+        const updatedCategories = [
+          ...selectedCategories, // Keep existing amounts unchanged
+          { category: categoryName, amount: 0 }, // New category starts at $0
+        ];
+
+        setSelectedCategories(updatedCategories);
+        setSplitMode(true);
+        autoSaveSplits(updatedCategories);
+      }
+    }
+  };
+
+  /**
+   * Auto-save the current splits to the database
+   * Converts absolute values back to signed values for storage
+   * Creates an Uncategorized split for any remainder
+   *
+   * @param categoriesToSave - The categories to save (avoids stale closure issues)
+   */
+  const autoSaveSplits = useCallback(async (categoriesToSave?: Array<{ category: string; amount: number }>) => {
+    const categories = categoriesToSave || selectedCategories;
+    if (!transaction || !account || !categories) return;
+
+    // Prevent concurrent saves
+    if (savingRef.current) {
+      console.log('Auto-save already in progress, skipping...');
+      return;
+    }
+
+    try {
+      savingRef.current = true;
+      const absTransactionAmount = Math.abs(transaction.amount);
+      const isNegative = transaction.amount < 0;
+
+      // Calculate uncategorized amount from the categories we're saving
+      const totalAllocated = categories.reduce((sum, c) => sum + c.amount, 0);
+      const uncategorizedAmount = absTransactionAmount - totalAllocated;
+
+      // Delete existing splits
+      for (const split of splits) {
+        await transactionSplitApi.delete(split.splitId);
+      }
+
+      // Create new splits - convert absolute values back to signed
+      // Track total to ensure no rounding errors accumulate
+      let totalAllocatedSigned = 0;
+      const categoriesToCreate = categories.filter(c => c.amount > 0);
+
+      for (let i = 0; i < categoriesToCreate.length; i++) {
+        const category = categoriesToCreate[i];
+        const isLast = i === categoriesToCreate.length - 1;
+
+        let signedAmount: number;
+        if (isLast && uncategorizedAmount === 0) {
+          // Last category gets exact remainder to avoid rounding errors
+          signedAmount = (isNegative ? -absTransactionAmount : absTransactionAmount) - totalAllocatedSigned;
+        } else {
+          signedAmount = isNegative ? -category.amount : category.amount;
+          totalAllocatedSigned += signedAmount;
+        }
+
+        const percentage = (Math.abs(signedAmount) / absTransactionAmount) * 100;
+
+        await transactionSplitApi.create({
+          transactionId: transaction.transactionId,
+          organizationId: account.defaultOrgId,
+          category: category.category,
+          amount: signedAmount,
+          percentage,
+          profileOwner: account.profileOwner,
+        });
+      }
+
+      // Create Uncategorized split for remainder if any
+      if (uncategorizedAmount > 0) {
+        const percentage = (uncategorizedAmount / absTransactionAmount) * 100;
+        const signedAmount = isNegative ? -uncategorizedAmount : uncategorizedAmount;
+
+        await transactionSplitApi.create({
+          transactionId: transaction.transactionId,
+          organizationId: account.defaultOrgId,
+          category: 'Uncategorized',
+          amount: signedAmount,
+          percentage,
+          profileOwner: account.profileOwner,
+        });
+      }
+
+      // Reload splits silently (no modal close, no alert)
+      const updatedSplits = await transactionSplitApi.listByTransaction(transaction.transactionId);
+      setSplits(updatedSplits);
+    } catch (err) {
+      console.error('Error auto-saving splits:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined,
+        fullError: JSON.stringify(err, null, 2),
+      });
+      // Silent fail - don't interrupt user workflow
+    } finally {
+      savingRef.current = false;
+    }
+  }, [transaction, account, selectedCategories, splits]);
+
+  /**
+   * Handle click-to-edit: Start editing a category amount
+   */
+  const handleStartEditAmount = (categoryName: string, currentAmount: number) => {
+    setEditingCategory(categoryName);
+    // Convert cents to dollars for input (e.g., 214 -> "2.14")
+    setEditAmountInput((currentAmount / 100).toFixed(2));
+  };
+
+  /**
+   * Handle click-to-edit: Save the edited amount
+   */
+  const handleSaveEditAmount = useCallback(() => {
+    if (!editingCategory || !transaction) {
+      setEditingCategory(null);
+      return;
+    }
+
+    // Parse input as dollars and convert to cents
+    const dollarValue = parseFloat(editAmountInput);
+
+    if (isNaN(dollarValue) || dollarValue < 0) {
+      // Invalid input - revert
+      setEditingCategory(null);
+      setEditAmountInput('');
+      return;
+    }
+
+    const centsValue = Math.round(dollarValue * 100);
+    const absTransactionAmount = Math.abs(transaction.amount);
+
+    // Calculate max allowed (current amount + uncategorized)
+    const currentCategory = selectedCategories.find(c => c.category === editingCategory);
+    if (!currentCategory) {
+      setEditingCategory(null);
+      return;
+    }
+
+    const currentUncategorized = getUncategorizedAmount();
+    const maxAllowed = currentCategory.amount + currentUncategorized;
+    const clampedValue = Math.min(centsValue, maxAllowed);
+
+    // Update categories
+    const updatedCategories = selectedCategories.map(c =>
+      c.category === editingCategory
+        ? { ...c, amount: clampedValue }
+        : c
+    );
+
+    setSelectedCategories(updatedCategories);
+    setEditingCategory(null);
+    setEditAmountInput('');
+
+    // Auto-save with updated categories
+    autoSaveSplits(updatedCategories);
+  }, [editingCategory, editAmountInput, transaction, selectedCategories, getUncategorizedAmount, autoSaveSplits]);
+
   if (loading) {
     return (
       <Surface style={styles.container}>
@@ -186,7 +480,8 @@ export default function TransactionDetailScreen() {
   }
 
   return (
-    <Surface style={styles.container}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Surface style={styles.container}>
       <Stack.Screen
         options={{
           title: 'Transaction Details',
@@ -230,44 +525,65 @@ export default function TransactionDetailScreen() {
         </Card>
 
         {/* Category Splits */}
-        {splits.length > 0 && (
+        <TouchableOpacity onPress={handleOpenCategoryModal} activeOpacity={0.7}>
           <Card style={styles.card}>
             <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Categories
-              </Text>
-              <Text variant="bodySmall" style={styles.sectionDescription}>
-                {splits.length === 1
-                  ? 'This transaction has one category'
-                  : `This transaction is split across ${splits.length} categories`}
-              </Text>
-              <Divider style={styles.divider} />
-              {splits.map((split, index) => (
-                <View key={split.splitId}>
-                  <View style={styles.splitRow}>
-                    <Chip mode="outlined" style={styles.categoryChip}>
-                      {split.category}
-                    </Chip>
-                    <Text variant="titleMedium" style={styles.splitAmount}>
-                      {formatAmount(split.amount, transaction.currency || 'USD')}
+              <View style={styles.categoryHeaderRow}>
+                <Text variant="titleMedium" style={styles.sectionTitle}>
+                  Categories
+                </Text>
+                <IconButton icon="pencil" size={18} />
+              </View>
+
+              {splits.length === 0 ? (
+                <View style={styles.uncategorizedButton}>
+                  <List.Icon icon="tag-plus" color={theme.colors.primary} />
+                  <View style={styles.uncategorizedContent}>
+                    <Text variant="titleMedium" style={styles.uncategorizedText}>
+                      Uncategorized
+                    </Text>
+                    <Text variant="bodySmall" style={styles.uncategorizedDescription}>
+                      Tap to add categories
                     </Text>
                   </View>
-                  {split.percentage && (
-                    <Text variant="bodySmall" style={styles.splitPercentage}>
-                      {split.percentage.toFixed(1)}% of total
-                    </Text>
-                  )}
-                  {split.notes && (
-                    <Text variant="bodySmall" style={styles.splitNotes}>
-                      {split.notes}
-                    </Text>
-                  )}
-                  {index < splits.length - 1 && <Divider style={styles.divider} />}
+                  <List.Icon icon="chevron-right" color={theme.colors.primary} />
                 </View>
-              ))}
+              ) : (
+                <>
+                  <Text variant="bodySmall" style={styles.sectionDescription}>
+                    {splits.length === 1
+                      ? 'This transaction has one category'
+                      : `This transaction is split across ${splits.length} categories`}
+                  </Text>
+                  <Divider style={styles.divider} />
+                  {splits.map((split, index) => (
+                    <View key={split.splitId}>
+                      <View style={styles.splitRow}>
+                        <Chip mode="outlined" style={styles.categoryChip}>
+                          {split.category}
+                        </Chip>
+                        <Text variant="titleMedium" style={styles.splitAmount}>
+                          {formatAmount(split.amount, transaction.currency || 'USD')}
+                        </Text>
+                      </View>
+                      {split.percentage && (
+                        <Text variant="bodySmall" style={styles.splitPercentage}>
+                          {split.percentage.toFixed(1)}% of total
+                        </Text>
+                      )}
+                      {split.notes && (
+                        <Text variant="bodySmall" style={styles.splitNotes}>
+                          {split.notes}
+                        </Text>
+                      )}
+                      {index < splits.length - 1 && <Divider style={styles.divider} />}
+                    </View>
+                  ))}
+                </>
+              )}
             </Card.Content>
           </Card>
-        )}
+        </TouchableOpacity>
 
         {/* Transaction Details */}
         <Card style={styles.card}>
@@ -486,7 +802,181 @@ export default function TransactionDetailScreen() {
           </Card.Content>
         </Card>
       </ScrollView>
-    </Surface>
+
+      {/* Category Selection Bottom Sheet */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.bottomSheetBackground}
+        handleIndicatorStyle={styles.bottomSheetHandle}
+      >
+        <View style={styles.bottomSheetContent}>
+          {/* Uncategorized Amount Display */}
+          {selectedCategories.length > 0 && (
+            <View style={styles.uncategorizedDisplay}>
+              <View style={styles.uncategorizedRow}>
+                <Text variant="titleSmall" style={styles.uncategorizedLabel}>
+                  Uncategorized
+                </Text>
+                <Text variant="titleMedium" style={styles.uncategorizedAmount}>
+                  {formatAmount(
+                    transaction.amount < 0 ? -getUncategorizedAmount() : getUncategorizedAmount(),
+                    transaction.currency || 'USD'
+                  )}
+                </Text>
+              </View>
+              <Text variant="bodySmall" style={styles.uncategorizedDescription}>
+                {getUncategorizedAmount() === 0
+                  ? 'All allocated'
+                  : 'Remaining unallocated amount'}
+              </Text>
+            </View>
+          )}
+
+          {/* Category Grid with inline sliders */}
+          <BottomSheetScrollView
+            style={styles.categoryScrollContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.categoryGrid}>
+                {CATEGORIES.map((category) => {
+                  const selectedCategory = selectedCategories.find(
+                    (c) => c.category === category.name
+                  );
+                  const isSelected = !!selectedCategory;
+
+                  return (
+                    <View
+                      key={category.name}
+                      style={styles.categoryItemContainer}
+                    >
+                      <View
+                        style={[
+                          styles.categoryItem,
+                          isSelected && styles.categoryItemSelected,
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={styles.categoryButton}
+                          onPress={() => handleSelectCategory(category.name)}
+                          activeOpacity={0.7}
+                        >
+                          {isSelected && (
+                            <View style={styles.checkmark}>
+                              <IconButton icon="check" size={16} iconColor="#fff" />
+                            </View>
+                          )}
+                          <Avatar.Icon
+                            size={48}
+                            icon={category.icon}
+                            style={styles.categoryIcon}
+                          />
+                          <Text variant="bodySmall" style={styles.categoryName}>
+                            {category.name}
+                          </Text>
+
+                          {/* Show amount for selected categories - convert to signed for display */}
+                          {isSelected && selectedCategory && (
+                            editingCategory === category.name ? (
+                              <View style={styles.categoryAmountInputContainer}>
+                                <RNTextInput
+                                  value={editAmountInput}
+                                  onChangeText={setEditAmountInput}
+                                  keyboardType="decimal-pad"
+                                  autoFocus
+                                  onBlur={handleSaveEditAmount}
+                                  onSubmitEditing={handleSaveEditAmount}
+                                  style={styles.categoryAmountInput}
+                                  placeholder="0.00"
+                                  selectTextOnFocus
+                                  placeholderTextColor="rgba(103, 80, 164, 0.4)"
+                                />
+                              </View>
+                            ) : (
+                              <TouchableOpacity
+                                onPress={() => handleStartEditAmount(category.name, selectedCategory.amount)}
+                                activeOpacity={0.7}
+                              >
+                                <Text variant="bodySmall" style={[styles.categoryAmount, styles.editableAmount]}>
+                                  {formatAmount(
+                                    transaction.amount < 0 ? -selectedCategory.amount : selectedCategory.amount,
+                                    transaction.currency || 'USD'
+                                  )}
+                                </Text>
+                              </TouchableOpacity>
+                            )
+                          )}
+                        </TouchableOpacity>
+
+                        {/* Inline slider - OUTSIDE TouchableOpacity */}
+                        {isSelected && selectedCategory && selectedCategories.length > 1 && (
+                          <View style={styles.categorySliderContainer}>
+                            <Slider
+                              style={styles.categorySlider}
+                              minimumValue={0}
+                              maximumValue={(selectedCategory.amount + getUncategorizedAmount()) / 100}
+                              step={0.01}
+                              value={selectedCategory.amount / 100}
+                              onSlidingStart={() => {
+                                setDraggedCategory(selectedCategory.category);
+                              }}
+                              onValueChange={(value) => {
+                                // Convert dollars to cents (keep as absolute/positive)
+                                // Use Math.round instead of Math.floor to avoid precision issues
+                                const centsValue = Math.round(value * 100);
+
+                                // Clamp to prevent over-allocation
+                                const currentUncategorized = getUncategorizedAmount();
+                                const maxAllowed = selectedCategory.amount + currentUncategorized;
+                                const clampedValue = Math.min(centsValue, maxAllowed);
+
+                                setSelectedCategories(prev =>
+                                  prev.map(c =>
+                                    c.category === category.name
+                                      ? { ...c, amount: clampedValue }
+                                      : c
+                                  )
+                                );
+                              }}
+                              onSlidingComplete={(value) => {
+                                // Convert dollars to cents and clamp to prevent over-allocation
+                                // Use Math.round instead of Math.floor to avoid precision issues
+                                const centsValue = Math.round(value * 100);
+                                const currentUncategorized = getUncategorizedAmount();
+                                const maxAllowed = selectedCategory.amount + currentUncategorized;
+                                const clampedValue = Math.min(centsValue, maxAllowed);
+
+                                // Update state
+                                const updatedCategories = selectedCategories.map(c =>
+                                  c.category === category.name
+                                    ? { ...c, amount: clampedValue }
+                                    : c
+                                );
+                                setSelectedCategories(updatedCategories);
+                                setDraggedCategory(null);
+
+                                // Auto-save immediately with updated categories
+                                autoSaveSplits(updatedCategories);
+                              }}
+                              minimumTrackTintColor="rgba(103, 80, 164, 0.9)"
+                              maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
+                              thumbTintColor="rgba(103, 80, 164, 1)"
+                            />
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+            </View>
+          </BottomSheetScrollView>
+        </View>
+      </BottomSheet>
+      </Surface>
+    </GestureHandlerRootView>
   );
 }
 
@@ -653,5 +1143,171 @@ const styles = StyleSheet.create({
   },
   addCommentButton: {
     alignSelf: 'flex-end',
+  },
+  categoryHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  uncategorizedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+  },
+  uncategorizedContent: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  uncategorizedText: {
+    color: '#1976d2',
+  },
+  uncategorizedDescription: {
+    opacity: 0.6,
+    marginTop: 2,
+  },
+  bottomSheetBackground: {
+    backgroundColor: '#1e1e1e',
+  },
+  bottomSheetContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  bottomSheetHandle: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  bottomSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingTop: 8,
+  },
+  bottomSheetTitle: {
+    color: '#fff',
+    flex: 1,
+  },
+  saveButton: {
+    marginLeft: 12,
+  },
+  uncategorizedDisplay: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  uncategorizedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  uncategorizedLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+  },
+  uncategorizedAmount: {
+    color: 'rgba(103, 80, 164, 1)',
+    fontWeight: '700',
+  },
+  uncategorizedDescription: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontStyle: 'italic',
+  },
+  categoryScrollContainer: {
+    maxHeight: 600,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingBottom: 20,
+  },
+  categoryItemContainer: {
+    width: '30%',
+    marginBottom: 16,
+  },
+  categoryItem: {
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    overflow: 'hidden',
+  },
+  categoryItemSelected: {
+    backgroundColor: 'rgba(103, 80, 164, 0.3)',
+    borderWidth: 2,
+    borderColor: 'rgba(103, 80, 164, 0.6)',
+  },
+  categoryButton: {
+    alignItems: 'center',
+    padding: 12,
+    position: 'relative',
+  },
+  checkmark: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(103, 80, 164, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  categoryIcon: {
+    marginBottom: 4,
+    backgroundColor: 'rgba(103, 80, 164, 0.25)',
+  },
+  categoryName: {
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 4,
+  },
+  categoryAmount: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(103, 80, 164, 1)',
+    marginTop: 4,
+  },
+  editableAmount: {
+    textDecorationLine: 'underline',
+    textDecorationStyle: 'dotted',
+    textDecorationColor: 'rgba(103, 80, 164, 0.5)',
+  },
+  categoryAmountInputContainer: {
+    marginTop: 4,
+    alignItems: 'center',
+  },
+  categoryAmountInput: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: 'rgba(103, 80, 164, 1)',
+    backgroundColor: 'rgba(103, 80, 164, 0.15)',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(103, 80, 164, 0.4)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 60,
+    height: 24,
+  },
+  categorySliderContainer: {
+    marginTop: 8,
+    width: '100%',
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+  },
+  categorySlider: {
+    width: '100%',
+    height: 40,
   },
 });

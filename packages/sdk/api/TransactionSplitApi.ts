@@ -48,4 +48,21 @@ export class TransactionSplitApi {
     const response = await this.api.get(`/transaction-split/${splitId}`).response;
     return (await response.body.json()) as unknown as TransactionSplit;
   };
+
+  /**
+   * Create a new transaction split
+   * POST /transaction-split
+   */
+  public create = async (split: Omit<TransactionSplit, 'splitId' | 'createdAt' | 'updatedAt'>): Promise<TransactionSplit> => {
+    const response = await this.api.post('/transaction-split', split).response;
+    return (await response.body.json()) as unknown as TransactionSplit;
+  };
+
+  /**
+   * Delete a transaction split
+   * DELETE /transaction-split/:splitId
+   */
+  public delete = async (splitId: string): Promise<void> => {
+    await this.api.del(`/transaction-split/${splitId}`).response;
+  };
 }

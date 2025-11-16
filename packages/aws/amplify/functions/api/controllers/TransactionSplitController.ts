@@ -79,6 +79,46 @@ class TransactionSplitController {
       });
     }
   };
+
+  /**
+   * Create a new transaction split
+   * POST /transaction-split
+   */
+  public create = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const splitData = req.body;
+      const splitService = serviceFactory.transactionSplit();
+
+      const newSplit = await splitService.create(splitData);
+
+      res.status(201).json(newSplit);
+    } catch (error) {
+      console.error('Error creating split:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to create split'
+      });
+    }
+  };
+
+  /**
+   * Delete a transaction split
+   * DELETE /transaction-split/:splitId
+   */
+  public deleteSplit = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { splitId } = req.params;
+      const splitService = serviceFactory.transactionSplit();
+
+      await splitService.delete(splitId);
+
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting split:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to delete split'
+      });
+    }
+  };
 }
 
 export default new TransactionSplitController();

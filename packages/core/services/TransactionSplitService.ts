@@ -51,8 +51,16 @@ export class TransactionSplitService<TEntity> {
     return entities.map((entity) => this.toDomain(entity));
   };
 
-  public create = async (split: TransactionSplit): Promise<TransactionSplit> => {
-    const entity = this.toEntity(split);
+  public create = async (split: Omit<TransactionSplit, 'splitId' | 'createdAt' | 'updatedAt'>): Promise<TransactionSplit> => {
+    // Generate missing fields
+    const completeSplit: TransactionSplit = {
+      ...split,
+      splitId: this.generateId(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const entity = this.toEntity(completeSplit);
     const saved = await this.repository.save(entity);
     return this.toDomain(saved);
   };
@@ -142,15 +150,34 @@ export class TransactionSplitService<TEntity> {
 
   // Converter methods - to be implemented based on entity type
   private toDomain = (entity: TEntity): TransactionSplit => {
-    // This will need to be implemented with actual converter logic
-    // For now, cast as any to match the pattern
-    return entity as any;
+    const e = entity as any;
+    return {
+      splitId: e.splitId,
+      transactionId: e.transactionId,
+      organizationId: e.organizationId,
+      category: e.category,
+      amount: e.amount,
+      percentage: e.percentage,
+      notes: e.notes,
+      createdAt: typeof e.createdAt === 'string' ? new Date(e.createdAt) : e.createdAt,
+      updatedAt: typeof e.updatedAt === 'string' ? new Date(e.updatedAt) : e.updatedAt,
+      profileOwner: e.profileOwner,
+    };
   };
 
   private toEntity = (domain: TransactionSplit): TEntity => {
-    // This will need to be implemented with actual converter logic
-    // For now, cast as any to match the pattern
-    return domain as any;
+    return {
+      splitId: domain.splitId,
+      transactionId: domain.transactionId,
+      organizationId: domain.organizationId,
+      category: domain.category,
+      amount: domain.amount,
+      percentage: domain.percentage,
+      notes: domain.notes,
+      createdAt: domain.createdAt instanceof Date ? domain.createdAt.toISOString() : domain.createdAt,
+      updatedAt: domain.updatedAt instanceof Date ? domain.updatedAt.toISOString() : domain.updatedAt,
+      profileOwner: domain.profileOwner,
+    } as any;
   };
 
   private generateId = (): string => {
