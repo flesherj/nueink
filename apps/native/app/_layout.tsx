@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { Authenticator, ThemeProvider } from '@aws-amplify/ui-react-native';
 import { SafeAreaView, useColorScheme } from 'react-native';
-import { Provider as PaperProvider, Surface } from 'react-native-paper';
+import { Provider as PaperProvider, Portal, Surface } from 'react-native-paper';
 
 import {
   NueInkDarkTheme,
@@ -21,20 +21,22 @@ const RootLayout = () => {
 
   return (
     <PaperProvider theme={isDark ? NueInkDarkTheme : NueInkLightTheme}>
-      <ThemeProvider
-        theme={isDark ? NueInkAmplifyDarkTheme : NueInkAmplifyLightTheme}
-        colorMode={colorMode}
-      >
-        <Authenticator.Provider>
-          <Authenticator key={colorMode}>
-            <Surface style={{ flex: 1 }}>
-              <SafeAreaView style={{ flex: 1 }}>
-                <Stack screenOptions={{ headerShown: false }} />
-              </SafeAreaView>
-            </Surface>
-          </Authenticator>
-        </Authenticator.Provider>
-      </ThemeProvider>
+      <Portal.Host>
+        <ThemeProvider
+          theme={isDark ? NueInkAmplifyDarkTheme : NueInkAmplifyLightTheme}
+          colorMode={colorMode}
+        >
+          <Authenticator.Provider>
+            <Authenticator key={colorMode}>
+              <Surface style={{ flex: 1 }}>
+                <SafeAreaView style={{ flex: 1 }}>
+                  <Stack screenOptions={{ headerShown: false }} />
+                </SafeAreaView>
+              </Surface>
+            </Authenticator>
+          </Authenticator.Provider>
+        </ThemeProvider>
+      </Portal.Host>
     </PaperProvider>
   );
 };

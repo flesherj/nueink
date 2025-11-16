@@ -8,6 +8,7 @@ import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useAccountProvider } from '@nueink/ui';
 import { TransactionApi, TransactionSplitApi, CommentApi, FinancialAccountApi } from '@nueink/sdk';
 import type { Transaction, TransactionSplit, Comment, FinancialAccount } from '@nueink/core';
+import * as Clipboard from 'expo-clipboard';
 
 // Create API clients
 const transactionApi = TransactionApi.create();
@@ -534,30 +535,114 @@ export default function TransactionDetailScreen() {
         <TouchableOpacity onPress={handleOpenCategoryModal} activeOpacity={0.7}>
           <Card style={styles.card}>
             <Card.Content>
-              {splits.filter(split => split.category !== 'Uncategorized').length === 0 ? (
-                <View style={styles.categoryDisplayContainer}>
-                  <Chip mode="outlined" textStyle={styles.feedCategoryChipText}>
-                    Uncategorized
-                  </Chip>
-                </View>
-              ) : (
-                <View style={styles.categoriesGrid}>
-                  {splits
-                    .filter(split => split.category !== 'Uncategorized')
-                    .map((split) => (
-                      <View key={split.splitId} style={styles.categoryGridItem}>
-                        <Avatar.Icon
-                          size={40}
-                          icon={getCategoryIcon(split.category)}
-                          style={styles.categoryGridIcon}
-                        />
-                        <Text variant="bodySmall" style={styles.categoryGridAmount}>
-                          {formatAmount(split.amount, transaction.currency || 'USD')}
-                        </Text>
+              {/* Allocation Progress Bar & Badge */}
+              {(() => {
+                const totalAmount = Math.abs(transaction.amount);
+                const categorizedAmount = splits
+                  .filter(s => s.category !== 'Uncategorized')
+                  .reduce((sum, s) => sum + Math.abs(s.amount), 0);
+                const percentage = totalAmount > 0 ? (categorizedAmount / totalAmount) * 100 : 0;
+                const isFullyAllocated = percentage === 100;
+
+                // Helper to get color for category
+                const getCategoryColor = (category: string, index: number) => {
+                  if (category === 'Uncategorized') {
+                    return 'rgba(128, 128, 128, 0.3)'; // Gray for uncategorized
+                  }
+                  // Color palette for categories
+                  const colors = [
+                    'rgba(103, 80, 164, 0.9)',   // Purple
+                    'rgba(142, 68, 173, 0.9)',   // Dark purple
+                    'rgba(155, 89, 182, 0.9)',   // Light purple
+                    'rgba(52, 152, 219, 0.9)',   // Blue
+                    'rgba(46, 204, 113, 0.9)',   // Green
+                    'rgba(241, 196, 15, 0.9)',   // Yellow
+                    'rgba(230, 126, 34, 0.9)',   // Orange
+                    'rgba(231, 76, 60, 0.9)',    // Red
+                  ];
+                  return colors[index % colors.length];
+                };
+
+                // Calculate segment widths - categorized first, uncategorized last
+                const sortedSplits = [
+                  ...splits.filter(s => s.category !== 'Uncategorized'),
+                  ...splits.filter(s => s.category === 'Uncategorized'),
+                ];
+                const segments = sortedSplits.map((split, index) => ({
+                  category: split.category,
+                  percentage: totalAmount > 0 ? (Math.abs(split.amount) / totalAmount) * 100 : 0,
+                  color: getCategoryColor(split.category, index),
+                }));
+
+                return (
+                  <View style={styles.allocationProgressContainer}>
+                    {/* Segmented Progress Bar */}
+                    <View style={styles.progressBarContainer}>
+                      <View style={styles.progressBarBackground}>
+                        <View style={styles.segmentedProgressBar}>
+                          {segments.map((segment, index) => (
+                            <View
+                              key={index}
+                              style={[
+                                styles.progressBarSegment,
+                                {
+                                  width: `${segment.percentage}%`,
+                                  backgroundColor: segment.color,
+                                },
+                              ]}
+                            />
+                          ))}
+                        </View>
                       </View>
-                    ))}
-                </View>
-              )}
+                    </View>
+
+                    {/* Allocation Badge */}
+                    <View style={styles.allocationBadgeContainer}>
+                      <Chip
+                        mode="flat"
+                        style={[
+                          styles.allocationBadge,
+                          isFullyAllocated && styles.allocationBadgeComplete
+                        ]}
+                        textStyle={styles.allocationBadgeText}
+                        icon={isFullyAllocated ? 'check-circle' : 'chart-donut'}
+                      >
+                        {isFullyAllocated
+                          ? 'Fully Allocated'
+                          : `${Math.round(percentage)}% Allocated`
+                        }
+                      </Chip>
+                      <Text variant="bodySmall" style={styles.allocationAmountText}>
+                        {formatAmount(
+                          transaction.amount < 0 ? -categorizedAmount : categorizedAmount,
+                          transaction.currency || 'USD'
+                        )} of {formatAmount(transaction.amount, transaction.currency || 'USD')}
+                      </Text>
+                    </View>
+
+                    {/* Category Breakdown */}
+                    <View style={styles.categoryBreakdownContainer}>
+                      {segments.map((segment, index) => (
+                        <View key={index} style={styles.categoryBreakdownItem}>
+                          <View style={[styles.categoryColorDot, { backgroundColor: segment.color }]} />
+                          <Text variant="bodySmall" style={styles.categoryBreakdownLabel}>
+                            {segment.category}
+                          </Text>
+                          <Text variant="bodySmall" style={styles.categoryBreakdownAmount}>
+                            {formatAmount(
+                              sortedSplits[index].amount,
+                              transaction.currency || 'USD'
+                            )}
+                          </Text>
+                          <Text variant="bodySmall" style={styles.categoryBreakdownPercentage}>
+                            {Math.round(segment.percentage)}%
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })()}
             </Card.Content>
           </Card>
         </TouchableOpacity>
@@ -643,11 +728,37 @@ export default function TransactionDetailScreen() {
               left={(props) => <List.Icon {...props} icon="cloud" />}
             />
 
+            <List.Item
+              title="Transaction ID"
+              description={transaction.transactionId}
+              left={(props) => <List.Icon {...props} icon="database" />}
+              right={(props) => (
+                <IconButton
+                  {...props}
+                  icon="content-copy"
+                  onPress={async () => {
+                    await Clipboard.setStringAsync(transaction.transactionId);
+                    Alert.alert('Copied', 'Transaction ID copied to clipboard');
+                  }}
+                />
+              )}
+            />
+
             {transaction.externalTransactionId && (
               <List.Item
                 title="External ID"
                 description={transaction.externalTransactionId}
                 left={(props) => <List.Icon {...props} icon="identifier" />}
+                right={(props) => (
+                  <IconButton
+                    {...props}
+                    icon="content-copy"
+                    onPress={async () => {
+                      await Clipboard.setStringAsync(transaction.externalTransactionId);
+                      Alert.alert('Copied', 'External ID copied to clipboard');
+                    }}
+                  />
+                )}
               />
             )}
           </Card.Content>
@@ -1097,6 +1208,77 @@ const styles = StyleSheet.create({
   },
   addCommentButton: {
     alignSelf: 'flex-end',
+  },
+  // Allocation progress
+  allocationProgressContainer: {
+    marginBottom: 16,
+  },
+  progressBarContainer: {
+    marginBottom: 12,
+  },
+  progressBarBackground: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  segmentedProgressBar: {
+    flexDirection: 'row',
+    height: '100%',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarSegment: {
+    height: '100%',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  allocationBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  allocationBadge: {
+    backgroundColor: 'rgba(103, 80, 164, 0.15)',
+  },
+  allocationBadgeComplete: {
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+  },
+  allocationBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  allocationAmountText: {
+    opacity: 0.7,
+    fontSize: 12,
+  },
+  categoryBreakdownContainer: {
+    marginTop: 12,
+    gap: 8,
+  },
+  categoryBreakdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  categoryBreakdownLabel: {
+    flex: 1,
+    fontSize: 13,
+  },
+  categoryBreakdownAmount: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  categoryBreakdownPercentage: {
+    fontSize: 13,
+    opacity: 0.6,
+    width: 40,
+    textAlign: 'right',
   },
   // Category display
   categoryDisplayContainer: {

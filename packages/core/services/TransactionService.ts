@@ -108,16 +108,19 @@ export class TransactionService {
     const saved = await this.repository.save(entity);
     const createdTransaction = this.converter.toDomain(saved);
 
-    // Create default split if splitService is available
+    // Create default split if splitService is available and no splits exist yet
     if (this.splitService) {
-      const category = this.extractCategory(transaction);
-      await this.splitService.createDefaultSplit(
-        createdTransaction.transactionId,
-        createdTransaction.organizationId,
-        createdTransaction.profileOwner,
-        createdTransaction.amount,
-        category
-      );
+      const existingSplits = await this.splitService.findByTransaction(createdTransaction.transactionId);
+      if (existingSplits.length === 0) {
+        const category = this.extractCategory(transaction);
+        await this.splitService.createDefaultSplit(
+          createdTransaction.transactionId,
+          createdTransaction.organizationId,
+          createdTransaction.profileOwner,
+          createdTransaction.amount,
+          category
+        );
+      }
     }
 
     return createdTransaction;
