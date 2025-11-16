@@ -85,8 +85,13 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
           label: {
             show: true,
             formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
-            color: theme.colors.onPrimary,
-            fontSize: 12,
+            color: '#FFFFFF',
+            fontSize: 14,
+            backgroundColor: theme.colors.primary,
+            borderColor: theme.colors.background,
+            borderWidth: 2,
+            borderRadius: 4,
+            padding: [4, 8],
           },
         }
       : null;
