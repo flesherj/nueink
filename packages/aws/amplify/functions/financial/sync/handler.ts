@@ -201,8 +201,6 @@ const storeTransactionsWithDeduplication = async (
                 await transactionService.update(existingTransaction.transactionId, {
                     amount: transaction.amount,
                     pending: transaction.pending,
-                    category: transaction.category,
-                    primaryCategory: transaction.primaryCategory,
                     rawData: transaction.rawData, // Update raw provider data on each sync
                     syncedAt: transaction.syncedAt,
                     // updatedAt is automatically set by service

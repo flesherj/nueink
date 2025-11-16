@@ -261,4 +261,26 @@
 
 ---
 
-*Last updated: November 15, 2025 by James Flesher*
+## 🐛 Known Issues (Pre-Launch)
+
+### Transaction Feed Auto-Update
+**Issue:** After initial OAuth connection, transactions sync successfully but feed doesn't auto-update. User must restart app to see transactions.
+
+**Current Behavior:**
+1. User connects YNAB account (OAuth succeeds)
+2. Sync triggers automatically (working)
+3. Transactions sync to DynamoDB (working)
+4. Feed screen doesn't refresh - shows "No Transactions Yet"
+5. User must force-quit and restart app to see transactions
+
+**Expected Behavior:**
+- Feed should poll/refresh after successful OAuth
+- OR show loading state while initial sync happens
+- OR listen for sync completion event and auto-refresh
+
+**Priority:** High (must fix before beta launch)
+**Status:** Tracked, not yet scheduled
+
+---
+
+*Last updated: November 16, 2025 by James Flesher*

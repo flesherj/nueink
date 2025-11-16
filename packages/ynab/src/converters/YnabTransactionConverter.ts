@@ -33,8 +33,6 @@ export class YnabTransactionConverter {
       authorizedDate: undefined,
       merchantName: source.payee_name || undefined,
       name: source.memo || source.payee_name || 'Transaction',
-      category: source.category_name ? [source.category_name] : undefined,
-      primaryCategory: source.category_name || undefined,
       pending: source.cleared === TransactionDetail.ClearedEnum.Uncleared,
       personId: undefined, // Enriched downstream by event handlers
       receiptUrls: undefined,
