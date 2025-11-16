@@ -29,13 +29,33 @@ export interface Transaction {
   authorizedDate?: Date;
   merchantName?: string;
   name: string;                    // Transaction description
-  category?: Array<string>;        // Categories array
-  primaryCategory?: string;        // First category for filtering
   pending: boolean;
   personId?: string;               // Auto-assigned person
   receiptUrls?: Array<string>;     // S3 keys for receipts (Phase 2)
   rawData?: Record<string, any>;   // Complete provider response (for debugging, backfill, advanced features)
   syncedAt?: Date;                 // Last sync timestamp from provider
+  createdAt: Date;
+  updatedAt: Date;
+  profileOwner: string;
+}
+
+/**
+ * TransactionSplit domain model
+ * Represents categorization and amount allocation for a transaction.
+ *
+ * Supports both simple (100% one category) and complex (split across multiple categories) scenarios.
+ * All transactions should have at least one split representing the full amount.
+ *
+ * Note: Sum of all split amounts for a transaction must equal transaction.amount
+ */
+export interface TransactionSplit {
+  splitId: string;
+  transactionId: string;           // FK to Transaction
+  organizationId: string;          // FK to Organization
+  category: string;                // Category for this portion
+  amount: number;                  // Portion of transaction amount in cents
+  percentage?: number;             // Optional: Percentage of total (0-100)
+  notes?: string;                  // Optional: Notes specific to this split
   createdAt: Date;
   updatedAt: Date;
   profileOwner: string;

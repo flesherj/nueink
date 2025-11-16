@@ -156,8 +156,6 @@ const schema = a.schema({
             authorizedDate: a.datetime(),               // Authorization date
             merchantName: a.string(),                   // Merchant name
             name: a.string().required(),                // Transaction name/description
-            category: a.string().array(),               // Categories (array for flexibility)
-            primaryCategory: a.string(),                // First category for filtering
             pending: a.boolean().required(),            // Is pending?
             personId: a.string(),                       // FK to Person (auto-assigned)
             receiptUrls: a.string().array(),            // S3 keys for receipts (Phase 2)
@@ -177,6 +175,29 @@ const schema = a.schema({
                 index('financialAccountId').sortKeys(['date']),
                 index('personId').sortKeys(['date']),
                 index('externalTransactionId')
+            ]),
+
+        TransactionSplit: a.model({
+            splitId: a.id().required(),
+            transactionId: a.string().required(),       // FK to Transaction
+            organizationId: a.string().required(),      // FK to Organization
+            category: a.string().required(),            // Category for this split
+            amount: a.float().required(),               // Portion of transaction amount (in cents)
+            percentage: a.float(),                      // Optional: Percentage of total transaction
+            notes: a.string(),                          // Optional: Notes specific to this split
+            createdAt: a.datetime().required(),
+            updatedAt: a.datetime().required(),
+            profileOwner: a.string(),
+        })
+            .identifier(['splitId'])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey()
+            ])
+            .secondaryIndexes(index => [
+                index('transactionId'),
+                index('organizationId').sortKeys(['category']),
+                index('category')
             ]),
 
         Comment: a.model({
