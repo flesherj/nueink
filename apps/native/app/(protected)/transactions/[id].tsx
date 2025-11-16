@@ -53,7 +53,7 @@ export default function TransactionDetailScreen() {
   const [submittingComment, setSubmittingComment] = useState(false);
 
   // Analytics chart state
-  const [chartData, setChartData] = useState<CategoryTimelineData | null>(null);
+  const [chartData, setChartData] = useState<CategoryTimelineData[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
 
@@ -133,24 +133,19 @@ export default function TransactionDetailScreen() {
   };
 
   /**
-   * Load analytics timeline data for the primary category
-   * Shows spending context for the category with the highest allocation
+   * Load analytics timeline data for all categories
+   * Shows spending context for all categorized splits
    */
   const loadAnalyticsData = async (txData: Transaction, splitsData: TransactionSplit[]) => {
     if (!account) return;
 
     try {
-      // Find primary category (highest allocation, excluding Uncategorized)
+      // Find all categorized splits (excluding Uncategorized)
       const categorizedSplits = splitsData.filter(s => s.category !== 'Uncategorized');
       if (categorizedSplits.length === 0) {
-        setChartData(null);
+        setChartData([]);
         return;
       }
-
-      // Get category with highest allocation
-      const primarySplit = categorizedSplits.reduce((max, split) =>
-        Math.abs(split.amount) > Math.abs(max.amount) ? split : max
-      );
 
       setChartLoading(true);
       setChartError(null);
@@ -158,16 +153,19 @@ export default function TransactionDetailScreen() {
       // Get current month date range
       const { startDate, endDate } = getCurrentMonthRange();
 
-      // Fetch timeline data for primary category
-      const timelineData = await analyticsApi.getCategoryTimeline(
-        account.defaultOrgId,
-        primarySplit.category,
-        startDate,
-        endDate,
-        txData.transactionId // Highlight this transaction
+      // Fetch timeline data for all categories in parallel
+      const timelinePromises = categorizedSplits.map(split =>
+        analyticsApi.getCategoryTimeline(
+          account.defaultOrgId,
+          split.category,
+          startDate,
+          endDate,
+          txData.transactionId // Highlight this transaction
+        )
       );
 
-      setChartData(timelineData);
+      const timelines = await Promise.all(timelinePromises);
+      setChartData(timelines);
     } catch (err) {
       console.error('Error loading analytics data:', err);
       setChartError(err instanceof Error ? err.message : 'Failed to load spending insights');
@@ -705,14 +703,14 @@ export default function TransactionDetailScreen() {
         </TouchableOpacity>
 
         {/* Spending Insights Chart */}
-        {chartData && (
+        {chartData.length > 0 && (
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.sectionTitle}>
                 Spending Insights
               </Text>
               <Text variant="bodySmall" style={styles.sectionDescription}>
-                {chartData.category} spending this month
+                Category spending this month
               </Text>
 
               <CategorySpendingChart
