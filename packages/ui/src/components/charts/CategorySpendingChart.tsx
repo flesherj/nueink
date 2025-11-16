@@ -116,7 +116,13 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
             },
             label: {
               show: true,
-              position: 'right' as const,
+              // Smart positioning: left if in right half of chart, right if in left half
+              position: (params: any) => {
+                const dataIndex = categoryData.highlightIndex;
+                const totalPoints = dates.length;
+                // If point is in the right 40% of the chart, place label on left
+                return dataIndex > totalPoints * 0.6 ? 'left' : 'right';
+              },
               offset: [15, 0],
               formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
               color: '#FFFFFF',
