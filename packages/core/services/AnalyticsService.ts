@@ -88,6 +88,7 @@ export class AnalyticsService {
 
     // Build data points: combine split amounts with transaction dates
     const dataPoints: CategoryTimelineDataPoint[] = [];
+    let filteredOutCount = 0;
     for (const split of splits) {
       const transaction = transactionMap.get(split.transactionId);
       if (!transaction) continue;
@@ -100,6 +101,7 @@ export class AnalyticsService {
       if (merchantName) {
         const txMerchant = transaction.merchantName || transaction.name || '';
         if (!txMerchant.toLowerCase().includes(merchantName.toLowerCase())) {
+          filteredOutCount++;
           continue;
         }
       }
@@ -110,6 +112,15 @@ export class AnalyticsService {
         cumulativeAmount: 0, // Will calculate below
         transactionId: transaction.transactionId,
         merchantName: transaction.merchantName || transaction.name,
+      });
+    }
+
+    if (merchantName) {
+      console.log(`🔍 Merchant filter "${merchantName}" for ${category}:`, {
+        totalSplits: splits.length,
+        afterDateFilter: dataPoints.length + filteredOutCount,
+        filteredOutByMerchant: filteredOutCount,
+        included: dataPoints.length,
       });
     }
 

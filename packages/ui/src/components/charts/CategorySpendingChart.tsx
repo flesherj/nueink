@@ -7,6 +7,7 @@ import * as echarts from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import {
   GridComponent,
+  LegendComponent,
   MarkPointComponent,
   MarkLineComponent,
 } from 'echarts/components';
@@ -16,6 +17,7 @@ import type { CategoryTimelineData } from '@nueink/core';
 echarts.use([
   SVGRenderer,
   GridComponent,
+  LegendComponent,
   LineChart,
   MarkPointComponent,
   MarkLineComponent,

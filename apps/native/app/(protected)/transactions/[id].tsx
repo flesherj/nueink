@@ -159,6 +159,12 @@ export default function TransactionDetailScreen() {
         ? (txData.merchantName || txData.name)
         : undefined;
 
+      console.log('📊 Loading analytics:', {
+        merchantFilterEnabled,
+        merchantFilter,
+        categories: categorizedSplits.map(s => s.category),
+      });
+
       // Fetch timeline data for all categories in parallel
       const timelinePromises = categorizedSplits.map(split =>
         analyticsApi.getCategoryTimeline(
@@ -186,9 +192,10 @@ export default function TransactionDetailScreen() {
    */
   useEffect(() => {
     if (transaction && splits.length > 0) {
+      console.log('🔄 Reloading analytics with merchant filter:', merchantFilterEnabled ? transaction.merchantName || transaction.name : 'ALL');
       loadAnalyticsData(transaction, splits);
     }
-  }, [merchantFilterEnabled]);
+  }, [merchantFilterEnabled, transaction, splits]);
 
   /**
    * Format amount with sign and color
