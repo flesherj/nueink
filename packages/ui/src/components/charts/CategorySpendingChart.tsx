@@ -61,8 +61,11 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
 
   // Build chart option
   const chartOption = useMemo((): EChartsOption => {
-    // Prepare data for ECharts
-    const dates = data.dataPoints.map(p => p.date.getTime());
+    // Prepare data for ECharts (handle both Date objects and ISO date strings)
+    const dates = data.dataPoints.map(p => {
+      const date = typeof p.date === 'string' ? new Date(p.date) : p.date;
+      return date.getTime();
+    });
     const amounts = data.dataPoints.map(p => p.cumulativeAmount);
 
     // Find highlighted point
@@ -78,6 +81,12 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
           symbolSize: 50,
           itemStyle: {
             color: theme.colors.primary,
+          },
+          label: {
+            show: true,
+            formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
+            color: theme.colors.onPrimary,
+            fontSize: 12,
           },
         }
       : null;
@@ -216,7 +225,10 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
       return `${data.transactionCount} transactions, $${(data.totalSpent / 100).toFixed(2)} spent`;
     }
 
-    const dayOfMonth = data.dataPoints[data.highlightIndex].date.getDate();
+    const date = typeof data.dataPoints[data.highlightIndex].date === 'string'
+      ? new Date(data.dataPoints[data.highlightIndex].date)
+      : data.dataPoints[data.highlightIndex].date;
+    const dayOfMonth = date.getDate();
     const transactionNumber = data.highlightIndex + 1;
 
     let text = `Transaction #${transactionNumber} of ${data.transactionCount}, Day ${dayOfMonth}`;

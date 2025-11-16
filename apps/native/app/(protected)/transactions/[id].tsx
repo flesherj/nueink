@@ -5,8 +5,7 @@ import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Surface, Text, Card, Chip, ActivityIndicator, Divider, List, TextInput, Button, Avatar, useTheme, IconButton } from 'react-native-paper';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
-import { useAccountProvider } from '@nueink/ui';
-// import { CategorySpendingChart } from '@nueink/ui'; // TODO: Fix chart rendering
+import { useAccountProvider, CategorySpendingChart } from '@nueink/ui';
 import { TransactionApi, TransactionSplitApi, CommentApi, FinancialAccountApi, AnalyticsApi } from '@nueink/sdk';
 import type { Transaction, TransactionSplit, Comment, FinancialAccount, CategoryTimelineData } from '@nueink/core';
 import { getCurrentMonthRange } from '@nueink/core';
@@ -716,18 +715,11 @@ export default function TransactionDetailScreen() {
                 {chartData.category} spending this month
               </Text>
 
-              {/* TODO: Fix chart rendering - temporarily disabled */}
-              <View style={{padding: 20, alignItems: 'center'}}>
-                <Text>Chart placeholder - working on fixing rendering issue</Text>
-                <Text variant="bodySmall">Total: ${(chartData.totalSpent / 100).toFixed(2)}</Text>
-                <Text variant="bodySmall">{chartData.transactionCount} transactions</Text>
-              </View>
-
-              {/* <CategorySpendingChart
+              <CategorySpendingChart
                 data={chartData}
                 height={250}
                 showBudget={false}
-              /> */}
+              />
             </Card.Content>
           </Card>
         )}
