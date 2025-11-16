@@ -109,26 +109,46 @@
 
 ---
 
-### ⏭️ Phase 1.9: Gift Cards & Widget Foundation (Planned)
+### 🔄 Phase 1.9: Dashboard & Intelligence Foundation (In Progress)
 
-**Estimate:** 1-2 days
+**Target:** 1-2 days
 
-**Goal:** Low-effort, high-value additions that increase daily engagement
+**Goal:** Build in-app dashboard with financial insights and quick actions
+
+**Decision:** Deferred native widgets to Phase 5 (Polish) - Dashboard provides more value for MVP
 
 **Features:**
-- **Gift Card Tracking:** Track gift cards as financial accounts (people always lose these!)
-- **Home Screen Widget:** Display financial snapshot on device home screen
-- **Privacy Mode:** Hide balances in widget when phone locked
+- **Financial Overview Dashboard**
+  - Total balance/net worth summary
+  - Today's spending and month-to-date
+  - Visual spending breakdown by category
 
-**Why Now:**
-- Gift cards = 5-minute model extension, huge UX win
-- Widget groundwork = enables daily engagement before social features
-- Both increase "stickiness" and investor metrics (DAU/MAU)
+- **Spending Insights**
+  - Category breakdown (charts)
+  - Top merchants this month
+  - Trends vs previous period
+
+- **Budget Status** (if budgets implemented)
+  - Budget progress indicators
+  - Categories at risk
+  - Days remaining in period
+
+- **Quick Actions**
+  - Recent transactions preview (3-5)
+  - Pull-to-refresh
+  - Tap cards to drill down
+
+**Why Dashboard > Widget Now:**
+- Pure React Native (no Swift/Kotlin learning curve)
+- Richer, interactive UX vs static widget
+- Faster iteration and development
+- More valuable for beta users (in-app engagement)
+- Widget can reuse this data model later
 
 **Technical Notes:**
-- App Groups (iOS) / Shared Preferences (Android) for widget data
-- Widget limitations: No biometric prompts (platform restriction)
-- See original TASKS.md Phase 1.9 for detailed specification
+- Reuse existing chart components from transaction detail
+- Create aggregation APIs for dashboard data
+- Consider caching for performance
 
 ---
 
@@ -272,6 +292,11 @@
 - Security hardening
 - Testing (unit, integration, E2E)
 - Monitoring and alerts
+- **Home Screen Widgets** (iOS & Android)
+  - Financial snapshot widget
+  - Privacy mode for locked screen
+  - App Groups / Shared Preferences data sharing
+- **Gift Card Tracking** (if time permits)
 - Beta launch preparation
 
 **Success Criteria:**
@@ -279,6 +304,7 @@
 - Errors handled gracefully
 - Security audit passed
 - Test coverage > 80%
+- Widgets working on both platforms (nice-to-have)
 - Beta users onboarded successfully
 
 ---
