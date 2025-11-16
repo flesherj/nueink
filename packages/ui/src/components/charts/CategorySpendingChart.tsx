@@ -108,6 +108,15 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
             // Calculate total spent on this day (includes all transactions on this date)
             const dailyTotal = currentCumulative - previousCumulative;
 
+            // Calculate label position based on date position in the visible range
+            const currentDate = dates[categoryData.highlightIndex];
+            const minDate = Math.min(...dates);
+            const maxDate = Math.max(...dates);
+            const dateRange = maxDate - minDate;
+            const datePosition = dateRange > 0 ? (currentDate - minDate) / dateRange : 0;
+            // If point is in the right 40% of the chart, place label on left
+            const labelPosition: 'left' | 'right' = datePosition > 0.6 ? 'left' : 'right';
+
             return {
               coord: [
                 dates[categoryData.highlightIndex],
@@ -124,19 +133,7 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
               },
               label: {
                 show: true,
-                // Smart positioning based on date position in the visible range
-                position: (params: any) => {
-                  const currentDate = dates[categoryData.highlightIndex];
-                  const minDate = Math.min(...dates);
-                  const maxDate = Math.max(...dates);
-                  const dateRange = maxDate - minDate;
-
-                  // Calculate position as percentage of date range
-                  const position = dateRange > 0 ? (currentDate - minDate) / dateRange : 0;
-
-                  // If point is in the right 40% of the chart, place label on left
-                  return position > 0.6 ? 'left' : 'right';
-                },
+                position: labelPosition,
                 offset: [15, 0],
                 formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
                 color: '#FFFFFF',
