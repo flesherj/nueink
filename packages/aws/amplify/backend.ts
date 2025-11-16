@@ -111,16 +111,14 @@ const eventBus = createEventBus(eventsStack);
  */
 const syncStack = backend.createStack('nueink-sync-stack');
 
-// EventBridge rules - Explicit short names to avoid 64 char limit
+// EventBridge rules - Ultra-short construct IDs let CDK auto-generate names under 64 chars
 new Rule(syncStack, 'Sch', {
-  ruleName: 'nueink-sync-schedule',
   description: 'Triggers financial data sync every 4 hours',
   schedule: Schedule.rate(Duration.hours(4)),
   targets: [new LambdaFunction(backend.financialSync.resources.lambda)],
 });
 
 new Rule(syncStack, 'Con', {
-  ruleName: 'nueink-sync-on-connect',
   description: 'Triggers immediate sync when user connects a financial provider',
   eventBus: eventBus,
   eventPattern: {
@@ -131,7 +129,6 @@ new Rule(syncStack, 'Con', {
 });
 
 new Rule(syncStack, 'Man', {
-  ruleName: 'nueink-sync-manual',
   description: 'Triggers sync when user manually requests it from UI',
   eventBus: eventBus,
   eventPattern: {

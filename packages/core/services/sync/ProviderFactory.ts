@@ -6,6 +6,7 @@
  */
 
 import type { FinancialSyncProvider } from './FinancialSyncProvider';
+import type { FinancialOAuthProvider } from '../oauth/FinancialOAuthProvider';
 import type { IntegrationTokens } from '../../models';
 
 /**
@@ -30,4 +31,11 @@ export interface ProviderFactory {
     organizationId: string,
     accountId: string
   ): FinancialSyncProvider;
+
+  /**
+   * Create an OAuth provider for token management
+   *
+   * @returns Configured OAuth provider for token refresh/exchange
+   */
+  createOAuthProvider(): FinancialOAuthProvider;
 }

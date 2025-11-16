@@ -1,32 +1,41 @@
-import { IntegrationConfig, IntegrationTokens, IntegrationTokenUpdate, FinancialProvider } from '../models';
+import {
+  IntegrationConfig,
+  IntegrationTokens,
+  IntegrationTokenUpdate,
+  FinancialProvider,
+} from '../models';
 import { IntegrationConfigConverter } from '../converters';
 import { IntegrationConfigRepository } from '../repositories';
 import { IntegrationConfigEntity } from '@nueink/aws';
 import type { SecretManager } from './SecretManager';
+import type { EventPublisher } from '../events';
 
 /**
- * IntegrationConfig service - handles business logic for integration configuration
+ * Integration service - handles business logic for financial integrations
  *
  * Responsibilities:
  * - Integration CRUD operations
  * - Token management via SecretManager
  * - Secret name computation (nueink/integration/{accountId}/{provider})
  * - Token serialization/deserialization (Date handling)
+ * - Sync orchestration via EventPublisher
  */
-export class IntegrationConfigService {
+export class IntegrationService {
   private converter: IntegrationConfigConverter;
   private secretManager?: SecretManager;
+  private eventPublisher?: EventPublisher;
+  private repository: IntegrationConfigRepository<IntegrationConfigEntity>;
 
   constructor(
     repository: IntegrationConfigRepository<IntegrationConfigEntity>,
-    secretManager?: SecretManager
+    secretManager?: SecretManager,
+    eventPublisher?: EventPublisher
   ) {
     this.repository = repository;
     this.converter = new IntegrationConfigConverter();
     this.secretManager = secretManager;
+    this.eventPublisher = eventPublisher;
   }
-
-  private repository: IntegrationConfigRepository<IntegrationConfigEntity>;
 
   /**
    * Ensure SecretManager is available for token operations
@@ -41,6 +50,19 @@ export class IntegrationConfigService {
     return this.secretManager;
   };
 
+  /**
+   * Ensure EventPublisher is available for sync operations
+   * Throws error if called from client-side without EventPublisher
+   */
+  private requireEventPublisher = (): EventPublisher => {
+    if (!this.eventPublisher) {
+      throw new Error(
+        'EventPublisher not available - sync operations can only be performed server-side (Lambda)'
+      );
+    }
+    return this.eventPublisher;
+  };
+
   // ========== Integration CRUD Operations ==========
 
   public findById = async (id: string): Promise<IntegrationConfig | null> => {
@@ -53,22 +75,34 @@ export class IntegrationConfigService {
     return entities.map((entity) => this.converter.toDomain(entity));
   };
 
-  public findByAccountId = async (accountId: string): Promise<IntegrationConfig[]> => {
+  public findByAccountId = async (
+    accountId: string
+  ): Promise<IntegrationConfig[]> => {
     const entities = await this.repository.findByAccountId(accountId);
     return entities.map((entity) => this.converter.toDomain(entity));
   };
 
-  public findByAccountIdAndProvider = async (accountId: string, provider: string): Promise<IntegrationConfig | null> => {
-    const entity = await this.repository.findByAccountIdAndProvider(accountId, provider);
+  public findByAccountIdAndProvider = async (
+    accountId: string,
+    provider: string
+  ): Promise<IntegrationConfig | null> => {
+    const entity = await this.repository.findByAccountIdAndProvider(
+      accountId,
+      provider
+    );
     return entity ? this.converter.toDomain(entity) : null;
   };
 
-  public findByOrganizationId = async (organizationId: string): Promise<IntegrationConfig[]> => {
+  public findByOrganizationId = async (
+    organizationId: string
+  ): Promise<IntegrationConfig[]> => {
     const entities = await this.repository.findByOrganizationId(organizationId);
     return entities.map((entity) => this.converter.toDomain(entity));
   };
 
-  public findActiveByAccountId = async (accountId: string): Promise<IntegrationConfig[]> => {
+  public findActiveByAccountId = async (
+    accountId: string
+  ): Promise<IntegrationConfig[]> => {
     const entities = await this.repository.findActiveByAccountId(accountId);
     return entities.map((entity) => this.converter.toDomain(entity));
   };
@@ -78,13 +112,18 @@ export class IntegrationConfigService {
     return entities.map((entity) => this.converter.toDomain(entity));
   };
 
-  public create = async (config: IntegrationConfig): Promise<IntegrationConfig> => {
+  public create = async (
+    config: IntegrationConfig
+  ): Promise<IntegrationConfig> => {
     const entity = this.converter.toEntity(config);
     const saved = await this.repository.save(entity);
     return this.converter.toDomain(saved);
   };
 
-  public update = async (id: string, updates: Partial<IntegrationConfig>): Promise<IntegrationConfig> => {
+  public update = async (
+    id: string,
+    updates: Partial<IntegrationConfig>
+  ): Promise<IntegrationConfig> => {
     const entityUpdates = this.converter.toEntity(updates as IntegrationConfig);
     const updated = await this.repository.update(id, entityUpdates);
     return this.converter.toDomain(updated);
@@ -100,7 +139,10 @@ export class IntegrationConfigService {
    * Compute secret name from accountId and provider
    * Pattern: nueink/integration/{accountId}/{provider}
    */
-  private computeSecretName = (accountId: string, provider: FinancialProvider): string => {
+  private computeSecretName = (
+    accountId: string,
+    provider: FinancialProvider
+  ): string => {
     return `nueink/integration/${accountId}/${provider}`;
   };
 
@@ -166,7 +208,9 @@ export class IntegrationConfigService {
     // Get existing tokens to merge
     const existing = await this.getTokens(accountId, provider);
     if (!existing) {
-      throw new Error(`Cannot update tokens - no tokens exist for ${accountId}/${provider}`);
+      throw new Error(
+        `Cannot update tokens - no tokens exist for ${accountId}/${provider}`
+      );
     }
 
     // Merge updates with existing tokens
@@ -184,7 +228,10 @@ export class IntegrationConfigService {
   /**
    * Delete OAuth tokens (e.g., when user disconnects integration)
    */
-  public deleteTokens = async (accountId: string, provider: FinancialProvider): Promise<void> => {
+  public deleteTokens = async (
+    accountId: string,
+    provider: FinancialProvider
+  ): Promise<void> => {
     const secretManager = this.requireSecretManager();
     const secretName = this.computeSecretName(accountId, provider);
     await secretManager.deleteSecret(secretName);
@@ -250,10 +297,79 @@ export class IntegrationConfigService {
     });
   };
 
+  // ========== Sync Orchestration ==========
+
+  /**
+   * Trigger a manual sync for an organization
+   * Publishes a ManualSyncTriggered event that the sync Lambda will consume
+   *
+   * @param organizationId - Organization to sync
+   * @param triggeredBy - User ID or system identifier that triggered the sync
+   * @throws Error if organizationId is missing or event publishing fails
+   */
+  public triggerManualSync = async (
+    organizationId: string,
+    triggeredBy: string = 'user'
+  ): Promise<void> => {
+    if (!organizationId) {
+      throw new Error('organizationId is required');
+    }
+
+    const eventPublisher = this.requireEventPublisher();
+
+    await eventPublisher.publish({
+      source: 'nueink.financial.manual',
+      detailType: 'ManualSyncTriggered',
+      detail: JSON.stringify({
+        organizationId,
+        triggeredAt: new Date().toISOString(),
+        triggeredBy,
+      }),
+    });
+  };
+
+  /**
+   * Trigger a sync when a new integration is connected
+   * Publishes an IntegrationConnected event
+   *
+   * @param accountId - NueInk account ID
+   * @param provider - Financial provider name (ynab, plaid, etc.)
+   * @param organizationId - Organization ID
+   * @throws Error if required parameters are missing or event publishing fails
+   */
+  public triggerIntegrationSync = async (
+    accountId: string,
+    provider: FinancialProvider,
+    organizationId: string
+  ): Promise<void> => {
+    if (!accountId || !provider || !organizationId) {
+      throw new Error('accountId, provider, and organizationId are required');
+    }
+
+    const eventPublisher = this.requireEventPublisher();
+
+    await eventPublisher.publish({
+      source: 'nueink.financial',
+      detailType: 'IntegrationConnected',
+      detail: JSON.stringify({
+        integrations: [
+          {
+            accountId,
+            provider,
+          },
+        ],
+        organizationId,
+        triggeredAt: new Date().toISOString(),
+      }),
+    });
+  };
+
   /**
    * Serialize tokens to secret storage format
    */
-  private serializeTokens = (tokens: IntegrationTokens): Record<string, any> => {
+  private serializeTokens = (
+    tokens: IntegrationTokens
+  ): Record<string, any> => {
     return {
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
@@ -264,11 +380,15 @@ export class IntegrationConfigService {
   /**
    * Deserialize tokens from secret storage format
    */
-  private deserializeTokens = (secretValue: Record<string, any>): IntegrationTokens => {
+  private deserializeTokens = (
+    secretValue: Record<string, any>
+  ): IntegrationTokens => {
     return {
       accessToken: secretValue.access_token,
       refreshToken: secretValue.refresh_token,
-      expiresAt: secretValue.expires_at ? new Date(secretValue.expires_at) : undefined,
+      expiresAt: secretValue.expires_at
+        ? new Date(secretValue.expires_at)
+        : undefined,
     };
   };
 }

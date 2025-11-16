@@ -1,13 +1,47 @@
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Surface, Text, List, Divider } from 'react-native-paper';
+import { Surface, Text, List, Divider, Snackbar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useAccountProvider } from '@nueink/ui';
 import { useAuthenticator } from '@aws-amplify/ui-react-native';
+import { SyncApi } from '@nueink/sdk';
+
+const syncApi = SyncApi.create();
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { account } = useAccountProvider();
   const { signOut } = useAuthenticator();
+  const [syncing, setSyncing] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  /**
+   * Trigger manual sync for the organization
+   */
+  const handleManualSync = async () => {
+    if (!account?.defaultOrgId) {
+      setSnackbarMessage('No organization found');
+      setSnackbarVisible(true);
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      console.log('Triggering manual sync for organization:', account.defaultOrgId);
+
+      await syncApi.triggerManualSync(account.defaultOrgId);
+
+      setSnackbarMessage('Sync started! Data will be refreshed shortly.');
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error('Error triggering sync:', error);
+      setSnackbarMessage('Failed to trigger sync. Please try again.');
+      setSnackbarVisible(true);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <Surface style={styles.container}>
@@ -36,6 +70,13 @@ export default function SettingsScreen() {
           left={(props) => <List.Icon {...props} icon="link-variant" />}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
           onPress={() => router.push('/settings/connect-accounts')}
+        />
+        <List.Item
+          title="Sync Data"
+          description={syncing ? "Syncing..." : "Manually sync your financial data"}
+          left={(props) => <List.Icon {...props} icon={syncing ? "sync" : "cloud-sync"} />}
+          onPress={handleManualSync}
+          disabled={syncing}
         />
       </View>
 
@@ -101,6 +142,19 @@ export default function SettingsScreen() {
           }}
         />
       </View>
+
+      {/* Snackbar for feedback */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        action={{
+          label: 'OK',
+          onPress: () => setSnackbarVisible(false),
+        }}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </Surface>
   );
 }

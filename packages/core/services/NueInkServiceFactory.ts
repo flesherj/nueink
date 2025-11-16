@@ -9,8 +9,9 @@ import { CommentService } from './CommentService';
 import { PersonService } from './PersonService';
 import { BudgetService } from './BudgetService';
 import { DebtService } from './DebtService';
-import { IntegrationConfigService } from './IntegrationConfigService';
+import { IntegrationService } from './IntegrationService';
 import type { SecretManager } from './SecretManager';
+import type { EventPublisher } from '../events';
 
 /**
  * Service type mapping for type-safe factory method
@@ -26,7 +27,7 @@ type ServiceMap = {
   person: PersonService;
   budget: BudgetService;
   debt: DebtService;
-  integrationConfig: IntegrationConfigService;
+  integration: IntegrationService;
 };
 
 /**
@@ -81,6 +82,6 @@ export class NueInkServiceFactory {
     new BudgetService(this._repositoryFactory.budget());
   public debt = (): DebtService =>
     new DebtService(this._repositoryFactory.debt());
-  public integrationConfig = (secretManager?: SecretManager): IntegrationConfigService =>
-    new IntegrationConfigService(this._repositoryFactory.integrationConfig(), secretManager);
+  public integration = (secretManager?: SecretManager, eventPublisher?: EventPublisher): IntegrationService =>
+    new IntegrationService(this._repositoryFactory.integrationConfig(), secretManager, eventPublisher);
 }

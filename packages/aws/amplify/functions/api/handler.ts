@@ -17,6 +17,7 @@ import { initializeAmplifyClient } from '../../shared/initializeClient';
 import { NueInkRepositoryFactory } from '@nueink/aws';
 import { NueInkServiceFactory } from '@nueink/core';
 import { AwsServiceFactory } from '@nueink/aws/services';
+import { Environment } from './Environment';
 
 // Initialize infrastructure
 const dataClient = await initializeAmplifyClient(env);
@@ -24,14 +25,15 @@ const repositoryFactory = NueInkRepositoryFactory.getInstance(dataClient);
 const serviceFactory = NueInkServiceFactory.getInstance(repositoryFactory);
 const awsFactory = AwsServiceFactory.getInstance();
 
-// Make factories available to controllers
-export { serviceFactory, awsFactory };
+// Make factories and Environment available to controllers
+export { serviceFactory, awsFactory, Environment };
 
 // Import routers
 import AccountRouter from './routers/AccountRouter';
 import IntegrationRouter from './routers/IntegrationRouter';
 import FinancialAccountRouter from './routers/FinancialAccountRouter';
 import TransactionRouter from './routers/TransactionRouter';
+import SyncRouter from './routers/SyncRouter';
 
 // Create Express app
 const app = express();
@@ -43,10 +45,11 @@ app.use('/account', AccountRouter);
 app.use('/integration', IntegrationRouter);
 app.use('/financial-account', FinancialAccountRouter);
 app.use('/transaction', TransactionRouter);
+app.use('/sync', SyncRouter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({status: 'ok', timestamp: new Date().toISOString()});
 });
 
 // Convert Express app to Lambda handler

@@ -1,9 +1,5 @@
 import { Request, Response } from 'express';
-import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { serviceFactory, awsFactory } from '../handler';
-
-const eventBridge = new EventBridgeClient({});
-const EVENT_BUS_NAME = process.env.EVENT_BUS_NAME!;
+import { serviceFactory, awsFactory, Environment } from '../handler';
 
 class IntegrationController {
   /**
@@ -16,7 +12,7 @@ class IntegrationController {
   ) => {
     try {
       // Service has SecretManager (server-side), but we only use read operations
-      const integrationService = serviceFactory.integrationConfig(
+      const integrationService = serviceFactory.integration(
         awsFactory.secretsManager()
       );
 
@@ -49,40 +45,37 @@ class IntegrationController {
   /**
    * POST /integration/:accountId/sync
    * Trigger manual sync for an integration
-   * Body: { provider: 'ynab' | 'plaid' }
+   * Body: { provider: 'ynab' | 'plaid', organizationId: string }
    */
   public triggerSync = async (
-    req: Request<{ accountId: string }, any, { provider: string }>,
+    req: Request<{ accountId: string }, any, { provider: string; organizationId: string }>,
     res: Response
   ) => {
     try {
       const { accountId } = req.params;
-      const { provider } = req.body;
+      const { provider, organizationId } = req.body;
 
       if (!provider) {
         return res.status(400).json({ error: 'provider required in body' });
       }
 
-      // Publish event to EventBridge
-      const command = new PutEventsCommand({
-        Entries: [
-          {
-            Source: 'nueink.financial.manual',
-            DetailType: 'ManualSyncTriggered',
-            Detail: JSON.stringify({
-              integrations: [{ accountId, provider }],
-            }),
-            EventBusName: EVENT_BUS_NAME,
-          },
-        ],
-      });
-
-      const result = await eventBridge.send(command);
-
-      if (result.FailedEntryCount && result.FailedEntryCount > 0) {
-        console.error('Failed to publish event:', result.Entries);
-        return res.status(500).json({ error: 'Failed to trigger sync' });
+      if (!organizationId) {
+        return res.status(400).json({ error: 'organizationId required in body' });
       }
+
+      // Get EVENT_BUS_NAME from environment
+      if (!Environment.eventBusName) {
+        throw new Error('EVENT_BUS_NAME not configured');
+      }
+
+      // Create integration service with EventPublisher
+      const integrationService = serviceFactory.integration(
+        awsFactory.secretsManager(),
+        awsFactory.eventBridge(Environment.eventBusName)
+      );
+
+      // Trigger sync via domain service
+      await integrationService.triggerIntegrationSync(accountId, provider as any, organizationId);
 
       res.json({
         message: 'Sync triggered successfully',

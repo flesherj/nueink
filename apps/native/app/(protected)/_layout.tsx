@@ -85,6 +85,17 @@ export const ProtectedLayout = () => {
           }}
         />
         <Stack.Screen
+          name="transactions/[id]"
+          options={{
+            headerShown: true,
+            headerBackTitle: 'Back',
+            headerStyle: {
+              backgroundColor: theme.colors.surface,
+            },
+            headerTintColor: theme.colors.onSurface,
+          }}
+        />
+        <Stack.Screen
           name="onboard"
           options={{ headerShown: false }}
         />

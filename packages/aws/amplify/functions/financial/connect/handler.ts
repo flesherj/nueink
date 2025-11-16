@@ -148,29 +148,32 @@ export const handler: APIGatewayProxyHandler = async (
       return errorResponse(400, 'unsupported_provider', `Provider '${providerString}' is not supported`);
     }
 
-    // Get integration config service
-    const integrationConfigService = serviceFactory.integrationConfig(awsFactory.secretsManager());
+    // Get integration service with EventPublisher for sync triggering
+    const integrationService = serviceFactory.integration(
+      awsFactory.secretsManager(),
+      eventPublisher
+    );
 
     // Exchange code for tokens using core OAuth service
     // (providers were configured with their specific configs during registration)
     const tokens = await oauthService.exchangeAuthorizationCode(provider, code);
 
     // Store tokens in Secrets Manager
-    await integrationConfigService.storeTokens(accountId, provider, {
+    await integrationService.storeTokens(accountId, provider, {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       expiresAt: tokens.expiresAt,
     });
 
     // Check if integration config already exists
-    const existingConfig = await integrationConfigService.findByAccountIdAndProvider(
+    const existingConfig = await integrationService.findByAccountIdAndProvider(
       accountId,
       provider
     );
 
     if (existingConfig) {
       // Update existing integration
-      await integrationConfigService.update(existingConfig.integrationId, {
+      await integrationService.update(existingConfig.integrationId, {
         status: 'active',
         expiresAt: tokens.expiresAt,
         syncEnabled: true,
@@ -178,7 +181,7 @@ export const handler: APIGatewayProxyHandler = async (
       });
     } else {
       // Create new integration config
-      await integrationConfigService.create({
+      await integrationService.create({
         integrationId: `${accountId}-${provider}-${Date.now()}`,
         accountId,
         organizationId,
@@ -208,16 +211,7 @@ export const handler: APIGatewayProxyHandler = async (
 
     // Publish event to trigger immediate sync
     try {
-      await eventPublisher.publish({
-        Source: 'nueink.financial',
-        DetailType: 'IntegrationConnected',
-        Detail: JSON.stringify({
-          integrations: [{
-            accountId,
-            provider,
-          }],
-        }),
-      });
+      await integrationService.triggerIntegrationSync(accountId, provider, organizationId);
       console.log(`Published IntegrationConnected event for ${accountId}/${provider}`);
     } catch (error) {
       // Don't fail the OAuth callback if event publishing fails

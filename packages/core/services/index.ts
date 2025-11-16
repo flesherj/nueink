@@ -8,7 +8,7 @@ export * from './CommentService';
 export * from './PersonService';
 export * from './BudgetService';
 export * from './DebtService';
-export * from './IntegrationConfigService';
+export * from './IntegrationService';
 export * from './SecretManager';
 export * from './NueInkServiceFactory';
 export * from './oauth';

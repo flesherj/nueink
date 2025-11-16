@@ -13,6 +13,7 @@
  */
 
 import {env} from '$amplify/env/financial-sync';
+import {Environment} from './Environment';
 import {NueInkRepositoryFactory} from '@nueink/aws';
 import {AwsServiceFactory} from '@nueink/aws/services';
 import {
@@ -56,7 +57,7 @@ const awsFactory = AwsServiceFactory.getInstance();
 // Domain services (from NueInkServiceFactory)
 const financialAccountService = serviceFactory.financialAccount();
 const transactionService = serviceFactory.transaction();
-const integrationConfigService = serviceFactory.integrationConfig(awsFactory.secretsManager());
+const integrationService = serviceFactory.integration(awsFactory.secretsManager());
 
 // AWS infrastructure services (from AwsServiceFactory)
 const metricsService = awsFactory.metrics();
@@ -68,14 +69,14 @@ const plaidEnvironmentMap: Record<string, any> = {
     production: PlaidEnvironments.production,
 };
 const plaidEnvironment =
-    plaidEnvironmentMap[env.PLAID_ENVIRONMENT] || PlaidEnvironments.sandbox;
+    plaidEnvironmentMap[Environment.plaidEnvironment] || PlaidEnvironments.sandbox;
 
 const plaidConfiguration = new Configuration({
     basePath: plaidEnvironment,
     baseOptions: {
         headers: {
-            'PLAID-CLIENT-ID': env.PLAID_CLIENT_ID,
-            'PLAID-SECRET': env.PLAID_SECRET,
+            'PLAID-CLIENT-ID': Environment.plaidClientId,
+            'PLAID-SECRET': Environment.plaidSecret,
         },
     },
 });
@@ -84,7 +85,7 @@ const plaidClient = new PlaidApi(plaidConfiguration);
 
 // Register provider factories
 const providerFactories: Record<string, ProviderFactory> = {
-    ynab: new YnabProviderFactory(),
+    ynab: new YnabProviderFactory(Environment.ynabOAuthConfig()),
     plaid: new PlaidProviderFactory(plaidClient),
 };
 
@@ -239,7 +240,7 @@ const syncIntegration = async (
         console.log(`Syncing ${provider} for account ${accountId}`);
 
         // Get integration config
-        const config = await integrationConfigService.findByAccountIdAndProvider(
+        const config = await integrationService.findByAccountIdAndProvider(
             accountId,
             provider
         );
@@ -256,24 +257,55 @@ const syncIntegration = async (
         const organizationId = config.organizationId;
 
         // Get access token from Secrets Manager
-        const tokens = await integrationConfigService.getTokens(accountId, provider);
+        let tokens = await integrationService.getTokens(accountId, provider);
 
         if (!tokens?.accessToken) {
             throw new Error(`No access token found for ${provider} integration`);
         }
 
         // Check if token needs refresh
-        if (await integrationConfigService.needsTokenRefresh(accountId, provider)) {
+        if (await integrationService.needsTokenRefresh(accountId, provider)) {
             console.log(`Token expired for ${provider}, attempting refresh`);
 
-            if (!(await integrationConfigService.hasRefreshToken(accountId, provider))) {
+            if (!(await integrationService.hasRefreshToken(accountId, provider))) {
                 throw new Error(`Token expired and no refresh token available for ${provider}`);
             }
 
-            // Token refresh should have been handled by a separate process
-            // For now, log and skip this integration
-            console.warn(`Token refresh needed but not implemented yet for ${provider}`);
-            return;
+            // Get the factory and create OAuth provider for refresh
+            const factory = providerFactories[provider];
+            if (!factory) {
+                throw new Error(`Unsupported provider: ${provider}`);
+            }
+
+            try {
+                // Create OAuth provider and refresh the token
+                const oauthProvider = factory.createOAuthProvider();
+
+                // Check if provider supports token refresh
+                if (!oauthProvider.refreshAccessToken) {
+                    throw new Error(`${provider} does not support token refresh`);
+                }
+
+                if (!tokens.refreshToken) {
+                    throw new Error(`No refresh token available for ${provider}`);
+                }
+
+                console.log(`Refreshing ${provider} access token using refresh token`);
+                const newTokens = await oauthProvider.refreshAccessToken(tokens.refreshToken);
+
+                // Update tokens in Secrets Manager
+                await integrationService.updateTokens(accountId, provider, newTokens);
+                console.log(`Successfully refreshed ${provider} access token`);
+
+                // Update tokens variable to use fresh token for sync
+                tokens = await integrationService.getTokens(accountId, provider);
+                if (!tokens?.accessToken) {
+                    throw new Error(`Failed to retrieve refreshed tokens for ${provider}`);
+                }
+            } catch (error: any) {
+                console.error(`Token refresh failed for ${provider}:`, error);
+                throw new Error(`Token refresh failed: ${error.message}`);
+            }
         }
 
         // Define date range for transaction sync (last 30 days)
@@ -322,7 +354,7 @@ const syncIntegration = async (
             });
 
             // Update last sync time even if partial failure
-            await integrationConfigService.updateLastSyncTime(accountId, provider);
+            await integrationService.updateLastSyncTime(accountId, provider);
         } else {
             // Record success metrics
             const duration = Date.now() - startTime;
@@ -338,7 +370,7 @@ const syncIntegration = async (
             });
 
             // Update last sync time
-            await integrationConfigService.updateLastSyncTime(accountId, provider);
+            await integrationService.updateLastSyncTime(accountId, provider);
 
             console.log(`Successfully synced ${provider} for account ${accountId} in ${duration}ms`);
         }
@@ -416,7 +448,7 @@ export const handler = async (
         } else {
             // No integrations specified: sync all active integrations (scheduled behavior)
             console.log('Scheduled sync: fetching all active integrations');
-            const configs = await integrationConfigService.listActiveIntegrations();
+            const configs = await integrationService.listActiveIntegrations();
             targets = configs.map((config) => ({
                 accountId: config.accountId,
                 provider: config.provider,

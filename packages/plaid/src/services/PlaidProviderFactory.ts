@@ -6,7 +6,7 @@
  */
 
 import type { PlaidApi } from 'plaid';
-import type { ProviderFactory, IntegrationTokens } from '@nueink/core';
+import type { ProviderFactory, IntegrationTokens, FinancialOAuthProvider } from '@nueink/core';
 import { PlaidIntegration } from '../client/PlaidIntegration';
 import { PlaidSyncProvider } from './PlaidSyncProvider';
 
@@ -34,5 +34,11 @@ export class PlaidProviderFactory implements ProviderFactory {
 
     // Create and return sync provider
     return new PlaidSyncProvider(integration);
+  };
+
+  public createOAuthProvider = (): FinancialOAuthProvider => {
+    // Plaid doesn't use OAuth token refresh - access tokens don't expire
+    // Token rotation is handled via item_public_token_exchange
+    throw new Error('Plaid does not support OAuth token refresh');
   };
 }

@@ -155,10 +155,7 @@ export default function TransactionsFeedScreen() {
     <Card
       key={tx.transactionId}
       style={styles.transactionCard}
-      onPress={() => {
-        // TODO: Navigate to transaction detail
-        console.log('Transaction tapped:', tx.transactionId);
-      }}
+      onPress={() => router.push(`/transactions/${tx.transactionId}`)}
     >
       <Card.Content style={styles.cardContent}>
         <View style={styles.transactionRow}>

@@ -1,10 +1,15 @@
-import { EventBridgeClient, PutEventsCommand, PutEventsRequestEntry } from '@aws-sdk/client-eventbridge';
+import {
+  EventBridgeClient,
+  PutEventsCommand,
+  PutEventsRequestEntry,
+} from '@aws-sdk/client-eventbridge';
+import type { EventPublisher, PublishableEvent } from '@nueink/core';
 
 /**
  * AWS EventBridge event publisher
- * Publishes events directly to EventBridge without knowledge of domain events
+ * Implements core EventPublisher interface using AWS EventBridge
  */
-export class EventBridgePublisher {
+export class EventBridgePublisher implements EventPublisher {
   private client: EventBridgeClient;
   private eventBusName: string;
 
@@ -17,29 +22,40 @@ export class EventBridgePublisher {
   }
 
   /**
+   * Convert domain PublishableEvent to AWS PutEventsRequestEntry
+   */
+  private toAwsEvent = (event: PublishableEvent): PutEventsRequestEntry => {
+    return {
+      Source: event.source,
+      DetailType: event.detailType,
+      Detail: event.detail,
+      EventBusName: event.eventBusName || this.eventBusName,
+    };
+  };
+
+  /**
    * Publish a single event to EventBridge
    */
-  public async publish(event: PutEventsRequestEntry): Promise<void> {
+  public publish = async (event: PublishableEvent): Promise<void> => {
     await this.publishBatch([event]);
-  }
+  };
 
   /**
    * Publish multiple events in a batch
    */
-  public async publishBatch(events: PutEventsRequestEntry[]): Promise<void> {
-    // Set event bus name if not already set
-    const entries = events.map(event => ({
-      ...event,
-      EventBusName: event.EventBusName || this.eventBusName,
-    }));
+  public publishBatch = async (events: PublishableEvent[]): Promise<void> => {
+    // Convert domain events to AWS events
+    const awsEvents = events.map(this.toAwsEvent);
 
     try {
-      const command = new PutEventsCommand({ Entries: entries });
+      const command = new PutEventsCommand({ Entries: awsEvents });
       const response = await this.client.send(command);
 
       if (response.FailedEntryCount && response.FailedEntryCount > 0) {
         console.error('Failed to publish batch events:', response.Entries);
-        throw new Error(`Failed to publish ${response.FailedEntryCount} events`);
+        throw new Error(
+          `Failed to publish ${response.FailedEntryCount} events`
+        );
       }
 
       console.log(`Batch published: ${events.length} events`);
@@ -47,5 +63,5 @@ export class EventBridgePublisher {
       console.error('Error publishing batch events:', error);
       throw error;
     }
-  }
+  };
 }
