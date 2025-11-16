@@ -12,8 +12,7 @@ export type TransactionEntity = {
   authorizedDate?: string; // ISO string
   merchantName?: string;
   name: string;
-  category?: Array<string>; // Categories (array for flexibility)
-  primaryCategory?: string; // First category for filtering
+  status: string; // pending | posted | reconciled
   pending: boolean;
   personId?: string; // FK to Person (auto-assigned)
   receiptUrls?: Array<string>; // S3 keys for receipts (Phase 2)

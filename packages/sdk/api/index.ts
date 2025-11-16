@@ -9,5 +9,6 @@ export * from './AccountApi';
 export * from './IntegrationApi';
 export * from './FinancialAccountApi';
 export * from './TransactionApi';
+export * from './TransactionSplitApi';
 export * from './SyncApi';
 export * from './CommentApi';

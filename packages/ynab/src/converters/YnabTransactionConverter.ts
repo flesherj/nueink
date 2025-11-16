@@ -1,6 +1,6 @@
 import type { TransactionDetail as YNABTransaction } from 'ynab';
 import { TransactionDetail } from 'ynab';
-import type { Transaction, Currency } from '@nueink/core';
+import type { Transaction, Currency, TransactionStatus } from '@nueink/core';
 
 /**
  * Context needed to convert YNAB Transaction to NueInk Transaction
@@ -21,6 +21,8 @@ export class YnabTransactionConverter {
     source: YNABTransaction,
     context: YnabTransactionConversionContext
   ): Transaction => {
+    const status = this.convertClearedStatus(source.cleared);
+
     return {
       transactionId: source.id,
       financialAccountId: source.account_id,
@@ -33,7 +35,8 @@ export class YnabTransactionConverter {
       authorizedDate: undefined,
       merchantName: source.payee_name || undefined,
       name: source.memo || source.payee_name || 'Transaction',
-      pending: source.cleared === TransactionDetail.ClearedEnum.Uncleared,
+      status,
+      pending: status === 'pending',
       personId: undefined, // Enriched downstream by event handlers
       receiptUrls: undefined,
       rawData: source as unknown as Record<string, any>, // Preserve complete YNAB response
@@ -42,6 +45,24 @@ export class YnabTransactionConverter {
       updatedAt: new Date(),
       profileOwner: context.profileOwner,
     };
+  };
+
+  /**
+   * Convert YNAB cleared status to TransactionStatus
+   * YNAB: uncleared | cleared | reconciled
+   * NueInk: pending | posted | reconciled
+   */
+  private convertClearedStatus = (cleared: TransactionDetail.ClearedEnum): TransactionStatus => {
+    switch (cleared) {
+      case TransactionDetail.ClearedEnum.Uncleared:
+        return 'pending';
+      case TransactionDetail.ClearedEnum.Cleared:
+        return 'posted';
+      case TransactionDetail.ClearedEnum.Reconciled:
+        return 'reconciled';
+      default:
+        return 'pending'; // Fallback to pending
+    }
   };
 
   /**

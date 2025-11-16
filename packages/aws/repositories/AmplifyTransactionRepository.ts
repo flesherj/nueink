@@ -19,7 +19,7 @@ export class AmplifyTransactionRepository
 
   public findAll = async (): Promise<TransactionEntity[]> => {
     const response = await this.dbClient.models.Transaction.list({});
-    return response.data.map((item: any) => this.toTransaction(item));
+    return response.data ? response.data.map((item: any) => this.toTransaction(item)) : [];
   };
 
   public save = async (entity: TransactionEntity): Promise<TransactionEntity> => {
@@ -35,8 +35,7 @@ export class AmplifyTransactionRepository
       authorizedDate: entity.authorizedDate,
       merchantName: entity.merchantName,
       name: entity.name,
-      category: entity.category,
-      primaryCategory: entity.primaryCategory,
+      status: entity.status,
       pending: entity.pending,
       personId: entity.personId,
       receiptUrls: entity.receiptUrls,
@@ -68,9 +67,7 @@ export class AmplifyTransactionRepository
     if (entity.merchantName !== undefined && entity.merchantName !== null)
       updates.merchantName = entity.merchantName;
     if (entity.name !== undefined && entity.name !== null) updates.name = entity.name;
-    if (entity.category !== undefined && entity.category !== null) updates.category = entity.category;
-    if (entity.primaryCategory !== undefined && entity.primaryCategory !== null)
-      updates.primaryCategory = entity.primaryCategory;
+    if (entity.status !== undefined && entity.status !== null) updates.status = entity.status;
     if (entity.pending !== undefined && entity.pending !== null) updates.pending = entity.pending;
     if (entity.personId !== undefined && entity.personId !== null) updates.personId = entity.personId;
     if (entity.receiptUrls !== undefined && entity.receiptUrls !== null)
@@ -109,7 +106,7 @@ export class AmplifyTransactionRepository
       );
 
     return {
-      items: response.data.map((item: any) => this.toTransaction(item)),
+      items: response.data ? response.data.map((item: any) => this.toTransaction(item)) : [],
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
@@ -133,7 +130,7 @@ export class AmplifyTransactionRepository
       );
 
     return {
-      items: response.data.map((item: any) => this.toTransaction(item)),
+      items: response.data ? response.data.map((item: any) => this.toTransaction(item)) : [],
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
@@ -157,7 +154,7 @@ export class AmplifyTransactionRepository
       );
 
     return {
-      items: response.data.map((item: any) => this.toTransaction(item)),
+      items: response.data ? response.data.map((item: any) => this.toTransaction(item)) : [],
       nextCursor: response.nextToken ?? undefined,
       hasMore: !!response.nextToken,
     };
@@ -226,8 +223,7 @@ export class AmplifyTransactionRepository
       authorizedDate: data.authorizedDate ?? undefined,
       merchantName: data.merchantName ?? undefined,
       name: data.name,
-      category: data.category ?? [],
-      primaryCategory: data.primaryCategory ?? undefined,
+      status: data.status,
       pending: data.pending,
       personId: data.personId ?? undefined,
       receiptUrls: data.receiptUrls ?? [],

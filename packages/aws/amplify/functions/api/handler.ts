@@ -33,6 +33,7 @@ import AccountRouter from './routers/AccountRouter';
 import IntegrationRouter from './routers/IntegrationRouter';
 import FinancialAccountRouter from './routers/FinancialAccountRouter';
 import TransactionRouter from './routers/TransactionRouter';
+import TransactionSplitRouter from './routers/TransactionSplitRouter';
 import SyncRouter from './routers/SyncRouter';
 import CommentRouter from './routers/CommentRouter';
 
@@ -46,6 +47,7 @@ app.use('/account', AccountRouter);
 app.use('/integration', IntegrationRouter);
 app.use('/financial-account', FinancialAccountRouter);
 app.use('/transaction', TransactionRouter);
+app.use('/transaction-split', TransactionSplitRouter);
 app.use('/sync', SyncRouter);
 app.use('/comment', CommentRouter);
 

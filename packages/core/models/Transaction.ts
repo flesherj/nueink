@@ -1,6 +1,15 @@
 import { FinancialProvider, Currency } from './types';
 
 /**
+ * Transaction Status
+ * Represents the clearing/posting status of a transaction
+ */
+export type TransactionStatus =
+  | 'pending'      // Not yet cleared/posted by bank
+  | 'posted'       // Cleared/posted by bank (YNAB: cleared, Plaid: posted)
+  | 'reconciled';  // Manually reconciled against bank statement (YNAB only)
+
+/**
  * Transaction domain model
  * Represents a financial transaction
  *
@@ -29,7 +38,8 @@ export interface Transaction {
   authorizedDate?: Date;
   merchantName?: string;
   name: string;                    // Transaction description
-  pending: boolean;
+  status: TransactionStatus;       // Clearing/posting status
+  pending: boolean;                // Convenience field: true if status === 'pending'
   personId?: string;               // Auto-assigned person
   receiptUrls?: Array<string>;     // S3 keys for receipts (Phase 2)
   rawData?: Record<string, any>;   // Complete provider response (for debugging, backfill, advanced features)

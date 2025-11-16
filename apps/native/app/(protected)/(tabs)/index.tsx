@@ -3,12 +3,13 @@ import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Surface, Text, Card, Chip, ActivityIndicator, Button, Avatar, IconButton } from 'react-native-paper';
 import { useAccountProvider } from '@nueink/ui';
 import { useRouter } from 'expo-router';
-import { TransactionApi, CommentApi } from '@nueink/sdk';
-import type { Transaction } from '@nueink/core';
+import { TransactionApi, CommentApi, TransactionSplitApi } from '@nueink/sdk';
+import type { Transaction, TransactionSplit } from '@nueink/core';
 
 // Create API clients
 const transactionApi = TransactionApi.create();
 const commentApi = CommentApi.create();
+const transactionSplitApi = TransactionSplitApi.create();
 
 export default function TransactionsFeedScreen() {
   const { account } = useAccountProvider();
@@ -20,6 +21,7 @@ export default function TransactionsFeedScreen() {
   const [cursor, setCursor] = useState<string | undefined>();
   const [hasMore, setHasMore] = useState(true);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [transactionSplits, setTransactionSplits] = useState<Record<string, TransactionSplit[]>>({});
 
   useEffect(() => {
     loadTransactions();
@@ -57,10 +59,11 @@ export default function TransactionsFeedScreen() {
       setCursor(result.nextCursor);
       setHasMore(!!result.nextCursor);
 
-      // Load comment counts for the new transactions
+      // Load comment counts and splits for the new transactions
       const txIds = (result.items || []).map((tx) => tx.transactionId);
       if (txIds.length > 0) {
         loadCommentCounts(txIds);
+        loadTransactionSplits(txIds);
       }
     } catch (err) {
       console.error('Error loading transactions:', err);
@@ -112,6 +115,33 @@ export default function TransactionsFeedScreen() {
       setCommentCounts((prev) => ({ ...prev, ...counts }));
     } catch (err) {
       console.error('Error loading comment counts:', err);
+    }
+  };
+
+  /**
+   * Load transaction splits for visible transactions
+   */
+  const loadTransactionSplits = async (txIds: string[]) => {
+    try {
+      // Load splits for each transaction
+      const splits: Record<string, TransactionSplit[]> = {};
+
+      // Load in parallel
+      await Promise.all(
+        txIds.map(async (txId) => {
+          try {
+            const txSplits = await transactionSplitApi.listByTransaction(txId);
+            splits[txId] = txSplits;
+          } catch (err) {
+            console.error(`Error loading splits for transaction ${txId}:`, err);
+            splits[txId] = [];
+          }
+        })
+      );
+
+      setTransactionSplits((prev) => ({ ...prev, ...splits }));
+    } catch (err) {
+      console.error('Error loading transaction splits:', err);
     }
   };
 
@@ -214,17 +244,18 @@ export default function TransactionsFeedScreen() {
               )}
             </View>
 
-            {/* Category and Account */}
+            {/* Categories from splits */}
             <View style={styles.metaRow}>
-              {tx.primaryCategory && (
+              {(transactionSplits[tx.transactionId] || []).map((split, index) => (
                 <Chip
+                  key={split.splitId}
                   mode="outlined"
-                  style={styles.categoryChip}
+                  style={[styles.categoryChip, index > 0 && styles.categoryChipSpacing]}
                   textStyle={styles.categoryChipText}
                 >
-                  {tx.primaryCategory}
+                  {split.category}
                 </Chip>
-              )}
+              ))}
             </View>
             {tx.financialAccountId && (
               <Text variant="bodySmall" style={styles.accountText}>
@@ -457,6 +488,9 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     // Let chip size naturally
+  },
+  categoryChipSpacing: {
+    marginLeft: 4,
   },
   categoryChipText: {
     fontSize: 13,

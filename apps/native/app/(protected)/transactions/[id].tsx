@@ -1,50 +1,56 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Surface, Text, Card, Chip, ActivityIndicator, Button, Avatar, Divider, List, useTheme, TextInput, IconButton } from 'react-native-paper';
+import { Surface, Text, Card, Chip, ActivityIndicator, Divider, List, TextInput, Button, Avatar, useTheme, IconButton } from 'react-native-paper';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useAccountProvider } from '@nueink/ui';
-import { TransactionApi, FinancialAccountApi, CommentApi } from '@nueink/sdk';
-import type { Transaction, FinancialAccount, Comment } from '@nueink/core';
+import { TransactionApi, TransactionSplitApi, CommentApi, FinancialAccountApi } from '@nueink/sdk';
+import type { Transaction, TransactionSplit, Comment, FinancialAccount } from '@nueink/core';
 
 // Create API clients
 const transactionApi = TransactionApi.create();
-const financialAccountApi = FinancialAccountApi.create();
+const transactionSplitApi = TransactionSplitApi.create();
 const commentApi = CommentApi.create();
+const financialAccountApi = FinancialAccountApi.create();
 
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { account } = useAccountProvider();
   const router = useRouter();
   const theme = useTheme();
+  const { account } = useAccountProvider();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [financialAccount, setFinancialAccount] = useState<FinancialAccount | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [splits, setSplits] = useState<TransactionSplit[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
   useEffect(() => {
-    loadTransaction();
+    if (id) {
+      loadTransactionDetail();
+    }
   }, [id]);
 
-  /**
-   * Load transaction details
-   */
-  const loadTransaction = async () => {
-    if (!id) {
-      setError('No transaction ID provided');
-      setLoading(false);
-      return;
-    }
+  const loadTransactionDetail = async () => {
+    if (!id) return;
 
     try {
+      setLoading(true);
+      setLoadingComments(true);
       setError(null);
-      console.log('Loading transaction:', id);
 
-      const txData = await transactionApi.getTransaction(id);
+      // Load transaction, splits, and comments in parallel
+      const [txData, splitsData, commentsData] = await Promise.all([
+        transactionApi.getTransaction(id),
+        transactionSplitApi.listByTransaction(id),
+        commentApi.listByTransaction(id),
+      ]);
+
       setTransaction(txData);
+      setSplits(splitsData);
+      setComments(commentsData);
 
       // Load associated financial account if available
       if (txData.financialAccountId) {
@@ -56,76 +62,12 @@ export default function TransactionDetailScreen() {
           // Don't fail the whole screen if account fetch fails
         }
       }
-
-      // Load comments for this transaction
-      loadComments();
     } catch (err) {
-      console.error('Error loading transaction:', err);
+      console.error('Error loading transaction detail:', err);
       setError(err instanceof Error ? err.message : 'Failed to load transaction');
     } finally {
       setLoading(false);
-    }
-  };
-
-  /**
-   * Load comments for the transaction
-   */
-  const loadComments = async () => {
-    if (!id) return;
-
-    try {
-      setLoadingComments(true);
-      console.log('Loading comments for transaction:', id);
-
-      const commentData = await commentApi.listByTransaction(id);
-      setComments(commentData);
-    } catch (err) {
-      console.error('Error loading comments:', err);
-      // Don't fail the whole screen if comments fail to load
-    } finally {
       setLoadingComments(false);
-    }
-  };
-
-  /**
-   * Add a new comment to the transaction
-   */
-  const addComment = async () => {
-    if (!newCommentText.trim()) {
-      Alert.alert('Error', 'Comment text cannot be empty');
-      return;
-    }
-
-    if (!account || !transaction) {
-      Alert.alert('Error', 'Account or transaction not loaded');
-      return;
-    }
-
-    try {
-      setSubmittingComment(true);
-      console.log('Adding comment to transaction:', id);
-
-      const newComment = await commentApi.create({
-        transactionId: id!,
-        accountId: account.accountId,
-        organizationId: account.defaultOrgId,
-        text: newCommentText.trim(),
-        profileOwner: account.profileOwner,
-      });
-
-      // Add new comment to the list
-      setComments([...comments, newComment]);
-      setNewCommentText('');
-
-      Alert.alert('Success', 'Comment added successfully');
-    } catch (err) {
-      console.error('Error adding comment:', err);
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to add comment'
-      );
-    } finally {
-      setSubmittingComment(false);
     }
   };
 
@@ -150,26 +92,15 @@ export default function TransactionDetailScreen() {
   };
 
   /**
-   * Format date for display
+   * Format date
    */
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+  const formatDate = (date: Date | string): string => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    });
-  };
-
-  /**
-   * Format time for display
-   */
-  const formatTime = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
     });
   };
 
@@ -184,6 +115,47 @@ export default function TransactionDetailScreen() {
     if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
 
     return (words[0][0] + words[1][0]).toUpperCase();
+  };
+
+  /**
+   * Add a comment to the transaction
+   */
+  const handleAddComment = async () => {
+    if (!newCommentText.trim()) {
+      Alert.alert('Error', 'Comment text cannot be empty');
+      return;
+    }
+
+    if (!account || !transaction) {
+      Alert.alert('Error', 'Account or transaction not loaded');
+      return;
+    }
+
+    try {
+      setSubmittingComment(true);
+
+      const newComment = await commentApi.create({
+        transactionId: id!,
+        accountId: account.accountId,
+        organizationId: account.defaultOrgId,
+        text: newCommentText.trim(),
+        profileOwner: account.profileOwner,
+      });
+
+      // Add new comment to the list
+      setComments([...comments, newComment]);
+      setNewCommentText('');
+
+      Alert.alert('Success', 'Comment added successfully');
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to add comment'
+      );
+    } finally {
+      setSubmittingComment(false);
+    }
   };
 
   if (loading) {
@@ -226,7 +198,7 @@ export default function TransactionDetailScreen() {
         }}
       />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header Card with Merchant and Amount */}
+        {/* Transaction Header with Avatar */}
         <Card style={styles.headerCard}>
           <Card.Content>
             <View style={styles.headerContent}>
@@ -241,10 +213,7 @@ export default function TransactionDetailScreen() {
                 </Text>
                 <Text
                   variant="displaySmall"
-                  style={[
-                    styles.amount,
-                    { color: getAmountColor(transaction.amount) },
-                  ]}
+                  style={[styles.amount, { color: getAmountColor(transaction.amount) }]}
                 >
                   {formatAmount(transaction.amount, transaction.currency || 'USD')}
                 </Text>
@@ -260,8 +229,48 @@ export default function TransactionDetailScreen() {
           </Card.Content>
         </Card>
 
+        {/* Category Splits */}
+        {splits.length > 0 && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Categories
+              </Text>
+              <Text variant="bodySmall" style={styles.sectionDescription}>
+                {splits.length === 1
+                  ? 'This transaction has one category'
+                  : `This transaction is split across ${splits.length} categories`}
+              </Text>
+              <Divider style={styles.divider} />
+              {splits.map((split, index) => (
+                <View key={split.splitId}>
+                  <View style={styles.splitRow}>
+                    <Chip mode="outlined" style={styles.categoryChip}>
+                      {split.category}
+                    </Chip>
+                    <Text variant="titleMedium" style={styles.splitAmount}>
+                      {formatAmount(split.amount, transaction.currency || 'USD')}
+                    </Text>
+                  </View>
+                  {split.percentage && (
+                    <Text variant="bodySmall" style={styles.splitPercentage}>
+                      {split.percentage.toFixed(1)}% of total
+                    </Text>
+                  )}
+                  {split.notes && (
+                    <Text variant="bodySmall" style={styles.splitNotes}>
+                      {split.notes}
+                    </Text>
+                  )}
+                  {index < splits.length - 1 && <Divider style={styles.divider} />}
+                </View>
+              ))}
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Transaction Details */}
-        <Card style={styles.detailsCard}>
+        <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>Details</Text>
 
@@ -281,23 +290,28 @@ export default function TransactionDetailScreen() {
 
             <Divider />
 
-            {transaction.primaryCategory && (
-              <List.Item
-                title="Category"
-                description={transaction.primaryCategory}
-                left={(props) => <List.Icon {...props} icon="tag" />}
-              />
-            )}
-
-            {transaction.category && transaction.category.length > 0 && (
-              <View style={styles.categoryChips}>
-                {transaction.category.map((cat, index) => (
-                  <Chip key={index} mode="outlined" style={styles.categoryChip}>
-                    {cat}
-                  </Chip>
-                ))}
-              </View>
-            )}
+            <List.Item
+              title="Status"
+              description={
+                transaction.status === 'reconciled'
+                  ? 'Reconciled'
+                  : transaction.status === 'posted'
+                  ? 'Posted'
+                  : 'Pending'
+              }
+              left={(props) => (
+                <List.Icon
+                  {...props}
+                  icon={
+                    transaction.status === 'reconciled'
+                      ? 'check-all'
+                      : transaction.status === 'posted'
+                      ? 'check'
+                      : 'clock-outline'
+                  }
+                />
+              )}
+            />
 
             <Divider />
 
@@ -346,8 +360,8 @@ export default function TransactionDetailScreen() {
           </Card.Content>
         </Card>
 
-        {/* Comments Section */}
-        <Card style={styles.detailsCard}>
+        {/* Comments */}
+        <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Comments ({comments.length})
@@ -415,7 +429,7 @@ export default function TransactionDetailScreen() {
               <Button
                 mode="contained"
                 icon="send"
-                onPress={addComment}
+                onPress={handleAddComment}
                 loading={submittingComment}
                 disabled={submittingComment || !newCommentText.trim()}
                 style={styles.addCommentButton}
@@ -427,7 +441,7 @@ export default function TransactionDetailScreen() {
         </Card>
 
         {/* Person Assignment Section (Placeholder) */}
-        <Card style={styles.detailsCard}>
+        <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>Person Assignment</Text>
             <View style={styles.placeholderSection}>
@@ -450,7 +464,7 @@ export default function TransactionDetailScreen() {
         </Card>
 
         {/* Receipts Section (Placeholder) */}
-        <Card style={styles.detailsCard}>
+        <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>Receipts</Text>
             <View style={styles.placeholderSection}>
@@ -529,23 +543,42 @@ const styles = StyleSheet.create({
   pendingChip: {
     alignSelf: 'flex-start',
   },
-  detailsCard: {
+  card: {
     marginBottom: 16,
   },
   sectionTitle: {
     fontWeight: '600',
     marginBottom: 8,
   },
-  categoryChips: {
+  sectionDescription: {
+    opacity: 0.7,
+    marginBottom: 8,
+  },
+  divider: {
+    marginVertical: 12,
+  },
+  splitRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   categoryChip: {
-    marginRight: 8,
-    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  splitAmount: {
+    fontWeight: '600',
+  },
+  splitPercentage: {
+    opacity: 0.6,
+    marginLeft: 12,
+    marginBottom: 4,
+  },
+  splitNotes: {
+    marginLeft: 12,
+    marginTop: 4,
+    opacity: 0.7,
+    fontStyle: 'italic',
   },
   placeholderSection: {
     paddingVertical: 16,

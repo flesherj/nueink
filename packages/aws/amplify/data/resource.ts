@@ -156,7 +156,8 @@ const schema = a.schema({
             authorizedDate: a.datetime(),               // Authorization date
             merchantName: a.string(),                   // Merchant name
             name: a.string().required(),                // Transaction name/description
-            pending: a.boolean().required(),            // Is pending?
+            status: a.string().required(),              // pending|posted|reconciled
+            pending: a.boolean().required(),            // Convenience: true if status === 'pending'
             personId: a.string(),                       // FK to Person (auto-assigned)
             receiptUrls: a.string().array(),            // S3 keys for receipts (Phase 2)
             rawData: a.json(),                          // Complete provider response (YNAB/Plaid/etc)
