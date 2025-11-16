@@ -1000,7 +1000,7 @@ export default function TransactionDetailScreen() {
                         </TouchableOpacity>
 
                         {/* Inline slider - OUTSIDE TouchableOpacity */}
-                        {isSelected && selectedCategory && selectedCategories.length > 1 && (
+                        {isSelected && selectedCategory && (
                           <View style={styles.categorySliderContainer}>
                             <Slider
                               style={styles.categorySlider}
@@ -1443,10 +1443,10 @@ const styles = StyleSheet.create({
     height: 24,
   },
   categorySliderContainer: {
-    marginTop: 8,
+    marginTop: -12,
     width: '100%',
     paddingHorizontal: 4,
-    paddingVertical: 8,
+    paddingVertical: 0,
   },
   categorySlider: {
     width: '100%',
