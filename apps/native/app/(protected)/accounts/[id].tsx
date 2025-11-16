@@ -221,10 +221,7 @@ export default function AccountDetailScreen() {
                 <Card
                   key={tx.transactionId}
                   style={styles.transactionCard}
-                  onPress={() => {
-                    // TODO: Navigate to transaction detail
-                    console.log('Transaction tapped:', tx.transactionId);
-                  }}
+                  onPress={() => router.push(`/transactions/${tx.transactionId}`)}
                 >
                   <Card.Content>
                     <View style={styles.transactionRow}>
