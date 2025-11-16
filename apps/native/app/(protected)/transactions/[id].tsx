@@ -268,6 +268,21 @@ export default function TransactionDetailScreen() {
   };
 
   /**
+   * Format date with time
+   */
+  const formatDateTime = (date: Date | string): string => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
+  /**
    * Get merchant initials for avatar
    */
   const getMerchantInitials = (name?: string): string => {
@@ -618,18 +633,23 @@ export default function TransactionDetailScreen() {
         {/* Transaction Header with Avatar */}
         <Card style={styles.headerCard}>
           <Card.Content>
+            {/* Transaction Date - Centered at top */}
+            <Text variant="bodyMedium" style={styles.transactionDate}>
+              {formatDateTime(transaction.date)}
+            </Text>
+
             <View style={styles.headerContent}>
               <Avatar.Text
-                size={64}
+                size={48}
                 label={getMerchantInitials(transaction.merchantName)}
                 style={styles.avatar}
               />
               <View style={styles.headerInfo}>
-                <Text variant="headlineSmall" style={styles.merchantName}>
+                <Text variant="titleLarge" style={styles.merchantName}>
                   {transaction.merchantName || transaction.name || 'Unknown Merchant'}
                 </Text>
                 <Text
-                  variant="displaySmall"
+                  variant="headlineMedium"
                   style={[styles.amount, { color: getAmountColor(transaction.amount) }]}
                 >
                   {formatAmount(transaction.amount, transaction.currency || 'USD')}
@@ -1284,6 +1304,12 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     marginBottom: 16,
+  },
+  transactionDate: {
+    textAlign: 'center',
+    opacity: 0.7,
+    marginBottom: 12,
+    fontWeight: '500',
   },
   headerContent: {
     flexDirection: 'row',
