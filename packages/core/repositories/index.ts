@@ -14,6 +14,7 @@ export * from './MembershipRepository';
 export * from './InstitutionRepository';
 export * from './FinancialAccountRepository';
 export * from './TransactionRepository';
+export * from './TransactionSplitRepository';
 export * from './CommentRepository';
 export * from './PersonRepository';
 export * from './BudgetRepository';

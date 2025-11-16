@@ -2,6 +2,7 @@ import { Transaction } from '../models';
 import { TransactionConverter } from '../converters';
 import { TransactionRepository, PaginationResult } from '../repositories';
 import { TransactionEntity } from '@nueink/aws';
+import { TransactionSplitService } from './TransactionSplitService';
 
 /**
  * Transaction service - handles business logic for transaction operations
@@ -9,7 +10,10 @@ import { TransactionEntity } from '@nueink/aws';
 export class TransactionService {
   private converter: TransactionConverter;
 
-  constructor(private repository: TransactionRepository<TransactionEntity>) {
+  constructor(
+    private repository: TransactionRepository<TransactionEntity>,
+    private splitService?: TransactionSplitService<any>
+  ) {
     this.converter = new TransactionConverter();
   }
 
@@ -102,7 +106,35 @@ export class TransactionService {
   public create = async (transaction: Transaction): Promise<Transaction> => {
     const entity = this.converter.toEntity(transaction);
     const saved = await this.repository.save(entity);
-    return this.converter.toDomain(saved);
+    const createdTransaction = this.converter.toDomain(saved);
+
+    // Create default split if splitService is available
+    if (this.splitService) {
+      const category = this.extractCategory(transaction);
+      await this.splitService.createDefaultSplit(
+        createdTransaction.transactionId,
+        createdTransaction.organizationId,
+        createdTransaction.profileOwner,
+        createdTransaction.amount,
+        category
+      );
+    }
+
+    return createdTransaction;
+  };
+
+  /**
+   * Extract category from transaction
+   * Priority: rawData.category_name (YNAB) > 'Uncategorized'
+   */
+  private extractCategory = (transaction: Transaction): string => {
+    // Try to extract from YNAB rawData
+    if (transaction.rawData?.category_name) {
+      return transaction.rawData.category_name;
+    }
+
+    // Fallback to uncategorized
+    return 'Uncategorized';
   };
 
   public update = async (
