@@ -113,42 +113,79 @@
 
 **Target:** 1-2 days
 
-**Goal:** Build in-app dashboard with financial insights and quick actions
+**Goal:** Build "Financial GPS" dashboard - passive, always-on awareness vs manual budgeting
 
 **Decision:** Deferred native widgets to Phase 5 (Polish) - Dashboard provides more value for MVP
 
-**Features:**
-- **Financial Overview Dashboard**
-  - Total balance/net worth summary
-  - Today's spending and month-to-date
-  - Visual spending breakdown by category
+**💡 KEY INSIGHT - The NueInk Differentiator:**
 
-- **Spending Insights**
-  - Category breakdown (charts)
-  - Top merchants this month
-  - Trends vs previous period
+**YNAB's Problem:**
+- Requires knowing spending habits upfront to create budget
+- Manual categorization feels like work
+- Batch processing (sit down once a month)
+- No real-time "where am I?" awareness
+- Ignores pay period cycles
 
-- **Budget Status** (if budgets implemented)
-  - Budget progress indicators
-  - Categories at risk
-  - Days remaining in period
+**NueInk's Solution: "Connect and Discover"**
+- ✅ Zero setup - AI learns YOUR patterns automatically
+- ✅ Auto-categorization (effortless, not homework)
+- ✅ Always-on awareness - know your position anytime
+- ✅ Passive discovery - app tells YOU your habits
+- ✅ Pay period aware - "what's left THIS cycle?"
+- ✅ Proactive insights - "here's what I found about you"
 
-- **Quick Actions**
-  - Recent transactions preview (3-5)
-  - Pull-to-refresh
-  - Tap cards to drill down
+**Dashboard as "Financial GPS"** - Answers real questions:
+1. "How much can I spend right now?" → What's Left card
+2. "What bills are coming up?" → Upcoming Bills card
+3. "Am I on track this month?" → Spending Pace card
+4. "What are my actual habits?" → AI Discovered Patterns card
+5. "What just happened?" → Recent Transactions (auto-categorized)
+6. "How can I save?" → Actionable Suggestions card
 
-**Why Dashboard > Widget Now:**
-- Pure React Native (no Swift/Kotlin learning curve)
-- Richer, interactive UX vs static widget
-- Faster iteration and development
-- More valuable for beta users (in-app engagement)
-- Widget can reuse this data model later
+**Implementation Order (Vertical Slices):**
 
-**Technical Notes:**
-- Reuse existing chart components from transaction detail
-- Create aggregation APIs for dashboard data
-- Consider caching for performance
+**Slice 1: "What You Have Left" Card** (Start here)
+- Total balance across all accounts
+- Detect/predict upcoming bills (recurring transactions)
+- Days until next paycheck (user setting or AI detect)
+- Calculate: Balance - Upcoming Bills = Available to Spend
+- Shows user their real spending power RIGHT NOW
+
+**Slice 2: "What's Coming Up" Card**
+- List of bills due before next paycheck
+- Estimated amounts (from recurring patterns)
+- Total impact on available funds
+- Tap to mark as paid or adjust estimate
+
+**Slice 3: "This Month So Far" Card**
+- Total spent vs your typical pattern (not budget)
+- Pace indicator (day 16 of 30, spent 45%, normal = 53%)
+- Top category with comparison to usual
+- Anomaly detection (dining out ↑ 23% vs usual)
+
+**Slice 4: "AI Discovered" Card**
+- Your spending patterns (groceries ~$400/mo)
+- Recurring merchants and amounts
+- Day-of-week/time patterns
+- No user input required!
+
+**Slice 5: "Recent Transactions" Card**
+- Last 3-5 transactions
+- Show auto-categorization confidence
+- Quick edit if AI got it wrong
+- Reinforce that app is working for you
+
+**Slice 6: "Quick Insight" Card**
+- Proactive suggestion based on data
+- Actionable (cut 2 dinners = save $120)
+- Positive framing (celebrate wins)
+
+**Technical Architecture:**
+- RecurringTransactionDetector service (AI/pattern matching)
+- SpendingPatternAnalyzer service (discovers habits)
+- AvailableFundsCalculator service (real-time math)
+- Reuse existing transaction/account data
+- Cache insights, refresh daily or on-sync
 
 ---
 
