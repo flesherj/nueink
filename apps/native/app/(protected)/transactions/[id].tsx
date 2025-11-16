@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput as RNT
 import Slider from '@react-native-community/slider';
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Surface, Text, Card, Chip, ActivityIndicator, Divider, List, TextInput, Button, Avatar, useTheme, IconButton } from 'react-native-paper';
+import { Surface, Text, Card, Chip, ActivityIndicator, Divider, List, TextInput, Button, Avatar, useTheme, IconButton, SegmentedButtons } from 'react-native-paper';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useAccountProvider, CategorySpendingChart } from '@nueink/ui';
 import { TransactionApi, TransactionSplitApi, CommentApi, FinancialAccountApi, AnalyticsApi } from '@nueink/sdk';
@@ -729,27 +729,30 @@ export default function TransactionDetailScreen() {
         {chartData.length > 0 && (
           <Card style={styles.card}>
             <Card.Content>
-              <View style={styles.chartHeader}>
-                <View>
-                  <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Spending Insights
-                  </Text>
-                  <Text variant="bodySmall" style={styles.sectionDescription}>
-                    Category spending this month
-                  </Text>
-                </View>
-                <Chip
-                  mode={merchantFilterEnabled ? 'flat' : 'outlined'}
-                  selected={merchantFilterEnabled}
-                  onPress={() => setMerchantFilterEnabled(!merchantFilterEnabled)}
-                  style={styles.merchantFilterChip}
-                  compact
-                >
-                  {merchantFilterEnabled
-                    ? transaction?.merchantName || transaction?.name || 'This Merchant'
-                    : 'All Merchants'}
-                </Chip>
-              </View>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Spending Insights
+              </Text>
+              <Text variant="bodySmall" style={styles.sectionDescription}>
+                Category spending this month
+              </Text>
+
+              <SegmentedButtons
+                value={merchantFilterEnabled ? 'merchant' : 'all'}
+                onValueChange={(value) => setMerchantFilterEnabled(value === 'merchant')}
+                buttons={[
+                  {
+                    value: 'all',
+                    label: 'All Merchants',
+                    style: styles.segmentedButton,
+                  },
+                  {
+                    value: 'merchant',
+                    label: transaction?.merchantName || transaction?.name || 'This Merchant',
+                    style: styles.segmentedButton,
+                  },
+                ]}
+                style={styles.merchantFilterToggle}
+              />
 
               <CategorySpendingChart
                 data={chartData}
@@ -1590,15 +1593,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 40,
   },
-  // Chart header and filter
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+  // Chart merchant filter toggle
+  merchantFilterToggle: {
+    marginVertical: 12,
   },
-  merchantFilterChip: {
-    marginTop: 4,
+  segmentedButton: {
+    minWidth: 120,
   },
   // Chart loading/error states
   chartLoadingContainer: {
