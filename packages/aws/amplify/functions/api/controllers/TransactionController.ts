@@ -21,9 +21,11 @@ class TransactionController {
       const result = await transactionService.findByOrganization(organizationId, limit, cursor);
 
       res.json(result);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error listing transactions by organization:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to list transactions by organization'
+      });
     }
   };
 
@@ -42,9 +44,11 @@ class TransactionController {
       const result = await transactionService.findByFinancialAccount(financialAccountId, limit, cursor);
 
       res.json(result);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error listing transactions by account:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to list transactions by account'
+      });
     }
   };
 
@@ -65,9 +69,11 @@ class TransactionController {
       }
 
       res.json(transaction);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error getting transaction:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to get transaction'
+      });
     }
   };
 }

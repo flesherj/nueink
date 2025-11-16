@@ -21,9 +21,11 @@ class FinancialAccountController {
       const result = await financialAccountService.findByOrganization(organizationId, limit, cursor);
 
       res.json(result);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error listing financial accounts by organization:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to list financial accounts by organization'
+      });
     }
   };
 
@@ -44,9 +46,11 @@ class FinancialAccountController {
       }
 
       res.json(account);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error getting financial account:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to get financial account'
+      });
     }
   };
 
@@ -62,9 +66,11 @@ class FinancialAccountController {
       const accounts = await financialAccountService.findByInstitution(institutionId);
 
       res.json(accounts);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error listing financial accounts by institution:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to list financial accounts by institution'
+      });
     }
   };
 }
