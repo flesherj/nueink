@@ -57,6 +57,7 @@ export default function TransactionDetailScreen() {
   const [chartLoading, setChartLoading] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
   const [merchantFilterEnabled, setMerchantFilterEnabled] = useState(false);
+  const [timePeriod, setTimePeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
 
   // Category selection bottom sheet state
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -134,6 +135,39 @@ export default function TransactionDetailScreen() {
   };
 
   /**
+   * Get date range based on selected time period
+   */
+  const getDateRange = (period: 'week' | 'month' | 'quarter' | 'year'): { startDate: Date; endDate: Date } => {
+    const now = new Date();
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    let startDate: Date;
+
+    switch (period) {
+      case 'week':
+        // Start of current week (Sunday)
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - now.getDay());
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'month':
+        // Start of current month
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'quarter':
+        // Start of current quarter (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)
+        const quarter = Math.floor(now.getMonth() / 3);
+        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+        break;
+      case 'year':
+        // Start of current year
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+    }
+
+    return { startDate, endDate };
+  };
+
+  /**
    * Load analytics timeline data for all categories
    * Shows spending context for all categorized splits
    */
@@ -151,8 +185,8 @@ export default function TransactionDetailScreen() {
       setChartLoading(true);
       setChartError(null);
 
-      // Get current month date range
-      const { startDate, endDate } = getCurrentMonthRange();
+      // Get date range based on selected time period
+      const { startDate, endDate } = getDateRange(timePeriod);
 
       // Get merchant name if filter is enabled
       const merchantFilter = merchantFilterEnabled
@@ -188,14 +222,17 @@ export default function TransactionDetailScreen() {
   };
 
   /**
-   * Reload analytics data when merchant filter changes
+   * Reload analytics data when merchant filter or time period changes
    */
   useEffect(() => {
     if (transaction && splits.length > 0) {
-      console.log('🔄 Reloading analytics with merchant filter:', merchantFilterEnabled ? transaction.merchantName || transaction.name : 'ALL');
+      console.log('🔄 Reloading analytics:', {
+        merchant: merchantFilterEnabled ? transaction.merchantName || transaction.name : 'ALL',
+        period: timePeriod,
+      });
       loadAnalyticsData(transaction, splits);
     }
-  }, [merchantFilterEnabled, transaction, splits]);
+  }, [merchantFilterEnabled, timePeriod, transaction, splits]);
 
   /**
    * Format amount with sign and color
@@ -729,13 +766,7 @@ export default function TransactionDetailScreen() {
         {chartData.length > 0 && (
           <Card style={styles.card}>
             <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Spending Insights
-              </Text>
-              <Text variant="bodySmall" style={styles.sectionDescription}>
-                Category spending this month
-              </Text>
-
+              {/* Merchant Filter */}
               <SegmentedButtons
                 value={merchantFilterEnabled ? 'merchant' : 'all'}
                 onValueChange={(value) => setMerchantFilterEnabled(value === 'merchant')}
@@ -752,6 +783,19 @@ export default function TransactionDetailScreen() {
                   },
                 ]}
                 style={styles.merchantFilterToggle}
+              />
+
+              {/* Time Period Selector */}
+              <SegmentedButtons
+                value={timePeriod}
+                onValueChange={(value) => setTimePeriod(value as typeof timePeriod)}
+                buttons={[
+                  { value: 'week', label: 'Week' },
+                  { value: 'month', label: 'Month' },
+                  { value: 'quarter', label: 'Quarter' },
+                  { value: 'year', label: 'Year' },
+                ]}
+                style={styles.timePeriodToggle}
               />
 
               <CategorySpendingChart
@@ -1593,9 +1637,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 40,
   },
-  // Chart merchant filter toggle
+  // Chart time period and merchant filter toggles
   merchantFilterToggle: {
-    marginVertical: 12,
+    marginBottom: 8,
+  },
+  timePeriodToggle: {
+    marginBottom: 12,
   },
   segmentedButton: {
     minWidth: 120,
