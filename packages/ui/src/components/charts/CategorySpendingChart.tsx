@@ -124,12 +124,18 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
               },
               label: {
                 show: true,
-                // Smart positioning: left if in right half of chart, right if in left half
+                // Smart positioning based on date position in the visible range
                 position: (params: any) => {
-                  const dataIndex = categoryData.highlightIndex;
-                  const totalPoints = dates.length;
+                  const currentDate = dates[categoryData.highlightIndex];
+                  const minDate = Math.min(...dates);
+                  const maxDate = Math.max(...dates);
+                  const dateRange = maxDate - minDate;
+
+                  // Calculate position as percentage of date range
+                  const position = dateRange > 0 ? (currentDate - minDate) / dateRange : 0;
+
                   // If point is in the right 40% of the chart, place label on left
-                  return dataIndex > totalPoints * 0.6 ? 'left' : 'right';
+                  return position > 0.6 ? 'left' : 'right';
                 },
                 offset: [15, 0],
                 formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
