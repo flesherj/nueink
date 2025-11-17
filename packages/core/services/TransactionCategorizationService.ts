@@ -219,57 +219,58 @@ export class TransactionCategorizationService {
 
   /**
    * Find transactions with uncategorized splits (need AI categorization)
+   *
+   * Optimization: Uses GSI to query splits by category="Uncategorized" directly
+   * instead of fetching all splits and filtering in memory.
    */
   private findUncategorizedTransactions = async (
     organizationId: string
   ): Promise<Transaction[]> => {
     const findStart = Date.now();
 
-    // Get all transactions for org
-    const txStart = Date.now();
-    const txResult = await this.transactionService.findByOrganization(
-      organizationId,
-      10000
-    );
-    const allTransactions = txResult.items;
-    console.log(`[CATEGORIZATION] Fetched ${allTransactions.length} transactions in ${Date.now() - txStart}ms`);
-
-    // Get all existing splits
+    // Fetch ALL uncategorized splits using cursor pagination
+    // Optimize: Extract transaction IDs immediately instead of storing full splits
     const splitStart = Date.now();
-    const splitResult = await this.splitService.findByOrganization(
-      organizationId,
-      100000
-    );
-    const existingSplits = splitResult.items;
-    console.log(`[CATEGORIZATION] Fetched ${existingSplits.length} splits in ${Date.now() - splitStart}ms`);
+    const transactionIds = new Set<string>();
+    let cursor: string | undefined;
+    let pageCount = 0;
+    let totalSplits = 0;
 
-    // Build map of transactionId -> splits
-    const mapStart = Date.now();
-    const splitsByTransaction = new Map<string, TransactionSplit[]>();
-    for (const split of existingSplits) {
-      const splits = splitsByTransaction.get(split.transactionId) || [];
-      splits.push(split);
-      splitsByTransaction.set(split.transactionId, splits);
+    do {
+      const result = await this.splitService.findByOrganizationAndCategory(
+        organizationId,
+        'Uncategorized',
+        1000, // Fetch 1000 at a time for efficiency
+        cursor
+      );
+
+      // Extract transaction IDs immediately and discard full split objects
+      result.items.forEach(split => transactionIds.add(split.transactionId));
+      totalSplits += result.items.length;
+      cursor = result.nextCursor;
+      pageCount++;
+    } while (cursor);
+
+    console.log(`[CATEGORIZATION] Queried ${totalSplits} uncategorized splits via GSI in ${pageCount} pages (${Date.now() - splitStart}ms)`);
+    console.log(`[CATEGORIZATION] Found ${transactionIds.size} unique transactions with uncategorized splits`);
+
+    // Fetch only those transactions in parallel batches
+    const txStart = Date.now();
+    const txIds = Array.from(transactionIds);
+    const BATCH_SIZE = 50; // Parallel requests
+    const transactions: Transaction[] = [];
+
+    for (let i = 0; i < txIds.length; i += BATCH_SIZE) {
+      const batch = txIds.slice(i, i + BATCH_SIZE);
+      const txResults = await Promise.all(
+        batch.map(id => this.transactionService.findById(id))
+      );
+      transactions.push(...txResults.filter(tx => tx !== null) as Transaction[]);
     }
-    console.log(`[CATEGORIZATION] Built split lookup map in ${Date.now() - mapStart}ms`);
 
-    // Find transactions that need AI categorization:
-    // Transactions with ONLY "Uncategorized" splits (auto-created defaults by TransactionService)
-    const filterStart = Date.now();
-    const uncategorized = allTransactions.filter((tx) => {
-      const splits = splitsByTransaction.get(tx.transactionId);
-
-      // No splits - needs categorization (edge case, shouldn't happen normally)
-      if (!splits || splits.length === 0) {
-        return true;
-      }
-
-      // Has only uncategorized splits - needs AI to improve
-      return splits.every(s => s.category === 'Uncategorized');
-    });
-    console.log(`[CATEGORIZATION] Filtered ${uncategorized.length} uncategorized transactions in ${Date.now() - filterStart}ms`);
+    console.log(`[CATEGORIZATION] Fetched ${transactions.length} transactions in ${Math.ceil(txIds.length / BATCH_SIZE)} batches (${Date.now() - txStart}ms)`);
     console.log(`[CATEGORIZATION] Total findUncategorized time: ${Date.now() - findStart}ms`);
 
-    return uncategorized;
+    return transactions;
   };
 }
