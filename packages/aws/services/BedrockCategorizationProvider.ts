@@ -30,6 +30,9 @@ export class BedrockCategorizationProvider implements AICategorizationProvider {
   public categorizeTransactions = async (
     transactions: Transaction[]
   ): Promise<CategorizationResult[]> => {
+    const startTime = Date.now();
+    console.log(`[BEDROCK] Invoking Claude 3.5 Haiku for ${transactions.length} transactions...`);
+
     // Prepare transaction data for AI
     const txData = transactions.map((tx, index) => ({
       index,
@@ -41,23 +44,37 @@ export class BedrockCategorizationProvider implements AICategorizationProvider {
     }));
 
     const prompt = this.buildCategorizationPrompt(txData);
+    const promptTokens = Math.ceil(prompt.length / 4); // Rough estimate
+    console.log(`[BEDROCK] Prompt size: ${prompt.length} chars (~${promptTokens} tokens)`);
 
     try {
+      const bedrockStart = Date.now();
       const response = await this.bedrock.invokeSimple(prompt, {
         temperature: 0.2, // Low temperature for consistent categorization
         maxTokens: 6000,
       });
+      const bedrockTime = Date.now() - bedrockStart;
+
+      console.log(`[BEDROCK] Claude API call completed in ${bedrockTime}ms`);
+      console.log(`[BEDROCK] Response size: ${response.length} chars`);
 
       // Parse JSON response
+      const parseStart = Date.now();
       const parsed = JSON.parse(response);
+      console.log(`[BEDROCK] JSON parsing completed in ${Date.now() - parseStart}ms`);
 
       // Map to CategorizationResult format
-      return parsed.categorizations.map((cat: any) => ({
+      const results = parsed.categorizations.map((cat: any) => ({
         transactionId: txData[cat.index].id,
         splits: cat.splits,
       }));
+
+      const totalTime = Date.now() - startTime;
+      console.log(`[BEDROCK] Total categorization time: ${totalTime}ms for ${transactions.length} transactions (${Math.round(totalTime / transactions.length)}ms per transaction)`);
+
+      return results;
     } catch (error) {
-      console.error('Bedrock categorization failed:', error);
+      console.error('[BEDROCK] Categorization failed:', error);
       throw error;
     }
   };

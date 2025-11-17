@@ -53,40 +53,55 @@ export class TransactionCategorizationService {
     splitsCreated: number;
     errors: number;
   }> => {
-    console.log('[CATEGORIZATION SERVICE] Starting categorizeUncategorized - NEW CODE VERSION');
+    const perfStart = Date.now();
+    console.log('[AI CATEGORIZATION] Starting AI categorization process');
+
     // Find all transactions without splits
+    const findStart = Date.now();
     const uncategorized =
       await this.findUncategorizedTransactions(organizationId);
+    console.log(`[AI CATEGORIZATION] Found ${uncategorized.length} uncategorized transactions in ${Date.now() - findStart}ms`);
 
     if (uncategorized.length === 0) {
+      console.log('[AI CATEGORIZATION] No uncategorized transactions, skipping AI categorization');
       return { processed: 0, splitsCreated: 0, errors: 0 };
     }
-
-    console.log(`Found ${uncategorized.length} uncategorized transactions`);
 
     // Get AI categorizations in batches
     const batchSize = 50;
     const results: CategorizationResult[] = [];
     let errors = 0;
 
+    const aiStart = Date.now();
+    console.log(`[AI CATEGORIZATION] Processing ${uncategorized.length} transactions in batches of ${batchSize}`);
+
     for (let i = 0; i < uncategorized.length; i += batchSize) {
       const batch = uncategorized.slice(i, i + batchSize);
+      const batchNum = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(uncategorized.length / batchSize);
+
+      const batchStart = Date.now();
+      console.log(`[AI CATEGORIZATION] Processing batch ${batchNum}/${totalBatches} (${batch.length} transactions)...`);
 
       try {
         const batchResults =
           await this.aiProvider.categorizeTransactions(batch);
         results.push(...batchResults);
+        console.log(`[AI CATEGORIZATION] Batch ${batchNum}/${totalBatches} completed in ${Date.now() - batchStart}ms (${batchResults.length} results)`);
       } catch (error) {
         console.error(
-          `Failed to categorize batch ${i / batchSize + 1}:`,
+          `[AI CATEGORIZATION] Failed to categorize batch ${batchNum}/${totalBatches}:`,
           error
         );
         errors += batch.length;
       }
     }
+    console.log(`[AI CATEGORIZATION] AI inference completed in ${Date.now() - aiStart}ms (${results.length} transactions categorized)`);
 
     // Create splits from AI results
     let splitsCreated = 0;
+    const splitsStart = Date.now();
+    console.log(`[AI CATEGORIZATION] Creating splits for ${results.length} categorized transactions...`);
 
     for (const result of results) {
       try {
@@ -99,12 +114,14 @@ export class TransactionCategorizationService {
         splitsCreated += result.splits.length;
       } catch (error) {
         console.error(
-          `Failed to create splits for ${result.transactionId}:`,
+          `[AI CATEGORIZATION] Failed to create splits for ${result.transactionId}:`,
           error
         );
         errors++;
       }
     }
+    console.log(`[AI CATEGORIZATION] Created ${splitsCreated} splits in ${Date.now() - splitsStart}ms`);
+    console.log(`[AI CATEGORIZATION] Total AI categorization time: ${Date.now() - perfStart}ms (${results.length} transactions, ${splitsCreated} splits, ${errors} errors)`);
 
     return {
       processed: results.length,
