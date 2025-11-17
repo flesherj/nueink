@@ -104,6 +104,10 @@ const providerFactories: Record<string, ProviderFactory> = {
 /**
  * Store accounts with deduplication logic
  * Prevents duplicate account records when multiple users in same org sync the same accounts
+ *
+ * Performance optimizations:
+ * - Fetch existing accounts once and build lookup Map
+ * - Parallel processing (accounts are typically <20, so no chunking needed)
  */
 const storeAccountsWithDeduplication = async (
     accounts: Array<FinancialAccount>,
@@ -114,23 +118,30 @@ const storeAccountsWithDeduplication = async (
     let skipped = 0;
     let updated = 0;
 
-    for (const account of accounts) {
+    // Fetch all existing accounts ONCE and build lookup Map
+    const orgAccounts = await financialAccountService.findByOrganization(organizationId, 1000);
+    const existingAccountMap = new Map<string, FinancialAccount>();
+    for (const acc of orgAccounts.items) {
+        if (acc.externalAccountId) {
+            const key = `${acc.provider}:${acc.externalAccountId}`;
+            existingAccountMap.set(key, acc);
+        }
+    }
+
+    // Process all accounts in parallel (typically <20 accounts)
+    await Promise.all(accounts.map(async (account) => {
         try {
             // Skip if no external ID (can't deduplicate without it)
             if (!account.externalAccountId) {
                 console.warn(`Account ${account.name} has no externalAccountId, skipping deduplication`);
                 await financialAccountService.create(account);
                 created++;
-                continue;
+                return;
             }
 
-            // Check if account already exists in this organization
-            const orgAccounts = await financialAccountService.findByOrganization(organizationId, 1000);
-            const existingAccount = orgAccounts.items.find(
-                (existing) =>
-                    existing.provider === provider &&
-                    existing.externalAccountId === account.externalAccountId
-            );
+            // O(1) lookup in Map
+            const lookupKey = `${provider}:${account.externalAccountId}`;
+            const existingAccount = existingAccountMap.get(lookupKey);
 
             if (existingAccount) {
                 // Account already exists - update balances, status, and raw data
@@ -166,7 +177,7 @@ const storeAccountsWithDeduplication = async (
             console.error(`Failed to store account ${account.name}:`, error);
             // Continue with other accounts even if one fails
         }
-    }
+    }));
 
     return {created, skipped, updated};
 };
@@ -174,6 +185,10 @@ const storeAccountsWithDeduplication = async (
 /**
  * Store transactions with deduplication logic
  * Prevents duplicate transaction records when syncing the same transactions
+ *
+ * Performance optimizations:
+ * - Fetch existing transactions once and build lookup Map (O(1) lookups vs 440 queries)
+ * - Parallel processing with concurrency limit
  */
 const storeTransactionsWithDeduplication = async (
     transactions: Array<Transaction>,
@@ -184,23 +199,38 @@ const storeTransactionsWithDeduplication = async (
     let skipped = 0;
     let updated = 0;
 
-    for (const transaction of transactions) {
+    const perfStart = Date.now();
+    console.log(`[PERF] Starting transaction storage for ${transactions.length} transactions`);
+
+    // Fetch all existing transactions ONCE and build a lookup Map
+    const lookupStart = Date.now();
+    const orgTransactions = await transactionService.findByOrganization(organizationId, 10000);
+
+    // Build Map keyed by "provider:externalTransactionId" for O(1) lookups
+    const existingTxMap = new Map<string, Transaction>();
+    for (const tx of orgTransactions.items) {
+        if (tx.externalTransactionId) {
+            const key = `${tx.provider}:${tx.externalTransactionId}`;
+            existingTxMap.set(key, tx);
+        }
+    }
+    console.log(`[PERF] Built lookup map of ${existingTxMap.size} existing transactions in ${Date.now() - lookupStart}ms`);
+
+    // Process transactions with concurrency limit (10 at a time)
+    const CONCURRENCY = 10;
+    const processTransaction = async (transaction: Transaction): Promise<void> => {
         try {
             // Skip if no external ID (can't deduplicate without it)
             if (!transaction.externalTransactionId) {
                 console.warn(`Transaction ${transaction.name} has no externalTransactionId, skipping deduplication`);
                 await transactionService.create(transaction);
                 created++;
-                continue;
+                return;
             }
 
-            // Check if transaction already exists in this organization
-            const orgTransactions = await transactionService.findByOrganization(organizationId, 1000);
-            const existingTransaction = orgTransactions.items.find(
-                (existing) =>
-                    existing.provider === provider &&
-                    existing.externalTransactionId === transaction.externalTransactionId
-            );
+            // O(1) lookup in Map instead of 440 separate queries
+            const lookupKey = `${provider}:${transaction.externalTransactionId}`;
+            const existingTransaction = existingTxMap.get(lookupKey);
 
             if (existingTransaction) {
                 // Transaction already exists - update if needed (pending status, amounts can change)
@@ -228,7 +258,16 @@ const storeTransactionsWithDeduplication = async (
             console.error(`Failed to store transaction ${transaction.name}:`, error);
             // Continue with other transactions even if one fails
         }
+    };
+
+    // Process in chunks with concurrency limit
+    const processStart = Date.now();
+    for (let i = 0; i < transactions.length; i += CONCURRENCY) {
+        const chunk = transactions.slice(i, i + CONCURRENCY);
+        await Promise.all(chunk.map(processTransaction));
     }
+    console.log(`[PERF] Processed ${transactions.length} transactions in ${Date.now() - processStart}ms (${Math.round(transactions.length / ((Date.now() - processStart) / 1000))} tx/sec)`);
+    console.log(`[PERF] Total transaction storage time: ${Date.now() - perfStart}ms`);
 
     return {created, skipped, updated};
 };
