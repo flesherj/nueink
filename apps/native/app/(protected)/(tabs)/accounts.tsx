@@ -3,16 +3,18 @@ import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Surface, Text, Card, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { useAccountProvider } from '@nueink/ui';
 import { useRouter } from 'expo-router';
-import { FinancialAccountApi } from '@nueink/sdk';
-import type { FinancialAccount } from '@nueink/core';
+import { FinancialAccountApi, IntegrationApi } from '@nueink/sdk';
+import type { FinancialAccount, IntegrationConfig } from '@nueink/core';
 
-// Create API client (uses Amplify API with Cognito auth)
+// Create API clients (uses Amplify API with Cognito auth)
 const financialAccountApi = FinancialAccountApi.create();
+const integrationApi = IntegrationApi.create();
 
 export default function AccountsScreen() {
   const { account } = useAccountProvider();
   const router = useRouter();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [integrations, setIntegrations] = useState<IntegrationConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,10 +24,10 @@ export default function AccountsScreen() {
   }, [account]);
 
   /**
-   * Load financial accounts for the user's organization
+   * Load financial accounts and integration status for the user's organization
    */
   const loadAccounts = async () => {
-    if (!account?.defaultOrgId) {
+    if (!account?.defaultOrgId || !account?.accountId) {
       setLoading(false);
       return;
     }
@@ -34,11 +36,17 @@ export default function AccountsScreen() {
       setError(null);
       console.log('Loading accounts for organization:', account.defaultOrgId);
 
-      // Call REST API - authenticated with Cognito credentials
-      const result = await financialAccountApi.listByOrganization(account.defaultOrgId);
+      // Fetch both accounts and integration status in parallel
+      const [accountsResult, integrationsResult] = await Promise.all([
+        financialAccountApi.listByOrganization(account.defaultOrgId),
+        integrationApi.listByAccount(account.accountId),
+      ]);
 
-      console.log('Accounts loaded:', result);
-      setAccounts(result.items || []);
+      console.log('Accounts loaded:', accountsResult);
+      console.log('Integrations loaded:', integrationsResult);
+
+      setAccounts(accountsResult.items || []);
+      setIntegrations(integrationsResult || []);
     } catch (err) {
       console.error('Error loading accounts:', err);
       setError(err instanceof Error ? err.message : 'Failed to load accounts');
@@ -54,6 +62,19 @@ export default function AccountsScreen() {
     setRefreshing(true);
     await loadAccounts();
     setRefreshing(false);
+
+    // Start polling to pick up sync status changes
+    // Poll every 3 seconds for up to 60 seconds to catch sync completion
+    let pollCount = 0;
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      await loadAccounts();
+
+      // Stop after 20 checks (60 seconds)
+      if (pollCount >= 20) {
+        clearInterval(pollInterval);
+      }
+    }, 3000);
   };
 
   /**
@@ -94,6 +115,15 @@ export default function AccountsScreen() {
       plaid: 'Bank',
     };
     return names[provider] || provider;
+  };
+
+  /**
+   * Get sync status for a provider
+   */
+  const getProviderSyncStatus = (provider: string): IntegrationConfig | undefined => {
+    return integrations.find(
+      (integration) => integration.provider === provider && integration.status === 'active'
+    );
   };
 
   /**
@@ -167,14 +197,33 @@ export default function AccountsScreen() {
           </Text>
         </View>
 
-        {Object.entries(groupedAccounts).map(([provider, providerAccounts]) => (
-          <View key={provider} style={styles.providerGroup}>
-            <View style={styles.providerHeader}>
-              <Text variant="titleMedium">{getProviderName(provider)}</Text>
-              <Chip mode="outlined">
-                {providerAccounts.length} account{providerAccounts.length !== 1 ? 's' : ''}
-              </Chip>
-            </View>
+        {Object.entries(groupedAccounts).map(([provider, providerAccounts]) => {
+          const syncStatus = getProviderSyncStatus(provider);
+          const isSyncing = syncStatus?.syncInProgress;
+
+          return (
+            <View key={provider} style={styles.providerGroup}>
+              <View style={styles.providerHeader}>
+                <View style={styles.providerInfo}>
+                  <Text variant="titleMedium">{getProviderName(provider)}</Text>
+                  {isSyncing && (
+                    <View style={styles.syncingBadge}>
+                      <ActivityIndicator size={14} />
+                      <Text variant="bodySmall" style={styles.syncingText}>
+                        Syncing...
+                      </Text>
+                    </View>
+                  )}
+                  {!isSyncing && syncStatus?.syncedAt && (
+                    <Text variant="bodySmall" style={styles.lastSyncText}>
+                      Last synced: {new Date(syncStatus.syncedAt).toLocaleTimeString()}
+                    </Text>
+                  )}
+                </View>
+                <Chip mode="outlined">
+                  {providerAccounts.length} account{providerAccounts.length !== 1 ? 's' : ''}
+                </Chip>
+              </View>
 
             {providerAccounts.map((acc) => (
               <Card
@@ -236,8 +285,9 @@ export default function AccountsScreen() {
                 </Card.Content>
               </Card>
             ))}
-          </View>
-        ))}
+            </View>
+          );
+        })}
       </ScrollView>
     </Surface>
   );
@@ -292,8 +342,26 @@ const styles = StyleSheet.create({
   providerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
+  },
+  providerInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  syncingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  syncingText: {
+    marginLeft: 6,
+    opacity: 0.7,
+    fontStyle: 'italic',
+  },
+  lastSyncText: {
+    marginTop: 2,
+    opacity: 0.5,
   },
   accountCard: {
     marginBottom: 12,

@@ -28,6 +28,8 @@ export class AmplifyTransactionSplitRepository
       category: entity.category,
       amount: entity.amount,
       percentage: entity.percentage,
+      aiGenerated: entity.aiGenerated,
+      confidence: entity.confidence,
       notes: entity.notes,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -69,6 +71,29 @@ export class AmplifyTransactionSplitRepository
         transactionId,
       });
     return response.data.map((item: any) => this.toTransactionSplit(item));
+  };
+
+  public findByOrganization = async (
+    organizationId: string,
+    limit: number = 1000,
+    cursor?: string
+  ): Promise<PaginationResult<TransactionSplitEntity>> => {
+    const response =
+      await this.dbClient.models.TransactionSplit.listTransactionSplitByOrganizationId(
+        {
+          organizationId,
+        },
+        {
+          limit,
+          nextToken: cursor,
+        }
+      );
+
+    return {
+      items: response.data.map((item: any) => this.toTransactionSplit(item)),
+      nextCursor: response.nextToken ?? undefined,
+      hasMore: !!response.nextToken,
+    };
   };
 
   public findByOrganizationAndCategory = async (

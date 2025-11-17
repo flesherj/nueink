@@ -51,6 +51,23 @@ export class TransactionSplitService<TEntity> {
     return entities.map((entity) => this.toDomain(entity));
   };
 
+  public findByOrganization = async (
+    organizationId: string,
+    limit?: number,
+    cursor?: string
+  ): Promise<PaginationResult<TransactionSplit>> => {
+    const result = await this.repository.findByOrganization(
+      organizationId,
+      limit,
+      cursor
+    );
+    return {
+      items: result.items.map((entity) => this.toDomain(entity)),
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+    };
+  };
+
   public create = async (split: Omit<TransactionSplit, 'splitId' | 'createdAt' | 'updatedAt'>): Promise<TransactionSplit> => {
     // Generate missing fields
     const completeSplit: TransactionSplit = {

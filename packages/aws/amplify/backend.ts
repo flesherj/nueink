@@ -89,6 +89,19 @@ backend.financialSync.resources.lambda.addToRolePolicy(
   })
 );
 
+// Grant financial-sync Lambda permission to invoke Bedrock for AI categorization
+// Needs wildcard region since inference profiles can route to different regions
+backend.financialSync.resources.lambda.addToRolePolicy(
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['bedrock:InvokeModel'],
+    resources: [
+      `arn:aws:bedrock:*::foundation-model/*`,
+      `arn:aws:bedrock:*:${iamStack.account}:inference-profile/*`,
+    ],
+  })
+);
+
 // Create stack for custom resources (EventBridge, future Lambdas, etc.)
 const eventsStack = backend.createStack('nueink-events-stack');
 

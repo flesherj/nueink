@@ -15,7 +15,7 @@ export const SyncSecrets = {
 
 export const financialSync = defineFunction({
   name: 'financial-sync',
-  timeoutSeconds: 300, // 5 minutes (syncs can take a while)
+  timeoutSeconds: 900, // 15 minutes (syncs + AI categorization can take a while)
   environment: {
     YNAB_TOKEN_URL: secret(SyncSecrets.YNAB_TOKEN_URL),
     YNAB_CLIENT_ID: secret(SyncSecrets.YNAB_CLIENT_ID),

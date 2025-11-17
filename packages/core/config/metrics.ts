@@ -345,6 +345,45 @@ export const METRIC_DEFINITIONS = {
     description: 'User scanned bill'
   }),
 
+  // ============================================
+  // AI Categorization Metrics
+  // ============================================
+
+  TRANSACTIONS_CATEGORIZED: defineMetric({
+    metricName: 'TransactionsCategorized',
+    dimensions: ['OrganizationId', 'Provider'] as const,
+    unit: 'Count',
+    description: 'Number of transactions categorized by AI'
+  }),
+
+  CATEGORIZATION_FAILURE: defineMetric({
+    metricName: 'CategorizationFailure',
+    dimensions: ['OrganizationId', 'ErrorType'] as const,
+    unit: 'Count',
+    description: 'AI categorization failed with error'
+  }),
+
+  CATEGORIZATION_DURATION: defineMetric({
+    metricName: 'CategorizationDuration',
+    dimensions: ['OrganizationId'] as const,
+    unit: 'Milliseconds',
+    description: 'Time to complete AI categorization for batch'
+  }),
+
+  SPLITS_CREATED: defineMetric({
+    metricName: 'SplitsCreated',
+    dimensions: ['OrganizationId', 'SplitType'] as const,
+    unit: 'Count',
+    description: 'Number of transaction splits created (SplitType: single or multi)'
+  }),
+
+  AI_CONFIDENCE: defineMetric({
+    metricName: 'AIConfidence',
+    dimensions: ['OrganizationId', 'Category'] as const,
+    unit: 'Percent',
+    description: 'Average AI confidence score for categorizations'
+  }),
+
 } as const;
 
 /**

@@ -27,9 +27,13 @@ export class IntegrationApi {
    */
   public triggerSync = async (
     accountId: string,
-    provider: 'ynab' | 'plaid'
+    provider: 'ynab' | 'plaid',
+    organizationId: string
   ): Promise<{ message: string; accountId: string; provider: string }> => {
-    const response = await this.api.post(`/integration/${accountId}/sync`, { provider }).response;
+    const response = await this.api.post(`/integration/${accountId}/sync`, {
+      provider,
+      organizationId
+    }).response;
     return (await response.body.json()) as unknown as { message: string; accountId: string; provider: string };
   };
 }

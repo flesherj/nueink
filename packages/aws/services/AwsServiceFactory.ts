@@ -1,6 +1,8 @@
 import { CloudWatchMetricsService } from './CloudWatchMetricsService';
 import { SecretsManagerService } from './SecretsManagerService';
 import { EventBridgePublisher } from '../events/EventBridgePublisher';
+import { BedrockService } from './BedrockService';
+import { BedrockCategorizationProvider } from './BedrockCategorizationProvider';
 
 /**
  * Factory for creating AWS infrastructure service instances
@@ -41,4 +43,15 @@ export class AwsServiceFactory {
    */
   public eventBridge = (eventBusName: string): EventBridgePublisher =>
     new EventBridgePublisher(eventBusName);
+
+  /**
+   * Create Bedrock service for AI capabilities
+   */
+  public bedrock = (): BedrockService => new BedrockService();
+
+  /**
+   * Create Bedrock AI categorization provider
+   */
+  public bedrockCategorization = (): BedrockCategorizationProvider =>
+    new BedrockCategorizationProvider();
 }

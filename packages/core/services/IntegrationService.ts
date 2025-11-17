@@ -292,7 +292,29 @@ export class IntegrationService {
 
     await this.update(config.integrationId, {
       syncedAt: new Date(),
-      lastSyncError: undefined, // Clear any previous errors
+      syncInProgress: false,     // Clear in-progress flag
+      lastSyncError: undefined,  // Clear any previous errors
+      updatedAt: new Date(),
+    });
+  };
+
+  /**
+   * Mark sync as failed and record error
+   * Called when sync encounters an error
+   */
+  public markSyncFailed = async (
+    accountId: string,
+    provider: FinancialProvider,
+    error: string
+  ): Promise<void> => {
+    const config = await this.findByAccountIdAndProvider(accountId, provider);
+    if (!config) {
+      throw new Error(`Integration not found for ${accountId}/${provider}`);
+    }
+
+    await this.update(config.integrationId, {
+      syncInProgress: false,  // Clear in-progress flag
+      lastSyncError: error,   // Record error
       updatedAt: new Date(),
     });
   };

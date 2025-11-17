@@ -11,6 +11,16 @@ export interface TransactionSplitRepository<T> extends Repository<T> {
   findByTransaction(transactionId: string): Promise<T[]>;
 
   /**
+   * Find all splits for an organization (paginated)
+   * Used by AI categorization to identify uncategorized transactions
+   */
+  findByOrganization(
+    organizationId: string,
+    limit?: number,
+    cursor?: string
+  ): Promise<PaginationResult<T>>;
+
+  /**
    * Find all splits for an organization by category (paginated)
    * Useful for budget tracking and category-based spending analysis
    */

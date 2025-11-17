@@ -15,6 +15,8 @@ export interface IntegrationConfig {
   expiresAt?: Date;                // Token expiration timestamp (cached for convenience)
   status: IntegrationConfigStatus; // active, disabled, error, expired
   syncedAt?: Date;                 // Last successful sync timestamp
+  syncInProgress?: boolean;        // True when sync is actively running
+  syncStartedAt?: Date;            // When current/last sync started
   lastSyncError?: string;          // Last error message (if any)
   syncEnabled: boolean;            // User can disable sync temporarily
   createdAt: Date;

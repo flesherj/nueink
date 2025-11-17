@@ -28,6 +28,8 @@ class IntegrationController {
         provider: integration.provider,
         status: integration.status,
         syncedAt: integration.syncedAt,
+        syncInProgress: integration.syncInProgress,
+        syncStartedAt: integration.syncStartedAt,
         lastSyncError: integration.lastSyncError,
         syncEnabled: integration.syncEnabled,
         expiresAt: integration.expiresAt,

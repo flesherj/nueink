@@ -16,6 +16,7 @@ import {env} from '$amplify/env/financial-sync';
 import {Environment} from './Environment';
 import {NueInkRepositoryFactory} from '@nueink/aws';
 import {AwsServiceFactory} from '@nueink/aws/services';
+import {CloudWatchMetricsService} from '@nueink/aws/services/CloudWatchMetricsService';
 import {
     type SyncDateRange,
     type ProviderFactory,
@@ -26,6 +27,7 @@ import {
     extractDetail,
     NueInkServiceFactory,
 } from '@nueink/core';
+import {TransactionCategorizationService} from '@nueink/core/services/TransactionCategorizationService';
 import {YnabProviderFactory} from '@nueink/ynab';
 import {PlaidProviderFactory} from '@nueink/plaid';
 import {Configuration, PlaidApi, PlaidEnvironments} from 'plaid';
@@ -57,7 +59,15 @@ const awsFactory = AwsServiceFactory.getInstance();
 // Domain services (from NueInkServiceFactory)
 const financialAccountService = serviceFactory.financialAccount();
 const transactionService = serviceFactory.transaction();
+const transactionSplitService = serviceFactory.transactionSplit();
 const integrationService = serviceFactory.integration(awsFactory.secretsManager());
+
+// AI categorization service
+const categorizationService = new TransactionCategorizationService(
+    transactionService,
+    transactionSplitService,
+    awsFactory.bedrockCategorization()
+);
 
 // AWS infrastructure services (from AwsServiceFactory)
 const metricsService = awsFactory.metrics();
@@ -254,6 +264,14 @@ const syncIntegration = async (
 
         const organizationId = config.organizationId;
 
+        // Mark sync as in progress
+        await integrationService.update(config.integrationId, {
+            syncInProgress: true,
+            syncStartedAt: new Date(),
+            updatedAt: new Date(),
+        });
+        console.log(`Sync started for ${accountId}/${provider}`);
+
         // Get access token from Secrets Manager
         let tokens = await integrationService.getTokens(accountId, provider);
 
@@ -306,9 +324,9 @@ const syncIntegration = async (
             }
         }
 
-        // Define date range for transaction sync (last 30 days)
+        // Define date range for transaction sync (last 12 months for pattern analysis)
         const dateRange: SyncDateRange = {
-            startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+            startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
             endDate: new Date(),
         };
 
@@ -405,9 +423,66 @@ const syncIntegration = async (
                 Provider: provider,
                 UserId: accountId,
             });
+
+            console.log('here i am');
+
+            // AI categorization - always run after transaction sync to catch any uncategorized splits
+            // This handles both newly created transactions and existing transactions with uncategorized splits
+            const categorizationStartTime = Date.now();
+            try {
+                console.log(`Starting AI categorization for ${organizationId} (${transactionStorageResult.created} created, ${transactionStorageResult.updated} updated)...`);
+                const categorizationResult = await categorizationService.categorizeUncategorized(organizationId);
+
+                console.log(`AI categorization complete: ${categorizationResult.processed} processed, ${categorizationResult.splitsCreated} splits created, ${categorizationResult.errors} errors`);
+
+                // Record success metrics
+                const categorizationDuration = Date.now() - categorizationStartTime;
+                metricsService.record('CATEGORIZATION_DURATION', categorizationDuration, {
+                    OrganizationId: organizationId,
+                });
+
+                metricsService.record('TRANSACTIONS_CATEGORIZED', categorizationResult.processed, {
+                    OrganizationId: organizationId,
+                    Provider: provider,
+                });
+
+                metricsService.record('SPLITS_CREATED', categorizationResult.splitsCreated, {
+                    OrganizationId: organizationId,
+                    SplitType: categorizationResult.splitsCreated === categorizationResult.processed ? 'single' : 'multi',
+                });
+
+                // Record errors if any
+                if (categorizationResult.errors > 0) {
+                    metricsService.record('CATEGORIZATION_FAILURE', categorizationResult.errors, {
+                        OrganizationId: organizationId,
+                        ErrorType: 'partial_failure',
+                    });
+                }
+            } catch (categorizationError: any) {
+                // Log but don't fail the sync if categorization fails
+                console.error('AI categorization failed:', categorizationError);
+
+                // Record failure metric
+                const errorType = CloudWatchMetricsService.categorizeError(categorizationError);
+                metricsService.record('CATEGORIZATION_FAILURE', 1, {
+                    OrganizationId: organizationId,
+                    ErrorType: errorType,
+                });
+            }
         }
     } catch (error: any) {
         console.error(`Failed to sync ${provider} for account ${accountId}:`, error);
+
+        // Mark sync as failed and record error
+        try {
+            await integrationService.markSyncFailed(
+                accountId,
+                provider,
+                error.message || 'Unknown sync error'
+            );
+        } catch (updateError) {
+            console.error('Failed to update sync status:', updateError);
+        }
 
         // Record error metric
         metricsService.record('SYNC_FAILURE', 1, {

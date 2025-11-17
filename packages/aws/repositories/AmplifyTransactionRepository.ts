@@ -23,6 +23,16 @@ export class AmplifyTransactionRepository
   };
 
   public save = async (entity: TransactionEntity): Promise<TransactionEntity> => {
+    console.log(`[TransactionRepository] Attempting to save transaction: ${entity.name} (${entity.transactionId})`);
+    console.log(`[TransactionRepository] Entity data:`, JSON.stringify({
+      transactionId: entity.transactionId,
+      externalTransactionId: entity.externalTransactionId,
+      name: entity.name,
+      amount: entity.amount,
+      date: entity.date,
+      organizationId: entity.organizationId,
+    }, null, 2));
+
     const response = await this.dbClient.models.Transaction.create({
       transactionId: entity.transactionId,
       financialAccountId: entity.financialAccountId,
@@ -46,7 +56,21 @@ export class AmplifyTransactionRepository
       profileOwner: entity.profileOwner,
     });
 
+    console.log(`[TransactionRepository] Response:`, JSON.stringify({
+      hasData: !!response.data,
+      errors: response.errors,
+      dataType: Array.isArray(response.data) ? 'array' : typeof response.data,
+      data: response.data && !Array.isArray(response.data) ? {
+        transactionId: (response.data as any).transactionId,
+        name: (response.data as any).name
+      } : null,
+    }, null, 2));
+
     if (!response.data) {
+      console.error(`[TransactionRepository] Failed to create transaction ${entity.name}:`, {
+        errors: response.errors,
+        fullResponse: JSON.stringify(response, null, 2),
+      });
       throw new Error('Failed to create Transaction: response.data is null');
     }
     return this.toTransaction(response.data);

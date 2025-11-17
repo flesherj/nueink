@@ -23,11 +23,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Feed',
+          title: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="view-dashboard" size={size} color={color} />
           ),
-          headerTitle: 'Transaction Feed',
+          headerTitle: 'Dashboard',
+        }}
+      />
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          title: 'Transactions',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="format-list-bulleted" size={size} color={color} />
+          ),
+          headerTitle: 'Transactions',
         }}
       />
       <Tabs.Screen

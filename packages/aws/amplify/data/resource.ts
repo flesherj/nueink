@@ -186,6 +186,8 @@ const schema = a.schema({
             category: a.string().required(),            // Category for this split
             amount: a.float().required(),               // Portion of transaction amount (in cents)
             percentage: a.float(),                      // Optional: Percentage of total transaction
+            aiGenerated: a.boolean(),                   // True if AI created this split (vs user manual)
+            confidence: a.float(),                      // AI confidence 0-100 (only if aiGenerated=true)
             notes: a.string(),                          // Optional: Notes specific to this split
             createdAt: a.datetime().required(),
             updatedAt: a.datetime().required(),
@@ -198,7 +200,8 @@ const schema = a.schema({
             ])
             .secondaryIndexes(index => [
                 index('transactionId'),
-                index('organizationId').sortKeys(['category']),
+                index('organizationId'),
+                index('organizationId').sortKeys(['category']).queryField('listTransactionSplitByOrganizationIdAndCategory'),
                 index('category')
             ]),
 
@@ -273,6 +276,34 @@ const schema = a.schema({
             .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
             .secondaryIndexes(index => [index('organizationId')]),
 
+        // Financial Insights: AI-generated spending insights
+        Insight: a.model({
+            insightId: a.id().required(),
+            organizationId: a.string().required(),      // FK to Organization
+            type: a.string().required(),                // category_spending|recurring_bill|anomaly|suggestion
+            title: a.string().required(),               // "You spent $995/month on groceries"
+            description: a.string().required(),         // Detailed insight text
+            category: a.string(),                       // Related category (if applicable)
+            amount: a.float(),                          // Related amount (if applicable)
+            priority: a.string().required(),            // high|medium|low
+            status: a.string().required(),              // active|dismissed|acted_upon
+            periodStart: a.datetime(),                  // Analysis period start
+            periodEnd: a.datetime(),                    // Analysis period end
+            metadata: a.json(),                         // Additional structured data
+            createdAt: a.datetime().required(),
+            updatedAt: a.datetime().required(),
+            profileOwner: a.string(),
+        })
+            .identifier(['insightId'])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey()
+            ])
+            .secondaryIndexes(index => [
+                index('organizationId').sortKeys(['createdAt']),
+                index('organizationId').sortKeys(['priority'])
+            ]),
+
         // IntegrationConfig: OAuth token refs stored in Secrets Manager
         // Secret name computed: nueink/integration/{accountId}/{provider}
         IntegrationConfig: a.model({
@@ -283,6 +314,8 @@ const schema = a.schema({
             expiresAt: a.datetime(),                    // Token expiration (cached)
             status: a.string().required(),              // active|disabled|error|expired
             syncedAt: a.datetime(),                     // Last successful sync timestamp
+            syncInProgress: a.boolean(),                // True when sync is actively running
+            syncStartedAt: a.datetime(),                // When current/last sync started
             lastSyncError: a.string(),                  // Last error message (if any)
             syncEnabled: a.boolean().required(),        // User can disable sync temporarily
             createdAt: a.datetime().required(),

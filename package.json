@@ -11,6 +11,7 @@
     "packages/*"
   ],
   "scripts": {
+    "transactions:clear": "yarn workspace @nueink/aws clear-transactions",
     "build": "yarn build:core && yarn build:aws && yarn build:ui && yarn build:plaid && yarn build:sdk && yarn build:ynab",
     "build:aws": "yarn workspace @nueink/aws build",
     "build:core": "yarn workspace @nueink/core build",
@@ -30,6 +31,9 @@
     "sandbox:dev": "yarn sandbox:clean && yarn workspace @nueink/aws ampx sandbox --profile solotech --identifier dev",
     "sandbox:dev:delete": "yarn workspace @nueink/aws ampx sandbox delete --profile solotech --identifier dev",
     "sandbox:watch": "cd packages/aws && ./watch-packages.sh",
+    "sandbox:redeploy:api": "yarn workspace @nueink/aws touch:api",
+    "sandbox:redeploy:financial:connect": "yarn workspace @nueink/aws touch:financial:connect",
+    "sandbox:redeploy:financial:sync": "yarn workspace @nueink/aws touch:financial:sync",
     "ios": "./apps/build.sh native ios",
     "ios:dev": "./apps/build.sh native ios dev",
     "ios:clean": "rm -Rf $(xcrun simctl get_app_container booted com.nueink.app data)",

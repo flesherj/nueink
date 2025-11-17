@@ -46,18 +46,26 @@ export default function ConnectAccountsScreen() {
    * Uses REST API client with automatic Cognito authentication
    */
   const syncProvider = async (provider: 'ynab' | 'plaid') => {
-    if (!account) {
-      Alert.alert('Error', 'Account not loaded');
+    if (!account?.defaultOrgId) {
+      Alert.alert('Error', 'Account or organization not loaded');
       return;
     }
 
     try {
       setSyncing(provider);
 
-      console.log('Triggering sync:', { accountId: account.accountId, provider });
+      console.log('Triggering sync:', {
+        accountId: account.accountId,
+        provider,
+        organizationId: account.defaultOrgId
+      });
 
       // Call REST API - authenticated with Cognito credentials
-      const result = await integrationApi.triggerSync(account.accountId, provider);
+      const result = await integrationApi.triggerSync(
+        account.accountId,
+        provider,
+        account.defaultOrgId
+      );
 
       console.log('Sync triggered:', result);
 
@@ -67,8 +75,18 @@ export default function ConnectAccountsScreen() {
         [{ text: 'OK' }]
       );
 
-      // Refresh provider status after a short delay
-      setTimeout(checkConnectedProviders, 2000);
+      // Poll for sync status updates
+      // The Lambda may take a few seconds to start, so poll every 2 seconds for 60 seconds
+      let pollCount = 0;
+      const pollInterval = setInterval(async () => {
+        pollCount++;
+        await checkConnectedProviders();
+
+        // Stop polling after 30 checks (60 seconds) or if we're no longer syncing
+        if (pollCount >= 30) {
+          clearInterval(pollInterval);
+        }
+      }, 2000);
     } catch (error) {
       console.error('Sync error:', error);
       Alert.alert(
