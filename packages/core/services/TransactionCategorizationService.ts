@@ -223,65 +223,52 @@ export class TransactionCategorizationService {
   private findUncategorizedTransactions = async (
     organizationId: string
   ): Promise<Transaction[]> => {
+    const findStart = Date.now();
+
     // Get all transactions for org
+    const txStart = Date.now();
     const txResult = await this.transactionService.findByOrganization(
       organizationId,
       10000
     );
     const allTransactions = txResult.items;
-    console.log(`[Categorization] Found ${allTransactions.length} total transactions`);
+    console.log(`[CATEGORIZATION] Fetched ${allTransactions.length} transactions in ${Date.now() - txStart}ms`);
 
     // Get all existing splits
+    const splitStart = Date.now();
     const splitResult = await this.splitService.findByOrganization(
       organizationId,
       100000
     );
     const existingSplits = splitResult.items;
-    console.log(`[Categorization] Found ${existingSplits.length} existing splits`);
+    console.log(`[CATEGORIZATION] Fetched ${existingSplits.length} splits in ${Date.now() - splitStart}ms`);
 
     // Build map of transactionId -> splits
+    const mapStart = Date.now();
     const splitsByTransaction = new Map<string, TransactionSplit[]>();
     for (const split of existingSplits) {
       const splits = splitsByTransaction.get(split.transactionId) || [];
       splits.push(split);
       splitsByTransaction.set(split.transactionId, splits);
     }
+    console.log(`[CATEGORIZATION] Built split lookup map in ${Date.now() - mapStart}ms`);
 
     // Find transactions that need AI categorization:
     // Transactions with ONLY "Uncategorized" splits (auto-created defaults by TransactionService)
-    // Note: TransactionService automatically creates default "Uncategorized" splits for all transactions,
-    // so there should never be transactions with NO splits at all.
+    const filterStart = Date.now();
     const uncategorized = allTransactions.filter((tx) => {
       const splits = splitsByTransaction.get(tx.transactionId);
 
       // No splits - needs categorization (edge case, shouldn't happen normally)
       if (!splits || splits.length === 0) {
-        console.log(`[Categorization] Transaction ${tx.transactionId} has NO splits`);
         return true;
       }
 
       // Has only uncategorized splits - needs AI to improve
-      const allUncategorized = splits.every(s => {
-        console.log(`[Categorization] Transaction ${tx.transactionId} split category: "${s.category}"`);
-        return s.category === 'Uncategorized';
-      });
-
-      if (allUncategorized) {
-        console.log(`[Categorization] Transaction ${tx.transactionId} (${tx.name}) needs categorization - all ${splits.length} splits are Uncategorized`);
-      }
-
-      return allUncategorized;
+      return splits.every(s => s.category === 'Uncategorized');
     });
-
-    console.log(`[Categorization] ${uncategorized.length} transactions need AI categorization (no splits or only Uncategorized)`);
-
-    if (uncategorized.length > 0) {
-      console.log(`[Categorization] Sample transactions:`, uncategorized.slice(0, 5).map(tx => ({
-        name: tx.name,
-        amount: tx.amount,
-        date: tx.date,
-      })));
-    }
+    console.log(`[CATEGORIZATION] Filtered ${uncategorized.length} uncategorized transactions in ${Date.now() - filterStart}ms`);
+    console.log(`[CATEGORIZATION] Total findUncategorized time: ${Date.now() - findStart}ms`);
 
     return uncategorized;
   };
