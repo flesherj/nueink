@@ -155,16 +155,15 @@ export class TransactionCategorizationService {
   /**
    * Create transaction splits from AI categorization result
    * Replaces any existing uncategorized splits
+   *
+   * Optimization: If both existing and new splits are single-category,
+   * update the existing split instead of delete+create
    */
   private createSplitsFromAI = async (
     transaction: Transaction,
     result: CategorizationResult
   ): Promise<void> => {
     const now = new Date();
-
-    // Delete existing splits for this transaction (they're all "Uncategorized")
-    await this.splitService.deleteByTransaction(transaction.transactionId);
-    console.log(`[Categorization] Deleted existing uncategorized splits for transaction ${transaction.transactionId}`);
 
     // Validate percentages sum to 100
     const totalPercentage = result.splits.reduce(
@@ -176,6 +175,34 @@ export class TransactionCategorizationService {
         `Split percentages must sum to 100, got ${totalPercentage}`
       );
     }
+
+    // Fetch existing splits to check if we can optimize with update
+    const existingSplits = await this.splitService.findByTransaction(transaction.transactionId);
+
+    // Optimization: If both existing and new are single-category, update instead of delete+create
+    if (existingSplits.length === 1 && result.splits.length === 1) {
+      const existingSplit = existingSplits[0];
+      const aiSplit = result.splits[0];
+      const splitAmount = transaction.amount; // Single split = 100% of amount
+
+      await this.splitService.update(existingSplit.splitId, {
+        category: aiSplit.category,
+        amount: splitAmount,
+        percentage: aiSplit.percentage,
+        aiGenerated: true,
+        confidence: aiSplit.confidence,
+        updatedAt: now,
+      });
+
+      console.log(
+        `[Categorization] Updated existing split for transaction ${transaction.transactionId} (${existingSplit.category} → ${aiSplit.category})`
+      );
+      return;
+    }
+
+    // Multi-category or mismatch: delete existing and create new splits
+    await this.splitService.deleteByTransaction(transaction.transactionId);
+    console.log(`[Categorization] Deleted ${existingSplits.length} existing splits for transaction ${transaction.transactionId}`);
 
     // Create splits
     const splits: TransactionSplit[] = result.splits.map((aiSplit) => {
@@ -213,7 +240,7 @@ export class TransactionCategorizationService {
     }
 
     console.log(
-      `Created ${splits.length} AI splits for transaction ${transaction.transactionId}`
+      `[Categorization] Created ${splits.length} AI splits for transaction ${transaction.transactionId}`
     );
   };
 

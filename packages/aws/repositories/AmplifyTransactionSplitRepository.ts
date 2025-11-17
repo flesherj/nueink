@@ -52,6 +52,8 @@ export class AmplifyTransactionSplitRepository
     if (entity.amount !== undefined) updates.amount = entity.amount;
     if (entity.percentage !== undefined) updates.percentage = entity.percentage;
     if (entity.notes !== undefined) updates.notes = entity.notes;
+    if (entity.aiGenerated !== undefined) updates.aiGenerated = entity.aiGenerated;
+    if (entity.confidence !== undefined) updates.confidence = entity.confidence;
     if (entity.updatedAt !== undefined) updates.updatedAt = entity.updatedAt;
 
     const response = await this.dbClient.models.TransactionSplit.update(updates);
@@ -149,6 +151,8 @@ export class AmplifyTransactionSplitRepository
       amount: data.amount,
       percentage: data.percentage ?? undefined,
       notes: data.notes ?? undefined,
+      aiGenerated: data.aiGenerated ?? undefined,
+      confidence: data.confidence ?? undefined,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,

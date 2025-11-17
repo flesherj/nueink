@@ -66,6 +66,8 @@ export interface TransactionSplit {
   amount: number;                  // Portion of transaction amount in cents
   percentage?: number;             // Optional: Percentage of total (0-100)
   notes?: string;                  // Optional: Notes specific to this split
+  aiGenerated?: boolean;           // True if AI created this split (vs user manual)
+  confidence?: number;             // AI confidence 0-100 (only if aiGenerated=true)
   createdAt: Date;
   updatedAt: Date;
   profileOwner: string;
