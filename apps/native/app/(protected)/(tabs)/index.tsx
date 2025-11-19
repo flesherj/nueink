@@ -26,13 +26,14 @@ export default function DashboardScreen() {
   const testTransactionAmount = -12500; // $125.00 expense
   const testCurrency = 'USD';
 
-  // Test categories to render
+  // Test categories to render - start with 1, then scale up
   const testCategories = [
     { category: 'Housing: Mortgage/Rent', emoji: '🏠' },
-    { category: 'Housing: Utilities', emoji: '💡' },
-    { category: 'Housing: Insurance', emoji: '🛡️' },
-    { category: 'Housing: Maintenance', emoji: '🔧' },
-    { category: 'Housing: Property Tax', emoji: '🏛️' },
+    // Uncomment to add more circles for performance testing:
+    // { category: 'Housing: Utilities', emoji: '💡' },
+    // { category: 'Housing: Insurance', emoji: '🛡️' },
+    // { category: 'Housing: Maintenance', emoji: '🔧' },
+    // { category: 'Housing: Property Tax', emoji: '🏛️' },
   ];
 
   useEffect(() => {
@@ -170,6 +171,68 @@ export default function DashboardScreen() {
           }
           contentContainerStyle={styles.scrollContent}
         >
+          {/* CategoryCircle Test Area */}
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.comingSoonTitle}>
+                🧪 CategoryCircle Test
+              </Text>
+              <Text variant="bodySmall" style={styles.comingSoonText}>
+                Transaction: {formatBalance(testTransactionAmount, testCurrency)}{'\n'}
+                Selected: {selectedCategories.length} categories
+              </Text>
+
+              {/* Test circles in a grid layout */}
+              <View style={styles.circleTestContainer}>
+                {testCategories.map((cat, index) => {
+                  const selectedCategory = selectedCategories.find(
+                    s => s.category === cat.category
+                  );
+
+                  // Position in a circle pattern
+                  // Container is 400px tall, so center is at 200px
+                  const containerHeight = 400;
+                  const centerX = 0; // Will use transform to position from center
+                  const centerY = containerHeight / 2;
+
+                  const angle = (index / testCategories.length) * 2 * Math.PI - Math.PI / 2;
+                  const radius = 120;
+                  const x = Math.cos(angle) * radius;
+                  const y = Math.sin(angle) * radius;
+
+                  return (
+                    <View
+                      key={cat.category}
+                      style={{
+                        position: 'absolute',
+                        left: centerX,
+                        top: centerY,
+                        transform: [{ translateX: x }, { translateY: y }],
+                      }}
+                    >
+                      <CategoryCircle
+                        category={cat.category}
+                        emoji={cat.emoji}
+                        amount={selectedCategory?.amount}
+                        transactionAmount={testTransactionAmount}
+                        transactionCurrency={testCurrency}
+                        onCategorySelect={handleCategorySelect}
+                        onAmountChange={handleAmountChange}
+                        formatAmount={formatBalance}
+                        getAvailableForCategory={getAvailableForCategory}
+                        editingCategory={editingCategory}
+                        editAmountInput={editAmountInput}
+                        onStartEdit={handleStartEdit}
+                        onSaveEdit={handleSaveEdit}
+                        setEditAmountInput={setEditAmountInput}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            </Card.Content>
+          </Card>
+
           {/* What You Have Left Card */}
           <Card style={styles.card}>
             <Card.Content>
@@ -209,60 +272,6 @@ export default function DashboardScreen() {
                   )}
                 </View>
               )}
-            </Card.Content>
-          </Card>
-
-          {/* CategoryCircle Test Area */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.comingSoonTitle}>
-                🧪 CategoryCircle Test
-              </Text>
-              <Text variant="bodySmall" style={styles.comingSoonText}>
-                Transaction: {formatBalance(testTransactionAmount, testCurrency)}{'\n'}
-                Selected: {selectedCategories.length} categories
-              </Text>
-
-              {/* Test circles in a grid layout */}
-              <View style={styles.circleTestContainer}>
-                {testCategories.map((cat, index) => {
-                  const selectedCategory = selectedCategories.find(
-                    s => s.category === cat.category
-                  );
-
-                  // Position in a circle pattern
-                  const angle = (index / testCategories.length) * 2 * Math.PI - Math.PI / 2;
-                  const radius = 120;
-                  const x = Math.cos(angle) * radius;
-                  const y = Math.sin(angle) * radius;
-
-                  return (
-                    <Animated.View
-                      key={cat.category}
-                      style={{
-                        transform: [{ translateX: x }, { translateY: y }],
-                      }}
-                    >
-                      <CategoryCircle
-                        category={cat.category}
-                        emoji={cat.emoji}
-                        amount={selectedCategory?.amount}
-                        transactionAmount={testTransactionAmount}
-                        transactionCurrency={testCurrency}
-                        onCategorySelect={handleCategorySelect}
-                        onAmountChange={handleAmountChange}
-                        formatAmount={formatBalance}
-                        getAvailableForCategory={getAvailableForCategory}
-                        editingCategory={editingCategory}
-                        editAmountInput={editAmountInput}
-                        onStartEdit={handleStartEdit}
-                        onSaveEdit={handleSaveEdit}
-                        setEditAmountInput={setEditAmountInput}
-                      />
-                    </Animated.View>
-                  );
-                })}
-              </View>
             </Card.Content>
           </Card>
         </ScrollView>

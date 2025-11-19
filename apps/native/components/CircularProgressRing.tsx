@@ -7,6 +7,7 @@ interface CircularProgressRingProps {
   progress: number; // 0 to 1
   trackColor: string;
   progressColor: string;
+  innerRadius?: number; // Optional inner radius for filled ring
 }
 
 /**
@@ -14,16 +15,16 @@ interface CircularProgressRingProps {
  * Heavily memoized for performance - only re-renders when props actually change
  */
 export const CircularProgressRing = memo<CircularProgressRingProps>(
-  ({ size, strokeWidth, progress, trackColor, progressColor }) => {
+  ({ size, strokeWidth, progress, trackColor, progressColor, innerRadius: customInnerRadius }) => {
     const center = size / 2;
-    const radius = center - strokeWidth / 2;
-    const circumference = 2 * Math.PI * radius;
+    const outerRadius = center - strokeWidth / 2;
+    const innerRadius = customInnerRadius ?? outerRadius - 10; // Default: 10px ring width
 
     // Calculate arc path for progress
     const angle = progress * 360;
 
     // Helper to convert polar to cartesian coordinates
-    const polarToCartesian = (angleInDegrees: number): { x: number; y: number } => {
+    const polarToCartesian = (radius: number, angleInDegrees: number): { x: number; y: number } => {
       const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
       return {
         x: center + radius * Math.cos(angleInRadians),
@@ -31,51 +32,58 @@ export const CircularProgressRing = memo<CircularProgressRingProps>(
       };
     };
 
-    const createArcPath = (endAngle: number): string => {
+    // Create filled ring segment path (donut slice)
+    const createRingSegmentPath = (endAngle: number): string => {
       if (endAngle <= 0) return '';
-      if (endAngle >= 360) {
-        // Full circle - use two arcs to avoid rendering issues
-        const halfway = polarToCartesian(180);
-        const end = polarToCartesian(359.99); // Almost full circle
+
+      // Special case: full circle (use two semicircles to avoid arc issues at 360°)
+      if (endAngle >= 359.9) {
+        const outerStart = polarToCartesian(outerRadius, 0);
+        const outerMid = polarToCartesian(outerRadius, 180);
+        const innerMid = polarToCartesian(innerRadius, 180);
+        const innerStart = polarToCartesian(innerRadius, 0);
+
         return [
-          'M', center, center - radius,
-          'A', radius, radius, 0, 0, 1, halfway.x, halfway.y,
-          'A', radius, radius, 0, 0, 1, end.x, end.y,
+          'M', outerStart.x, outerStart.y,
+          'A', outerRadius, outerRadius, 0, 1, 1, outerMid.x, outerMid.y, // First half
+          'A', outerRadius, outerRadius, 0, 1, 1, outerStart.x, outerStart.y, // Second half
+          'L', innerStart.x, innerStart.y,
+          'A', innerRadius, innerRadius, 0, 1, 0, innerMid.x, innerMid.y, // First half (reverse)
+          'A', innerRadius, innerRadius, 0, 1, 0, innerStart.x, innerStart.y, // Second half (reverse)
+          'Z',
         ].join(' ');
       }
 
-      const start = polarToCartesian(0);
-      const end = polarToCartesian(endAngle);
       const largeArcFlag = endAngle > 180 ? 1 : 0;
 
+      // Outer arc points
+      const outerStart = polarToCartesian(outerRadius, 0);
+      const outerEnd = polarToCartesian(outerRadius, endAngle);
+
+      // Inner arc points (reverse direction)
+      const innerEnd = polarToCartesian(innerRadius, endAngle);
+      const innerStart = polarToCartesian(innerRadius, 0);
+
+      // Create path: outer arc clockwise, then inner arc counter-clockwise
       return [
-        'M', start.x, start.y,
-        'A', radius, radius, 0, largeArcFlag, 1, end.x, end.y,
+        'M', outerStart.x, outerStart.y, // Start at outer radius, 0°
+        'A', outerRadius, outerRadius, 0, largeArcFlag, 1, outerEnd.x, outerEnd.y, // Outer arc
+        'L', innerEnd.x, innerEnd.y, // Line to inner radius
+        'A', innerRadius, innerRadius, 0, largeArcFlag, 0, innerStart.x, innerStart.y, // Inner arc (reverse)
+        'Z', // Close path
       ].join(' ');
     };
 
-    const arcPath = createArcPath(angle);
+    const ringPath = createRingSegmentPath(angle);
 
     return (
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
-        {/* Background track */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={radius}
-          stroke={trackColor}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-
-        {/* Progress arc */}
+        {/* Progress - filled ring segment only, no inner circle stroke */}
         {progress > 0 && (
           <Path
-            d={arcPath}
-            stroke={progressColor}
-            strokeWidth={strokeWidth}
-            fill="none"
-            strokeLinecap="round"
+            d={ringPath}
+            fill={progressColor}
+            fillOpacity={0.9}
           />
         )}
       </Svg>

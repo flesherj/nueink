@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo, memo } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput as RNTextInput } from 'react';
+import { View, StyleSheet, TouchableOpacity, TextInput as RNTextInput } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { CircularProgressRing } from './CircularProgressRing';
@@ -61,17 +61,22 @@ export const CategoryCircle = memo<CategoryCircleProps>(
     const displayAmount = dragAmount ?? amount;
     const isSelected = displayAmount !== undefined && displayAmount > 0;
 
-    // Memoize constants
-    const circleSize = 100;
-    const circleRadius = 42;
+    // Memoize constants - increased size to prevent clipping
+    const circleSize = 120; // Increased from 100 to give handle room
     const strokeWidth = 3;
     const handleSize = 8;
 
-    // Memoize colors
+    // Calculate radii to match CircularProgressRing
+    const center = circleSize / 2; // 60
+    const outerRadius = center - strokeWidth / 2; // 58.5
+    const innerRadius = 47; // Slightly smaller than button radius to overlap and eliminate gap
+    const dragHandleRadius = (outerRadius + innerRadius) / 2; // Drag handle sits in middle of ring
+
+    // Memoize colors from theme
     const trackColor = 'rgba(103, 80, 164, 0.4)';
     const progressColor = '#6750A4';
-    const handleColor = '#6750A4';
-    const handleStrokeColor = '#FFFFFF';
+    const handleColor = theme.colors.tertiary; // Inner dot
+    const handleStrokeColor = theme.colors.secondary; // Outer ring
 
     // Calculate progress (0 to 1)
     const progress = useMemo(() => {
@@ -108,7 +113,7 @@ export const CategoryCircle = memo<CategoryCircleProps>(
     const gesture = Gesture.Pan()
       .minDistance(0)
       .onStart(() => {
-        lastAngleRef.current = undefined;
+        lastAngleRef.current = angle; // Initialize to current angle to prevent reset
         isSelectedRef.current = amount !== undefined && amount > 0;
         setDragAmount(amount ?? 0);
       })
@@ -183,6 +188,7 @@ export const CategoryCircle = memo<CategoryCircleProps>(
               progress={progress}
               trackColor={trackColor}
               progressColor={progressColor}
+              innerRadius={innerRadius}
             />
 
             {/* Center button */}
@@ -195,52 +201,52 @@ export const CategoryCircle = memo<CategoryCircleProps>(
               onPress={() => onCategorySelect(category)}
               activeOpacity={0.7}
             >
-              <Text style={styles.emoji}>{emoji}</Text>
+              <View style={styles.centerContent}>
+                <Text style={styles.emoji}>{emoji}</Text>
 
-              {/* Amount display */}
-              {isSelected && displayAmount && (
-                editingCategory === category ? (
-                  <RNTextInput
-                    value={editAmountInput}
-                    onChangeText={setEditAmountInput}
-                    keyboardType="decimal-pad"
-                    autoFocus
-                    onBlur={onSaveEdit}
-                    onSubmitEditing={onSaveEdit}
-                    style={styles.amountInput}
-                    placeholder="0.00"
-                    selectTextOnFocus
-                    placeholderTextColor="rgba(103, 80, 164, 0.4)"
-                  />
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => onStartEdit(category, displayAmount)}
-                    activeOpacity={0.7}
-                    style={styles.amountTouchable}
-                  >
-                    <Text style={styles.amount}>
-                      {formatAmount(
-                        transactionAmount < 0 ? -displayAmount : displayAmount,
-                        transactionCurrency
-                      ).replace(/[+\-]/, '')}
-                    </Text>
-                  </TouchableOpacity>
-                )
-              )}
+                {/* Amount display */}
+                {isSelected && displayAmount && (
+                  editingCategory === category ? (
+                    <RNTextInput
+                      value={editAmountInput}
+                      onChangeText={setEditAmountInput}
+                      keyboardType="decimal-pad"
+                      autoFocus
+                      onBlur={onSaveEdit}
+                      onSubmitEditing={onSaveEdit}
+                      style={styles.amountInput}
+                      placeholder="0.00"
+                      selectTextOnFocus
+                      placeholderTextColor="rgba(103, 80, 164, 0.4)"
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      onPress={() => onStartEdit(category, displayAmount)}
+                      activeOpacity={0.7}
+                      style={styles.amountTouchable}
+                    >
+                      <Text style={styles.amount}>
+                        {formatAmount(
+                          transactionAmount < 0 ? -displayAmount : displayAmount,
+                          transactionCurrency
+                        ).replace(/[+\-]/, '')}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
             </TouchableOpacity>
 
-            {/* Drag handle */}
-            {isSelected && (
-              <CircularDragHandle
-                size={circleSize}
-                radius={circleRadius}
-                angle={angle}
-                handleSize={handleSize}
-                handleColor={handleColor}
-                handleStrokeColor={handleStrokeColor}
-                handleStrokeWidth={strokeWidth}
-              />
-            )}
+            {/* Drag handle - always visible, sits on outer edge */}
+            <CircularDragHandle
+              size={circleSize}
+              radius={dragHandleRadius}
+              angle={angle}
+              handleSize={handleSize}
+              handleColor={handleColor}
+              handleStrokeColor={handleStrokeColor}
+              handleStrokeWidth={strokeWidth}
+            />
           </View>
         </GestureDetector>
 
@@ -266,42 +272,41 @@ CategoryCircle.displayName = 'CategoryCircle';
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
     alignItems: 'center',
     overflow: 'visible',
   },
   circleContainer: {
     position: 'relative',
-    width: 100,
-    height: 100,
+    width: 120, // Increased to prevent clipping the handle
+    height: 120,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'visible',
   },
   centerButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   centerButtonSelected: {
     borderWidth: 3,
     borderColor: 'rgba(103, 80, 164, 0.9)',
   },
+  centerContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   emoji: {
     fontSize: 28,
+    marginBottom: 2,
   },
   amountTouchable: {
-    position: 'absolute',
-    bottom: 4,
-    left: 0,
-    right: 0,
     alignItems: 'center',
   },
   amount: {
@@ -309,11 +314,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: 'rgba(103, 80, 164, 1)',
     textAlign: 'center',
-    marginTop: 2,
   },
   amountInput: {
-    position: 'absolute',
-    bottom: 4,
     fontSize: 10,
     fontWeight: '700',
     color: 'rgba(103, 80, 164, 1)',
