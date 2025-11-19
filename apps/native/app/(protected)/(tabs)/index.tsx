@@ -1,15 +1,12 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Animated } from 'react-native';
 import { Surface, Text, Card, ActivityIndicator, FAB } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BottomSheet, {
-  BottomSheetScrollView,
-  BottomSheetBackdrop,
-} from '@gorhom/bottom-sheet';
 import { useAccountProvider } from '@nueink/ui';
 import { FinancialAccountApi } from '@nueink/sdk';
 import type { FinancialAccount } from '@nueink/core';
-import { RadialCategoryPicker } from '../../../components/RadialCategoryPicker';
+import { CategoryCircle } from '../../../components/CategoryCircle';
+import { getCategoryColorScheme, getCategoryEmoji } from '../../../constants/categoryColors';
 
 // Create API client
 const financialAccountApi = FinancialAccountApi.create();
@@ -21,21 +18,34 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Test harness for RadialCategoryPicker
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['85%'], []);
+  // Test harness for CategoryCircle
   const [selectedCategories, setSelectedCategories] = useState<
     Array<{ category: string; amount: number }>
-  >([
-    // Pre-select all Housing categories for testing
-    { category: 'Housing: Mortgage/Rent', amount: 5000 },
-    { category: 'Housing: Utilities', amount: 2500 },
-    { category: 'Housing: Insurance', amount: 2000 },
-    { category: 'Housing: Maintenance', amount: 1500 },
-    { category: 'Housing: Property Tax', amount: 1500 },
-  ]);
+  >([]);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editAmountInput, setEditAmountInput] = useState('');
   const testTransactionAmount = -12500; // $125.00 expense
   const testCurrency = 'USD';
+
+  // Test categories with their themed color schemes
+  // Sample from different groups to show color variety
+  const testCategories = [
+    'Food: Groceries',
+    'Food: Restaurants',
+    'Transportation: Gas/Fuel',
+    'Housing: Mortgage/Rent',
+    'Entertainment: Streaming',
+    'Shopping: General',
+    'Healthcare: Pharmacy',
+    'Personal: Fitness',
+  ].map(categoryName => {
+    const colorScheme = getCategoryColorScheme(categoryName);
+    return {
+      category: categoryName,
+      emoji: getCategoryEmoji(categoryName),
+      ...colorScheme,
+    };
+  });
 
   useEffect(() => {
     loadDashboardData();
@@ -95,54 +105,54 @@ export default function DashboardScreen() {
     }).format(amount);
   };
 
-  // Test handlers for RadialCategoryPicker
-  const handleCategorySelect = useCallback((category: string) => {
-    console.log('Category selected:', category);
-    const absAmount = Math.abs(testTransactionAmount);
-
-    const existing = selectedCategories.find(c => c.category === category);
-
-    if (existing) {
-      // Category already selected - deselect it
-      console.log('Deselecting category:', category);
-      setSelectedCategories(prev => prev.filter(c => c.category !== category));
-    } else if (selectedCategories.length === 0) {
-      // First category gets full amount
-      setSelectedCategories([{ category, amount: absAmount }]);
-    } else {
-      // Add category with some of uncategorized amount
-      setSelectedCategories(prev => [...prev, { category, amount: 0 }]);
-    }
-  }, [selectedCategories, testTransactionAmount]);
-
+  // Simple amount-based handler - amount > 0 means selected, amount = 0 means deselected
   const handleAmountChange = useCallback((category: string, amount: number) => {
     console.log('Amount changed:', category, amount);
-    setSelectedCategories(prev =>
-      prev.map(c => (c.category === category ? { ...c, amount } : c))
-    );
+    setSelectedCategories(prev => {
+      if (amount <= 0) {
+        // Remove category if amount is 0 or negative
+        return prev.filter(c => c.category !== category);
+      }
+
+      const existing = prev.find(c => c.category === category);
+      if (existing) {
+        // Update existing category amount
+        return prev.map(c => (c.category === category ? { ...c, amount } : c));
+      } else {
+        // Add new category with amount
+        return [...prev, { category, amount }];
+      }
+    });
   }, []);
 
-  const getUncategorizedAmount = useCallback(() => {
+  // Calculate how much of the transaction is still uncategorized
+  const remainingUncategorized = useMemo(() => {
     const totalAllocated = selectedCategories.reduce((sum, c) => sum + c.amount, 0);
-    return Math.abs(testTransactionAmount) - totalAllocated;
+    const remaining = Math.abs(testTransactionAmount) - totalAllocated;
+    console.log(`[PARENT] 📊 Recalculated remainingUncategorized:`, {
+      totalAllocated,
+      remaining,
+      selectedCategories: selectedCategories.map(c => `${c.category}: ${c.amount}`),
+      timestamp: Date.now()
+    });
+    return remaining;
   }, [selectedCategories, testTransactionAmount]);
 
-  const handleClearAll = useCallback(() => {
-    console.log('Clearing all categories');
-    setSelectedCategories([]);
+  const handleStartEdit = useCallback((category: string, amount: number) => {
+    setEditingCategory(category);
+    setEditAmountInput((amount / 100).toFixed(2));
   }, []);
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
+  const handleSaveEdit = useCallback(() => {
+    if (!editingCategory) return;
+    const dollarValue = parseFloat(editAmountInput);
+    if (!isNaN(dollarValue) && dollarValue >= 0) {
+      const centsValue = Math.round(dollarValue * 100);
+      handleAmountChange(editingCategory, centsValue);
+    }
+    setEditingCategory(null);
+    setEditAmountInput('');
+  }, [editingCategory, editAmountInput, handleAmountChange]);
 
   if (loading) {
     return (
@@ -177,6 +187,51 @@ export default function DashboardScreen() {
           }
           contentContainerStyle={styles.scrollContent}
         >
+          {/* CategoryCircle Test Area */}
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.comingSoonTitle}>
+                🎨 Category Color Schemes
+              </Text>
+              <Text variant="bodySmall" style={styles.comingSoonText}>
+                Each category has its own unique color identity{'\n'}
+                Transaction: {formatBalance(testTransactionAmount, testCurrency)}
+              </Text>
+
+              {/* Test circles in a simple flex layout */}
+              <View style={styles.circleTestContainer}>
+                {testCategories.map((cat) => {
+                  const selectedCategory = selectedCategories.find(
+                    s => s.category === cat.category
+                  );
+
+                  return (
+                    <View key={cat.category} style={styles.circleWrapper}>
+                      <CategoryCircle
+                        category={cat.category}
+                        emoji={cat.emoji}
+                        amount={selectedCategory?.amount}
+                        transactionAmount={testTransactionAmount}
+                        transactionCurrency={testCurrency}
+                        remainingUncategorized={remainingUncategorized}
+                        onAmountChange={handleAmountChange}
+                        formatAmount={formatBalance}
+                        editingCategory={editingCategory}
+                        editAmountInput={editAmountInput}
+                        onStartEdit={handleStartEdit}
+                        onSaveEdit={handleSaveEdit}
+                        setEditAmountInput={setEditAmountInput}
+                        handleColor={cat.handleColor}
+                        handleStrokeColor={cat.handleStrokeColor}
+                        progressColor={cat.handleColor}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            </Card.Content>
+          </Card>
+
           {/* What You Have Left Card */}
           <Card style={styles.card}>
             <Card.Content>
@@ -218,55 +273,7 @@ export default function DashboardScreen() {
               )}
             </Card.Content>
           </Card>
-
-          {/* Coming Soon Cards */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.comingSoonTitle}>
-                🚧 Coming Soon
-              </Text>
-              <Text variant="bodySmall" style={styles.comingSoonText}>
-                • Upcoming bills detection{'\n'}
-                • Available spending calculation{'\n'}
-                • This month's pace{'\n'}
-                • AI discovered patterns{'\n'}
-                • Quick insights & suggestions
-              </Text>
-            </Card.Content>
-          </Card>
         </ScrollView>
-
-        {/* Test FAB for RadialCategoryPicker */}
-        <FAB
-          icon="palette"
-          label="Test Categories"
-          style={styles.fab}
-          onPress={() => bottomSheetRef.current?.expand()}
-        />
-
-        {/* Test Bottom Sheet */}
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={-1}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          backdropComponent={renderBackdrop}
-          backgroundStyle={styles.bottomSheetBackground}
-          handleIndicatorStyle={styles.bottomSheetHandle}
-        >
-          <BottomSheetScrollView style={styles.bottomSheetContent}>
-            <RadialCategoryPicker
-              selectedCategories={selectedCategories}
-              onCategorySelect={handleCategorySelect}
-              onAmountChange={handleAmountChange}
-              onClearAll={handleClearAll}
-              getUncategorizedAmount={getUncategorizedAmount}
-              transactionAmount={testTransactionAmount}
-              transactionCurrency={testCurrency}
-              formatAmount={formatBalance}
-            />
-          </BottomSheetScrollView>
-        </BottomSheet>
       </Surface>
     </GestureHandlerRootView>
   );
@@ -348,28 +355,17 @@ const styles = StyleSheet.create({
   comingSoonText: {
     opacity: 0.6,
     lineHeight: 20,
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-  },
-  bottomSheetBackground: {
-    backgroundColor: '#1a1a1a',
-  },
-  bottomSheetHandle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  bottomSheetContent: {
-    flex: 1,
-    padding: 16,
-  },
-  bottomSheetTitle: {
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  bottomSheetSubtitle: {
-    opacity: 0.6,
     marginBottom: 16,
+  },
+  circleTestContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 20,
+  },
+  circleWrapper: {
+    margin: 8,
   },
 });
