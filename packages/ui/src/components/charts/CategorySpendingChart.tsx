@@ -10,6 +10,8 @@ import {
   LegendComponent,
   MarkPointComponent,
   MarkLineComponent,
+  TooltipComponent,
+  DataZoomComponent,
 } from 'echarts/components';
 import type { CategoryTimelineData } from '@nueink/core';
 
@@ -21,6 +23,8 @@ echarts.use([
   LineChart,
   MarkPointComponent,
   MarkLineComponent,
+  TooltipComponent,
+  DataZoomComponent,
 ]);
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -34,6 +38,8 @@ export interface CategorySpendingChartProps {
   showBudget?: boolean;
   /** Optional custom height for the chart */
   height?: number;
+  /** Time period being displayed (affects x-axis formatting) */
+  timePeriod?: 'week' | 'month' | 'quarter' | 'year';
 }
 
 /**
@@ -59,6 +65,7 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
   data,
   showBudget = false,
   height = chartHeight,
+  timePeriod = 'month',
 }) => {
   const theme = useTheme();
   const chartRef = useRef<any>(null);
@@ -90,11 +97,19 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
     // Create a series for each category
     const series = data.map((categoryData, index) => {
       // Prepare data for ECharts (handle both Date objects and ISO date strings)
-      const dates = categoryData.dataPoints.map(p => {
+      // Filter out any invalid data points with NaN values
+      const validDataPoints = categoryData.dataPoints.filter(p => {
+        const date = typeof p.date === 'string' ? new Date(p.date) : p.date;
+        const timestamp = date.getTime();
+        const amount = p.cumulativeAmount;
+        return !isNaN(timestamp) && !isNaN(amount) && amount !== undefined && amount !== null;
+      });
+
+      const dates = validDataPoints.map(p => {
         const date = typeof p.date === 'string' ? new Date(p.date) : p.date;
         return date.getTime();
       });
-      const amounts = categoryData.dataPoints.map(p => p.cumulativeAmount);
+      const amounts = validDataPoints.map(p => p.cumulativeAmount);
 
       const categoryColor = getCategoryColor(categoryData.category, index);
 
@@ -108,41 +123,23 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
             // Calculate total spent on this day (includes all transactions on this date)
             const dailyTotal = currentCumulative - previousCumulative;
 
-            // Calculate label position based on date position in the visible range
-            const currentDate = dates[categoryData.highlightIndex];
-            const minDate = Math.min(...dates);
-            const maxDate = Math.max(...dates);
-            const dateRange = maxDate - minDate;
-            const datePosition = dateRange > 0 ? (currentDate - minDate) / dateRange : 0;
-            // If point is in the right 40% of the chart, place label on left
-            const labelPosition: 'left' | 'right' = datePosition > 0.6 ? 'left' : 'right';
-            // Adjust offset based on position - negative for left to push away from marker
-            const labelOffset: [number, number] = labelPosition === 'left' ? [-6, 0] : [6, 0];
-
             return {
               coord: [
                 dates[categoryData.highlightIndex],
                 amounts[categoryData.highlightIndex]
               ],
               name: 'Current',
-              value: dailyTotal, // Show daily total, not cumulative
+              value: dailyTotal, // Show in tooltip when tapped
               symbol: 'circle',
-              symbolSize: 14,
+              symbolSize: 7,  // Same size as regular dots
               itemStyle: {
-                color: theme.colors.background,
-                borderColor: categoryColor,
-                borderWidth: 4,
+                // Use gold/amber color for highlighted transaction - visually distinct
+                color: '#FDB022',
+                borderColor: '#F59E0B',
+                borderWidth: 2,
               },
               label: {
-                show: true,
-                position: labelPosition,
-                offset: labelOffset,
-                formatter: (params: any) => `$${(params.value / 100).toFixed(2)}`,
-                color: '#FFFFFF',
-                fontSize: 16,
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                borderRadius: 6,
-                padding: [6, 12],
+                show: false, // No permanent label - use tooltip like other transactions
               },
             };
           })()
@@ -154,7 +151,7 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
         data: dates.map((date, idx) => [date, amounts[idx]]),
         smooth: true,
         symbol: 'circle',
-        symbolSize: 4,
+        symbolSize: 7,
         lineStyle: {
           color: categoryColor,
           width: 2,
@@ -211,6 +208,74 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
     });
 
     const option: EChartsOption = {
+      tooltip: {
+        show: true,
+        trigger: 'item',
+        triggerOn: 'click',  // Use click for mobile instead of mousemove
+        formatter: (params: any) => {
+          if (params.componentType === 'series' && params.data) {
+            const [timestamp, cumulativeAmount] = params.data;
+            const date = new Date(timestamp);
+            const formattedDate = date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            });
+
+            // Find the data point to get merchant name and individual transaction amount
+            const categoryData = data.find(d => d.category === params.seriesName);
+            const dataPoint = categoryData?.dataPoints.find(
+              p => new Date(p.date).getTime() === timestamp
+            );
+            const merchantName = dataPoint?.merchantName || 'Unknown';
+            const individualAmount = dataPoint?.amount || 0;
+
+            const formattedIndividual = `$${(individualAmount / 100).toFixed(2)}`;
+            const formattedCumulative = `$${(cumulativeAmount / 100).toFixed(2)}`;
+
+            // Show individual transaction amount and cumulative total
+            return `${merchantName}\n${formattedDate}\nAmount: ${formattedIndividual}\nTotal: ${formattedCumulative}`;
+          }
+          return '';
+        },
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        borderColor: '#666',
+        borderWidth: 1,
+        textStyle: {
+          color: '#FFFFFF',
+          fontSize: 12,
+        },
+        padding: [8, 12],
+        confine: true,  // Keep tooltip within chart area
+      },
+      dataZoom: [
+        {
+          type: 'inside',  // Enable pinch-to-zoom and pan gestures
+          xAxisIndex: 0,
+          zoomOnMouseWheel: 'ctrl',  // Require ctrl for mouse wheel zoom (desktop)
+          moveOnMouseMove: true,     // Allow panning
+          preventDefaultMouseMove: false,
+        },
+        {
+          type: 'slider',  // Visual slider control for zoom
+          xAxisIndex: 0,
+          start: 0,        // Start at 0% (show all data initially)
+          end: 100,        // End at 100%
+          height: 20,
+          bottom: 35,      // Position above legend
+          fillerColor: 'rgba(103, 80, 164, 0.2)',
+          borderColor: 'rgba(103, 80, 164, 0.5)',
+          handleStyle: {
+            color: 'rgba(103, 80, 164, 0.9)',
+            borderColor: 'rgba(103, 80, 164, 1)',
+          },
+          textStyle: {
+            color: theme.colors.onSurfaceVariant,
+            fontSize: 10,
+          },
+          showDataShadow: false,  // Disable data shadow to prevent NaN errors
+        },
+      ],
       legend: {
         data: data.map(d => d.category),
         bottom: 0,
@@ -223,14 +288,37 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
         left: 50,
         right: 20,
         top: 40,
-        bottom: 60,
+        bottom: 90,  // Increased to make room for slider + legend
       },
       xAxis: {
         type: 'time',
+        min: (() => {
+          if (!data[0]?.periodStart) return undefined;
+          const time = new Date(data[0].periodStart).getTime();
+          return !isNaN(time) ? time : undefined;
+        })(),
+        max: (() => {
+          if (!data[0]?.periodEnd) return undefined;
+          const time = new Date(data[0].periodEnd).getTime();
+          return !isNaN(time) ? time : undefined;
+        })(),
+        // For quarter/year, set minimum interval to 1 month to avoid duplicate labels
+        minInterval: (timePeriod === 'quarter' || timePeriod === 'year')
+          ? 30 * 24 * 60 * 60 * 1000  // ~30 days in milliseconds
+          : undefined,
         axisLabel: {
           formatter: (value: number) => {
             const date = new Date(value);
-            return date.getDate().toString();
+            // Different formatting based on time period
+            if (timePeriod === 'week' || timePeriod === 'month') {
+              // Show day of month for week/month views
+              return date.getDate().toString();
+            } else {
+              // Show abbreviated month for quarter/year views
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              return monthNames[date.getMonth()];
+            }
           },
           color: theme.colors.onSurfaceVariant,
           fontSize: 10,
@@ -268,7 +356,7 @@ export const CategorySpendingChart: React.FC<CategorySpendingChartProps> = ({
     };
 
     return option;
-  }, [data, theme, showBudget]);
+  }, [data, theme, showBudget, timePeriod]);
 
   // Initialize chart
   useEffect(() => {

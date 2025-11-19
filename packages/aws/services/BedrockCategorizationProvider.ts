@@ -93,37 +93,53 @@ ${JSON.stringify(txData, null, 2)}
 
 CATEGORIZATION RULES:
 
+**CRITICAL FIRST RULE - INCOME DETECTION:**
+- **ANY positive amount (> $0) MUST be categorized as Income**
+- Positive amounts are NEVER expenses - they are income deposits
+- Merchant names like "Check #", "Payroll", "Direct Deposit", "Deposit" → "Income: Salary" (95-100% confidence)
+- Other positive amounts → "Income: Other" (90-95% confidence)
+- Examples:
+  * Target Check #9100001 +$675.41 → 100% "Income: Salary"
+  * PAYROLL DEPOSIT +$2,500 → 100% "Income: Salary"
+  * Refund +$25.50 → 100% "Income: Other"
+- **DO NOT categorize positive amounts as Shopping, Food, or any expense category**
+
 1. **Single Category (Most Common)**
    - Assign 100% to one category when the transaction is clearly one type
+   - Only applies to NEGATIVE amounts (expenses)
    - Examples:
-     * Shell Gas Station → 100% "Transportation: Gas/Fuel"
-     * Netflix → 100% "Entertainment: Streaming"
-     * Publix → 100% "Food: Groceries"
+     * Shell Gas Station -$45.00 → 100% "Transportation: Gas/Fuel"
+     * Netflix -$15.99 → 100% "Entertainment: Streaming"
+     * Publix -$87.50 → 100% "Food: Groceries"
 
-2. **Split Categories (When Appropriate)**
-   - Split across multiple categories when a merchant sells diverse items
-   - Large purchases at multi-purpose stores (Walmart, Target, Amazon)
-   - Examples:
-     * Walmart $150 → 70% "Food: Groceries" + 30% "Shopping: Home Goods"
-     * Amazon $200 → 60% "Shopping: Electronics" + 40% "Shopping: General"
-     * Target $80 → 50% "Food: Groceries" + 50% "Personal: Clothing"
+2. **Split Categories (Use Sparingly)**
+   - Only applies to NEGATIVE amounts (expenses)
+   - **Only split amounts $75 or more** - smaller amounts are likely single-purpose purchases
+   - Without itemized receipt data, be conservative - prefer single category
+   - Split only when confident it's a multi-category shopping trip at stores like Walmart, Target, Amazon
+   - **For amounts under $75, choose the MOST LIKELY single category**
+   - Examples of when to split:
+     * Walmart -$150 → 70% "Food: Groceries" + 30% "Shopping: Home Goods"
+     * Amazon -$200 → 60% "Shopping: Electronics" + 40% "Shopping: General"
+     * Target -$125 → 60% "Food: Groceries" + 40% "Shopping: General"
+   - Examples of when NOT to split:
+     * Target -$35.88 → 100% "Food: Groceries" (small amount, likely focused trip)
+     * Walmart -$42 → 100% "Food: Groceries" (under threshold)
+     * Amazon -$65 → 100% "Shopping: General" (under threshold)
 
 3. **Confidence Scoring (0-100)**
-   - 95-100: Obvious (Gas station, specific subscription, mortgage)
+   - 95-100: Obvious (Income deposits, gas station, specific subscription, mortgage)
    - 80-94: Very likely (Restaurant, grocery store with clear name)
    - 60-79: Probable (Could be multiple things, but one is most likely)
    - Below 60: Use "Uncategorized" instead
 
-4. **Special Cases**
+4. **Special Cases (Negative amounts only)**
    - Mortgage companies (Freedom Mortgage, NewRez, etc.) → "Housing: Mortgage/Rent"
    - Credit card/loan payments → "Bills: Credit Card Payment" or "Bills: Loan Payment"
-   - Transfers/payments with "Check #" → "Bills: Credit Card Payment"
    - Utilities (Electric, Gas companies) → "Housing: Utilities"
    - Phone/Internet providers → "Bills: Phone" or "Bills: Internet"
    - Transfers between accounts → "Transfer: Between Accounts" (100% confidence)
    - "Starting Balance", "Transfer to/from" → "Transfer: Between Accounts"
-   - Positive amounts (income) → "Income: Salary" or "Income: Other"
-   - Paycheck deposits → "Income: Salary"
 
 IMPORTANT:
 - Return ONLY valid JSON, no markdown, no explanations
