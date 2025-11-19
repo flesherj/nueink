@@ -6,6 +6,7 @@ import { InstitutionService } from './InstitutionService';
 import { FinancialAccountService } from './FinancialAccountService';
 import { TransactionService } from './TransactionService';
 import { TransactionSplitService } from './TransactionSplitService';
+import { UserCategorizationFeedbackService } from './UserCategorizationFeedbackService';
 import { CommentService } from './CommentService';
 import { PersonService } from './PersonService';
 import { BudgetService } from './BudgetService';
@@ -26,6 +27,7 @@ type ServiceMap = {
   financialAccount: FinancialAccountService;
   transaction: TransactionService;
   transactionSplit: TransactionSplitService<any>;
+  userCategorizationFeedback: UserCategorizationFeedbackService<any>;
   comment: CommentService;
   person: PersonService;
   budget: BudgetService;
@@ -78,6 +80,8 @@ export class NueInkServiceFactory {
     new FinancialAccountService(this._repositoryFactory.financialAccount());
   public transactionSplit = (): TransactionSplitService<any> =>
     new TransactionSplitService(this._repositoryFactory.transactionSplit());
+  public userCategorizationFeedback = (): UserCategorizationFeedbackService<any> =>
+    new UserCategorizationFeedbackService(this._repositoryFactory.userCategorizationFeedback());
   public transaction = (): TransactionService =>
     new TransactionService(this._repositoryFactory.transaction(), this.transactionSplit());
   public comment = (): CommentService =>

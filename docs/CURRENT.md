@@ -1,12 +1,28 @@
 # NueInk - Current Sprint & Tasks
 
-**Last Updated:** November 16, 2025
+**Last Updated:** November 18, 2025
 **Current Phase:** Phase 1 - Financial Data Integration
 **Sprint:** Week 1 (Nov 11-17, 2025)
 
 ---
 
 ## 🚀 Current Sprint (Week 1: Nov 11-17, 2025)
+
+### Completed Nov 18 ✅
+
+- [x] **AI Categorization Feedback Infrastructure** (Nov 18 - DONE)
+  - ✅ Added `UserCategorizationFeedback` model to schema for tracking user corrections
+  - ✅ Built service layer (`UserCategorizationFeedbackService`) with proper architecture
+  - ✅ Created `PUT /transaction-split/transaction/:transactionId` endpoint with auto-feedback tracking
+  - ✅ Updated mobile app to use new endpoint (transparent feedback collection)
+  - ✅ Tracks: original AI suggestion, user correction, merchant, amount, confidence
+  - ✅ Supports three feedback types: `manual_edit`, `quick_accept`, `quick_reject`
+  - Files:
+    - `packages/aws/amplify/data/resource.ts` (UserCategorizationFeedback model)
+    - `packages/core/services/UserCategorizationFeedbackService.ts`
+    - `packages/aws/amplify/functions/api/controllers/TransactionSplitController.ts`
+    - `apps/native/app/(protected)/transactions/[id].tsx` (uses new SDK method)
+  - **Result:** Now collecting training data for AI personalization - ready for learning engine
 
 ### Completed Nov 16 ✅
 
@@ -86,6 +102,29 @@
 3. **Comments on Transactions** - Basic comment functionality
 4. **Person Assignment UI** - Manual person assignment for transactions
 5. **Onboarding Flow** - Guide new users through account connection
+
+### AI Intelligence Phase (Phase 3 - Near Term)
+
+With feedback infrastructure now in place (Nov 18), next steps to enable personalized AI:
+
+1. **AI Learning from User Feedback** (~4 hours estimated)
+   - Build pattern recognition service to analyze feedback data
+   - Identify user-specific categorization preferences (e.g., "Always split Costco into Groceries 70%, Gas 30%")
+   - Modify AI prompt builder to include personalized patterns
+   - Wire into sync handler to use patterns for new transactions
+   - Files: `packages/core/services/ai/PatternRecognitionService.ts`, `packages/core/services/ai/PersonalizedPromptBuilder.ts`
+
+2. **Insights Generation with Bedrock**
+   - Create `InsightsGenerationService` for spending pattern analysis
+   - API endpoint for generating financial insights
+   - UI for viewing AI-generated insights
+
+3. **AI Categorization UI Improvements**
+   - Show confidence scores on AI-categorized transactions
+   - Quick accept/reject buttons (to collect `quick_accept`/`quick_reject` feedback)
+   - Visual indicator for transactions that used personalized patterns
+
+**Status:** Infrastructure ready, implementation deferred for after core MVP features
 
 ---
 
@@ -246,7 +285,7 @@
 **Phase 0 (Architecture):** ██████████ 100% ✅ (Completed Nov 11, 2025)
 **Phase 1 (Integration):** ████████░░ 80% ✅ (OAuth, sync, UI complete - Nov 15, 2025)
 **Phase 2 (Social Feed):** ███░░░░░░░ 25% (Feed & details UI polished, comments/assignment pending - Nov 16, 2025)
-**Phase 3 (Intelligence):** ░░░░░░░░░░ 0%
+**Phase 3 (Intelligence):** ██░░░░░░░░ 15% (Feedback infrastructure complete - Nov 18, 2025)
 **Phase 4 (Receipts/Bills):** ░░░░░░░░░░ 0%
 **Phase 5 (Polish):** ░░░░░░░░░░ 0%
 
@@ -265,6 +304,7 @@
 - ✅ **Financial Account Sync Working** (Nov 14 - 19 accounts synced)
 - ✅ **Transaction Sync Working** (Nov 14 - Transactions syncing to DynamoDB)
 - ✅ **Mobile UI Complete** (Nov 15 - All core screens working)
+- ✅ **AI Feedback Infrastructure Complete** (Nov 18 - Collecting training data for personalized AI)
 - ⏭️ **Social Features** (Comments, Person Assignment - Target: Week 2)
 - ⏭️ **Beta Launch** (Target: Week 4)
 
@@ -292,4 +332,4 @@
 
 ---
 
-*Last updated: November 16, 2025 by James Flesher*
+*Last updated: November 18, 2025 by James Flesher*

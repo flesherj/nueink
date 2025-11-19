@@ -10,6 +10,7 @@ export * from './Institution';
 export * from './FinancialAccount';
 export * from './Transaction';
 export * from './TransactionSplit';
+export * from './UserCategorizationFeedback';
 export * from './Comment';
 export * from './Person';
 export * from './Budget';

@@ -15,6 +15,9 @@ router.get('/:splitId', TransactionSplitController.getSplit);
 // POST /transaction-split - Create a new split
 router.post('/', TransactionSplitController.create);
 
+// PUT /transaction-split/transaction/:transactionId - Update all splits for a transaction
+router.put('/transaction/:transactionId', TransactionSplitController.updateTransactionSplits);
+
 // DELETE /transaction-split/:splitId - Delete a split
 router.delete('/:splitId', TransactionSplitController.deleteSplit);
 

@@ -59,6 +59,27 @@ export class TransactionSplitApi {
   };
 
   /**
+   * Update all splits for a transaction
+   * PUT /transaction-split/transaction/:transactionId
+   *
+   * Replaces all splits for a transaction. Automatically tracks feedback
+   * when updating AI-generated categorizations.
+   */
+  public updateTransactionSplits = async (
+    transactionId: string,
+    accountId: string,
+    transactionAmount: number,
+    splits: Omit<TransactionSplit, 'splitId' | 'createdAt' | 'updatedAt'>[]
+  ): Promise<TransactionSplit[]> => {
+    const response = await this.api.put(`/transaction-split/transaction/${transactionId}`, {
+      splits,
+      accountId,
+      transactionAmount,
+    }).response;
+    return (await response.body.json()) as unknown as TransactionSplit[];
+  };
+
+  /**
    * Delete a transaction split
    * DELETE /transaction-split/:splitId
    */

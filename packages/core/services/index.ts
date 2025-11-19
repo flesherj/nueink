@@ -5,6 +5,7 @@ export * from './InstitutionService';
 export * from './FinancialAccountService';
 export * from './TransactionService';
 export * from './TransactionSplitService';
+export * from './UserCategorizationFeedbackService';
 export * from './AnalyticsService';
 export * from './CommentService';
 export * from './PersonService';

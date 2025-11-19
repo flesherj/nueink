@@ -205,6 +205,38 @@ const schema = a.schema({
                 index('category')
             ]),
 
+        // AI Categorization Feedback: Track user corrections to AI-generated categories
+        UserCategorizationFeedback: a.model({
+            feedbackId: a.id().required(),
+            transactionId: a.string().required(),       // FK to Transaction
+            organizationId: a.string().required(),      // FK to Organization
+            accountId: a.string().required(),           // FK to Account (who made the correction)
+            merchantName: a.string(),                   // Merchant name from transaction (for pattern learning)
+            amount: a.float().required(),               // Transaction amount (for pattern matching)
+
+            // Original AI categorization
+            originalSplits: a.json().required(),        // Array of {category, percentage, confidence}
+
+            // User's corrected categorization
+            correctedSplits: a.json().required(),       // Array of {category, percentage}
+
+            // Metadata
+            feedbackType: a.string().required(),        // manual_edit|quick_accept|quick_reject
+            createdAt: a.datetime().required(),
+            profileOwner: a.string(),
+        })
+            .identifier(['feedbackId'])
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey()
+            ])
+            .secondaryIndexes(index => [
+                index('accountId').sortKeys(['createdAt']),
+                index('organizationId').sortKeys(['createdAt']),
+                index('transactionId'),
+                index('merchantName')
+            ]),
+
         Comment: a.model({
             commentId: a.id().required(),
             transactionId: a.string().required(),       // FK to Transaction

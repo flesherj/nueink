@@ -158,8 +158,8 @@ export default function TransactionDetailScreen() {
         }
       }
 
-      // Load analytics data for primary category
-      loadAnalyticsData(txData, splitsData);
+      // Analytics data will be loaded by the useEffect below
+      // to ensure consistent state with merchant filter and time period
     } catch (err) {
       console.error('Error loading transaction detail:', err);
       setError(
@@ -175,7 +175,7 @@ export default function TransactionDetailScreen() {
    * Get date range based on selected time period and transaction date
    * Uses the transaction's date as the reference point, not current date
    */
-  const getDateRange = (
+  const getDateRange = useCallback((
     period: 'week' | 'month' | 'quarter' | 'year'
   ): { startDate: Date; endDate: Date } => {
     // Use transaction date if available, otherwise fallback to current date
@@ -235,13 +235,13 @@ export default function TransactionDetailScreen() {
     };
 
     return dateRangeStrategies[period](txDate);
-  };
+  }, [transaction]);
 
   /**
    * Load analytics timeline data for all categories
    * Shows spending context for all categorized splits
    */
-  const loadAnalyticsData = async (
+  const loadAnalyticsData = useCallback(async (
     txData: Transaction,
     splitsData: TransactionSplit[]
   ) => {
@@ -269,6 +269,9 @@ export default function TransactionDetailScreen() {
         : undefined;
 
       console.log('📊 Loading analytics:', {
+        transactionDate: txData.date,
+        timePeriod,
+        dateRange: { startDate, endDate },
         merchantFilterEnabled,
         merchantFilter,
         categories: categorizedSplits.map((s) => s.category),
@@ -296,7 +299,7 @@ export default function TransactionDetailScreen() {
     } finally {
       setChartLoading(false);
     }
-  };
+  }, [account, merchantFilterEnabled, timePeriod, analyticsApi, getDateRange]);
 
   /**
    * Reload analytics data when merchant filter or time period changes
@@ -311,7 +314,7 @@ export default function TransactionDetailScreen() {
       });
       loadAnalyticsData(transaction, splits);
     }
-  }, [merchantFilterEnabled, timePeriod, transaction, splits]);
+  }, [merchantFilterEnabled, timePeriod, transaction, splits, loadAnalyticsData]);
 
   /**
    * Format amount with sign and color
@@ -549,15 +552,11 @@ export default function TransactionDetailScreen() {
         const totalAllocated = categories.reduce((sum, c) => sum + c.amount, 0);
         const uncategorizedAmount = absTransactionAmount - totalAllocated;
 
-        // Delete existing splits
-        for (const split of splits) {
-          await transactionSplitApi.delete(split.splitId);
-        }
-
-        // Create new splits - convert absolute values back to signed
-        // Track total to ensure no rounding errors accumulate
+        // Build all splits to save (including Uncategorized if needed)
+        // Convert absolute values back to signed
         let totalAllocatedSigned = 0;
         const categoriesToCreate = categories.filter((c) => c.amount > 0);
+        const allSplits: Omit<TransactionSplit, 'splitId' | 'createdAt' | 'updatedAt'>[] = [];
 
         for (let i = 0; i < categoriesToCreate.length; i++) {
           const category = categoriesToCreate[i];
@@ -577,7 +576,7 @@ export default function TransactionDetailScreen() {
           const percentage =
             (Math.abs(signedAmount) / absTransactionAmount) * 100;
 
-          await transactionSplitApi.create({
+          allSplits.push({
             transactionId: transaction.transactionId,
             organizationId: account.defaultOrgId,
             category: category.category,
@@ -587,14 +586,14 @@ export default function TransactionDetailScreen() {
           });
         }
 
-        // Create Uncategorized split for remainder if any
+        // Add Uncategorized split for remainder if any
         if (uncategorizedAmount > 0) {
           const percentage = (uncategorizedAmount / absTransactionAmount) * 100;
           const signedAmount = isNegative
             ? -uncategorizedAmount
             : uncategorizedAmount;
 
-          await transactionSplitApi.create({
+          allSplits.push({
             transactionId: transaction.transactionId,
             organizationId: account.defaultOrgId,
             category: 'Uncategorized',
@@ -604,9 +603,12 @@ export default function TransactionDetailScreen() {
           });
         }
 
-        // Reload splits silently (no modal close, no alert)
-        const updatedSplits = await transactionSplitApi.listByTransaction(
-          transaction.transactionId
+        // Update all splits in one call (automatically tracks feedback)
+        const updatedSplits = await transactionSplitApi.updateTransactionSplits(
+          transaction.transactionId,
+          account.accountId,
+          transaction.amount,
+          allSplits
         );
         setSplits(updatedSplits);
 
@@ -948,7 +950,7 @@ export default function TransactionDetailScreen() {
           </TouchableOpacity>
 
           {/* Spending Insights Chart */}
-          {chartData.length > 0 && (
+          {splits.some((s) => s.category !== 'Uncategorized') && (
             <Card style={styles.card}>
               <Card.Content>
                 {/* Merchant Filter */}
@@ -990,38 +992,34 @@ export default function TransactionDetailScreen() {
                   style={styles.timePeriodToggle}
                 />
 
-                <CategorySpendingChart
-                  data={chartData}
-                  height={250}
-                  showBudget={false}
-                />
-              </Card.Content>
-            </Card>
-          )}
+                {/* Chart Loading State */}
+                {chartLoading && (
+                  <View style={[styles.chartLoadingContainer, { height: 250 }]}>
+                    <ActivityIndicator size="small" />
+                    <Text style={styles.chartLoadingText}>
+                      Loading spending insights...
+                    </Text>
+                  </View>
+                )}
 
-          {/* Chart Loading State */}
-          {chartLoading && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.chartLoadingContainer}>
-                  <ActivityIndicator size="small" />
-                  <Text style={styles.chartLoadingText}>
-                    Loading spending insights...
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
-          )}
+                {/* Chart Error State */}
+                {chartError && !chartLoading && (
+                  <View style={[styles.chartErrorContainer, { height: 250 }]}>
+                    <Text variant="bodySmall" style={styles.chartErrorText}>
+                      {chartError}
+                    </Text>
+                  </View>
+                )}
 
-          {/* Chart Error State */}
-          {chartError && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.chartErrorContainer}>
-                  <Text variant="bodySmall" style={styles.chartErrorText}>
-                    {chartError}
-                  </Text>
-                </View>
+                {/* Chart */}
+                {!chartLoading && !chartError && chartData.length > 0 && (
+                  <CategorySpendingChart
+                    data={chartData}
+                    height={250}
+                    showBudget={false}
+                    timePeriod={timePeriod}
+                  />
+                )}
               </Card.Content>
             </Card>
           )}

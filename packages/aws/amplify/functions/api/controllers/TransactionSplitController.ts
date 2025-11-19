@@ -101,6 +101,94 @@ class TransactionSplitController {
   };
 
   /**
+   * Update transaction splits
+   * PUT /transaction-split/transaction/:transactionId
+   *
+   * Replaces all splits for a transaction. Automatically tracks feedback
+   * when updating AI-generated categorizations.
+   */
+  public updateTransactionSplits = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { transactionId } = req.params;
+      const { splits, accountId, transactionAmount } = req.body;
+
+      if (!splits || !Array.isArray(splits)) {
+        res.status(400).json({ error: 'splits array is required' });
+        return;
+      }
+
+      if (!accountId) {
+        res.status(400).json({ error: 'accountId is required' });
+        return;
+      }
+
+      if (!transactionAmount) {
+        res.status(400).json({ error: 'transactionAmount is required' });
+        return;
+      }
+
+      const splitService = serviceFactory.transactionSplit();
+      const transactionService = serviceFactory.transaction();
+
+      // Fetch original splits before replacing
+      const originalSplits = await splitService.findByTransaction(transactionId);
+
+      // Check if original splits were AI-generated
+      const wasAIGenerated = originalSplits.some(split => split.aiGenerated);
+
+      // Replace splits
+      const newSplits = await splitService.replaceSplits(
+        transactionId,
+        splits,
+        transactionAmount
+      );
+
+      // Track feedback if original was AI-generated
+      if (wasAIGenerated) {
+        try {
+          // Fetch transaction details for context
+          const transaction = await transactionService.findById(transactionId);
+
+          if (transaction) {
+            const feedbackService = serviceFactory.userCategorizationFeedback();
+
+            await feedbackService.trackFeedback({
+              transactionId,
+              organizationId: transaction.organizationId,
+              accountId,
+              merchantName: transaction.merchantName,
+              amount: transaction.amount,
+              originalSplits: originalSplits.map(s => ({
+                category: s.category,
+                percentage: s.percentage || 100,
+                confidence: s.confidence,
+              })),
+              correctedSplits: newSplits.map(s => ({
+                category: s.category,
+                percentage: s.percentage || 100,
+              })),
+              feedbackType: 'manual_edit',
+              profileOwner: accountId,
+            });
+
+            console.log(`[FEEDBACK] Tracked user correction for transaction ${transactionId}`);
+          }
+        } catch (feedbackError) {
+          // Log error but don't fail the request
+          console.error('[FEEDBACK] Failed to track feedback:', feedbackError);
+        }
+      }
+
+      res.json(newSplits);
+    } catch (error) {
+      console.error('Error replacing transaction splits:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to replace transaction splits'
+      });
+    }
+  };
+
+  /**
    * Delete a transaction split
    * DELETE /transaction-split/:splitId
    */

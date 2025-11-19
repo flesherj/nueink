@@ -15,6 +15,7 @@ export * from './AmplifyInstitutionRepository';
 export * from './AmplifyFinancialAccountRepository';
 export * from './AmplifyTransactionRepository';
 export * from './AmplifyTransactionSplitRepository';
+export * from './AmplifyUserCategorizationFeedbackRepository';
 export * from './AmplifyCommentRepository';
 export * from './AmplifyPersonRepository';
 export * from './AmplifyBudgetRepository';
