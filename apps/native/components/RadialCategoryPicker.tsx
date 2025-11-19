@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -79,6 +79,28 @@ const CategoryCircle: React.FC<CategoryCircleProps> = ({
   // Local state for drag amount (updates without re-rendering parent!)
   const [dragAmount, setDragAmount] = useState<number | null>(null);
 
+  // 🔍 LOGGING: Render tracking
+  const renderCountRef = useRef(0);
+  const prevPropsRef = useRef({ amount, selectedCategories, editingCategory });
+
+  renderCountRef.current += 1;
+  const renderCount = renderCountRef.current;
+
+  // Log every render with what changed
+  const propsChanged: string[] = [];
+  if (prevPropsRef.current.amount !== amount) propsChanged.push('amount');
+  if (prevPropsRef.current.selectedCategories !== selectedCategories) propsChanged.push('selectedCategories');
+  if (prevPropsRef.current.editingCategory !== editingCategory) propsChanged.push('editingCategory');
+
+  console.log(`🔄 [${category.split(': ')[1]}] RENDER #${renderCount}`, {
+    propsChanged: propsChanged.length > 0 ? propsChanged.join(', ') : 'none',
+    amount,
+    dragAmount,
+    selectedCategoriesLength: selectedCategories.length,
+  });
+
+  prevPropsRef.current = { amount, selectedCategories, editingCategory };
+
   // Use drag amount if dragging, otherwise use committed amount
   const displayAmount = dragAmount ?? amount;
 
@@ -125,15 +147,25 @@ const CategoryCircle: React.FC<CategoryCircleProps> = ({
   };
 
   // Create gesture - updates local state only, commits on end
+  // 🔍 LOGGING: Track gesture updates (throttled)
+  const updateCountRef = useRef(0);
+  const lastLogTimeRef = useRef(Date.now());
+
   const gesture = Gesture.Pan()
     .minDistance(0)
     .onStart(() => {
+      console.log(`👆 [${category.split(': ')[1]}] GESTURE START`);
       lastAngleRef.current = undefined;
       isSelectedRef.current = amount !== undefined && amount > 0;
       // Initialize drag with current amount (or 0 if not selected)
       setDragAmount(amount ?? 0);
+      updateCountRef.current = 0;
+      lastLogTimeRef.current = Date.now();
     })
     .onUpdate((event) => {
+      updateCountRef.current += 1;
+      const now = Date.now();
+      const shouldLog = now - lastLogTimeRef.current > 100; // Log every 100ms
       let angle = calculateAngleFromTouch(event.x, event.y, 50, 50);
 
       const lastAngle = lastAngleRef.current;
@@ -158,6 +190,17 @@ const CategoryCircle: React.FC<CategoryCircleProps> = ({
       const percentage = angle / 360;
       const newAmount = Math.round(percentage * availableForThisCategory);
 
+      // 🔍 LOGGING: Throttled update logs
+      if (shouldLog) {
+        console.log(`🔄 [${category.split(': ')[1]}] GESTURE UPDATE #${updateCountRef.current}`, {
+          angle: angle.toFixed(1),
+          newAmount,
+          otherCategoriesTotal,
+          availableForThisCategory,
+        });
+        lastLogTimeRef.current = now;
+      }
+
       // Update local state only - no parent re-render!
       setDragAmount(newAmount);
 
@@ -173,20 +216,29 @@ const CategoryCircle: React.FC<CategoryCircleProps> = ({
       }
     })
     .onEnd(() => {
+      console.log(`✋ [${category.split(': ')[1]}] GESTURE END`, {
+        totalUpdates: updateCountRef.current,
+        finalDragAmount: dragAmount,
+        committingToParent: dragAmount !== null && dragAmount > 100,
+      });
+
       // Commit the final amount to parent (single re-render)
       if (dragAmount !== null) {
         if (dragAmount <= 100) {
           // Deselect if below threshold
           const wasSelected = amount !== undefined && amount > 0;
           if (wasSelected) {
+            console.log(`  → Deselecting category`);
             onCategorySelect(category);
           }
         } else {
           // Update or add category
           const wasSelected = amount !== undefined && amount > 0;
           if (!wasSelected) {
+            console.log(`  → Selecting category`);
             onCategorySelect(category);
           }
+          console.log(`  → Committing amount to parent: ${dragAmount}`);
           onAmountChange(category, dragAmount);
         }
       }
@@ -308,6 +360,29 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
   formatAmount,
 }) => {
   const theme = useTheme();
+
+  // 🔍 LOGGING: Parent component render tracking
+  const parentRenderCountRef = useRef(0);
+  const prevSelectedCategoriesRef = useRef(selectedCategories);
+
+  parentRenderCountRef.current += 1;
+  const parentRenderCount = parentRenderCountRef.current;
+
+  const selectedCategoriesChanged = prevSelectedCategoriesRef.current !== selectedCategories;
+  const categoriesAddedOrRemoved = prevSelectedCategoriesRef.current.length !== selectedCategories.length;
+
+  console.log(`📦 [PARENT] RENDER #${parentRenderCount}`, {
+    selectedCategoriesChanged,
+    categoriesAddedOrRemoved,
+    categoriesCount: selectedCategories.length,
+    categories: selectedCategories.map(c => ({
+      cat: c.category.split(': ')[1],
+      amt: c.amount
+    })),
+  });
+
+  prevSelectedCategoriesRef.current = selectedCategories;
+
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [groupButtonLayout, setGroupButtonLayout] = useState<{ x: number; y: number } | null>(null);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
