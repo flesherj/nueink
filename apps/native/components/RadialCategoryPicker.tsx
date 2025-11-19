@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import {
   View,
   StyleSheet,
@@ -55,8 +55,9 @@ interface CategoryCircleProps {
 /**
  * Individual category circle component
  * Uses local drag state to avoid re-rendering parent during drag
+ * Memoized with smart comparison to prevent unnecessary re-renders
  */
-const CategoryCircle: React.FC<CategoryCircleProps> = ({
+const CategoryCircle = memo<CategoryCircleProps>(({
   category,
   emoji,
   amount,
@@ -339,7 +340,27 @@ const CategoryCircle: React.FC<CategoryCircleProps> = ({
       </Text>
     </Animated.View>
   );
-};
+}, (prevProps, nextProps) => {
+  // Smart comparison: check values, not array references
+  // Only re-render if amount changed, category count changed, or editing state changed
+  console.log(`🔍 [${nextProps.category.split(': ')[1]}] MEMO CHECK`, {
+    amountChanged: prevProps.amount !== nextProps.amount,
+    lengthChanged: prevProps.selectedCategories.length !== nextProps.selectedCategories.length,
+    editingChanged: prevProps.editingCategory !== nextProps.editingCategory,
+    shouldSkipRender:
+      prevProps.amount === nextProps.amount &&
+      prevProps.selectedCategories.length === nextProps.selectedCategories.length &&
+      prevProps.editingCategory === nextProps.editingCategory &&
+      prevProps.editAmountInput === nextProps.editAmountInput,
+  });
+
+  return (
+    prevProps.amount === nextProps.amount &&
+    prevProps.selectedCategories.length === nextProps.selectedCategories.length &&
+    prevProps.editingCategory === nextProps.editingCategory &&
+    prevProps.editAmountInput === nextProps.editAmountInput
+  );
+});
 
 /**
  * Radial Category Picker
