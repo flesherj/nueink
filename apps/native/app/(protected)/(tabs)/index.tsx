@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Animated } from 'react-native';
 import { Surface, Text, Card, ActivityIndicator, FAB } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BottomSheet, {
-  BottomSheetScrollView,
-  BottomSheetBackdrop,
-} from '@gorhom/bottom-sheet';
 import { useAccountProvider } from '@nueink/ui';
 import { FinancialAccountApi } from '@nueink/sdk';
 import type { FinancialAccount } from '@nueink/core';
-import { RadialCategoryPicker } from '../../../components/RadialCategoryPicker';
+import { CategoryCircle } from '../../../components/CategoryCircle';
 
 // Create API client
 const financialAccountApi = FinancialAccountApi.create();
@@ -21,21 +17,23 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Test harness for RadialCategoryPicker
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['85%'], []);
+  // Test harness for CategoryCircle
   const [selectedCategories, setSelectedCategories] = useState<
     Array<{ category: string; amount: number }>
-  >([
-    // Pre-select all Housing categories for testing
-    { category: 'Housing: Mortgage/Rent', amount: 5000 },
-    { category: 'Housing: Utilities', amount: 2500 },
-    { category: 'Housing: Insurance', amount: 2000 },
-    { category: 'Housing: Maintenance', amount: 1500 },
-    { category: 'Housing: Property Tax', amount: 1500 },
-  ]);
+  >([]);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editAmountInput, setEditAmountInput] = useState('');
   const testTransactionAmount = -12500; // $125.00 expense
   const testCurrency = 'USD';
+
+  // Test categories to render
+  const testCategories = [
+    { category: 'Housing: Mortgage/Rent', emoji: '🏠' },
+    { category: 'Housing: Utilities', emoji: '💡' },
+    { category: 'Housing: Insurance', emoji: '🛡️' },
+    { category: 'Housing: Maintenance', emoji: '🔧' },
+    { category: 'Housing: Property Tax', emoji: '🏛️' },
+  ];
 
   useEffect(() => {
     loadDashboardData();
@@ -95,25 +93,19 @@ export default function DashboardScreen() {
     }).format(amount);
   };
 
-  // Test handlers for RadialCategoryPicker
+  // Test handlers for CategoryCircle
   const handleCategorySelect = useCallback((category: string) => {
     console.log('Category selected:', category);
-    const absAmount = Math.abs(testTransactionAmount);
-
     const existing = selectedCategories.find(c => c.category === category);
 
     if (existing) {
-      // Category already selected - deselect it
-      console.log('Deselecting category:', category);
+      // Deselect
       setSelectedCategories(prev => prev.filter(c => c.category !== category));
-    } else if (selectedCategories.length === 0) {
-      // First category gets full amount
-      setSelectedCategories([{ category, amount: absAmount }]);
     } else {
-      // Add category with some of uncategorized amount
+      // Select with 0 amount (will be set by drag)
       setSelectedCategories(prev => [...prev, { category, amount: 0 }]);
     }
-  }, [selectedCategories, testTransactionAmount]);
+  }, [selectedCategories]);
 
   const handleAmountChange = useCallback((category: string, amount: number) => {
     console.log('Amount changed:', category, amount);
@@ -122,27 +114,28 @@ export default function DashboardScreen() {
     );
   }, []);
 
-  const getUncategorizedAmount = useCallback(() => {
-    const totalAllocated = selectedCategories.reduce((sum, c) => sum + c.amount, 0);
-    return Math.abs(testTransactionAmount) - totalAllocated;
+  const getAvailableForCategory = useCallback((category: string) => {
+    const otherCategoriesTotal = selectedCategories
+      .filter(c => c.category !== category)
+      .reduce((sum, c) => sum + c.amount, 0);
+    return Math.abs(testTransactionAmount) - otherCategoriesTotal;
   }, [selectedCategories, testTransactionAmount]);
 
-  const handleClearAll = useCallback(() => {
-    console.log('Clearing all categories');
-    setSelectedCategories([]);
+  const handleStartEdit = useCallback((category: string, amount: number) => {
+    setEditingCategory(category);
+    setEditAmountInput((amount / 100).toFixed(2));
   }, []);
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
+  const handleSaveEdit = useCallback(() => {
+    if (!editingCategory) return;
+    const dollarValue = parseFloat(editAmountInput);
+    if (!isNaN(dollarValue) && dollarValue >= 0) {
+      const centsValue = Math.round(dollarValue * 100);
+      handleAmountChange(editingCategory, centsValue);
+    }
+    setEditingCategory(null);
+    setEditAmountInput('');
+  }, [editingCategory, editAmountInput, handleAmountChange]);
 
   if (loading) {
     return (
@@ -219,54 +212,60 @@ export default function DashboardScreen() {
             </Card.Content>
           </Card>
 
-          {/* Coming Soon Cards */}
+          {/* CategoryCircle Test Area */}
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.comingSoonTitle}>
-                🚧 Coming Soon
+                🧪 CategoryCircle Test
               </Text>
               <Text variant="bodySmall" style={styles.comingSoonText}>
-                • Upcoming bills detection{'\n'}
-                • Available spending calculation{'\n'}
-                • This month's pace{'\n'}
-                • AI discovered patterns{'\n'}
-                • Quick insights & suggestions
+                Transaction: {formatBalance(testTransactionAmount, testCurrency)}{'\n'}
+                Selected: {selectedCategories.length} categories
               </Text>
+
+              {/* Test circles in a grid layout */}
+              <View style={styles.circleTestContainer}>
+                {testCategories.map((cat, index) => {
+                  const selectedCategory = selectedCategories.find(
+                    s => s.category === cat.category
+                  );
+
+                  // Position in a circle pattern
+                  const angle = (index / testCategories.length) * 2 * Math.PI - Math.PI / 2;
+                  const radius = 120;
+                  const x = Math.cos(angle) * radius;
+                  const y = Math.sin(angle) * radius;
+
+                  return (
+                    <Animated.View
+                      key={cat.category}
+                      style={{
+                        transform: [{ translateX: x }, { translateY: y }],
+                      }}
+                    >
+                      <CategoryCircle
+                        category={cat.category}
+                        emoji={cat.emoji}
+                        amount={selectedCategory?.amount}
+                        transactionAmount={testTransactionAmount}
+                        transactionCurrency={testCurrency}
+                        onCategorySelect={handleCategorySelect}
+                        onAmountChange={handleAmountChange}
+                        formatAmount={formatBalance}
+                        getAvailableForCategory={getAvailableForCategory}
+                        editingCategory={editingCategory}
+                        editAmountInput={editAmountInput}
+                        onStartEdit={handleStartEdit}
+                        onSaveEdit={handleSaveEdit}
+                        setEditAmountInput={setEditAmountInput}
+                      />
+                    </Animated.View>
+                  );
+                })}
+              </View>
             </Card.Content>
           </Card>
         </ScrollView>
-
-        {/* Test FAB for RadialCategoryPicker */}
-        <FAB
-          icon="palette"
-          label="Test Categories"
-          style={styles.fab}
-          onPress={() => bottomSheetRef.current?.expand()}
-        />
-
-        {/* Test Bottom Sheet */}
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={-1}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          backdropComponent={renderBackdrop}
-          backgroundStyle={styles.bottomSheetBackground}
-          handleIndicatorStyle={styles.bottomSheetHandle}
-        >
-          <BottomSheetScrollView style={styles.bottomSheetContent}>
-            <RadialCategoryPicker
-              selectedCategories={selectedCategories}
-              onCategorySelect={handleCategorySelect}
-              onAmountChange={handleAmountChange}
-              onClearAll={handleClearAll}
-              getUncategorizedAmount={getUncategorizedAmount}
-              transactionAmount={testTransactionAmount}
-              transactionCurrency={testCurrency}
-              formatAmount={formatBalance}
-            />
-          </BottomSheetScrollView>
-        </BottomSheet>
       </Surface>
     </GestureHandlerRootView>
   );
@@ -348,28 +347,12 @@ const styles = StyleSheet.create({
   comingSoonText: {
     opacity: 0.6,
     lineHeight: 20,
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-  },
-  bottomSheetBackground: {
-    backgroundColor: '#1a1a1a',
-  },
-  bottomSheetHandle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  bottomSheetContent: {
-    flex: 1,
-    padding: 16,
-  },
-  bottomSheetTitle: {
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  bottomSheetSubtitle: {
-    opacity: 0.6,
     marginBottom: 16,
+  },
+  circleTestContainer: {
+    height: 400,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
 });
