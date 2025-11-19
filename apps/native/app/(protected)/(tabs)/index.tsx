@@ -26,14 +26,38 @@ export default function DashboardScreen() {
   const testTransactionAmount = -12500; // $125.00 expense
   const testCurrency = 'USD';
 
-  // Test categories to render - start with 1, then scale up
+  // Test categories with color options for visual comparison
   const testCategories = [
-    { category: 'Housing: Mortgage/Rent', emoji: '🏠' },
-    // Uncomment to add more circles for performance testing:
-    // { category: 'Housing: Utilities', emoji: '💡' },
-    // { category: 'Housing: Insurance', emoji: '🛡️' },
-    // { category: 'Housing: Maintenance', emoji: '🔧' },
-    // { category: 'Housing: Property Tax', emoji: '🏛️' },
+    {
+      category: 'Option 1: Cyan & White',
+      emoji: '1️⃣',
+      handleColor: '#06B6D4',
+      handleStrokeColor: '#FFFFFF',
+    },
+    {
+      category: 'Option 2: Teal Two-Tone',
+      emoji: '2️⃣',
+      handleColor: '#67E8F9',
+      handleStrokeColor: '#0E7490',
+    },
+    {
+      category: 'Option 3: Pink & White',
+      emoji: '3️⃣',
+      handleColor: '#EC4899',
+      handleStrokeColor: '#FFFFFF',
+    },
+    {
+      category: 'Option 4: Coral & Peach',
+      emoji: '4️⃣',
+      handleColor: '#FB923C',
+      handleStrokeColor: '#FED7AA',
+    },
+    {
+      category: 'Option 5: Emerald & Mint',
+      emoji: '5️⃣',
+      handleColor: '#10B981',
+      handleStrokeColor: '#D1FAE5',
+    },
   ];
 
   useEffect(() => {
@@ -175,41 +199,22 @@ export default function DashboardScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.comingSoonTitle}>
-                🧪 CategoryCircle Test
+                🎨 Color Options Comparison
               </Text>
               <Text variant="bodySmall" style={styles.comingSoonText}>
-                Transaction: {formatBalance(testTransactionAmount, testCurrency)}{'\n'}
-                Selected: {selectedCategories.length} categories
+                Drag each handle to see the colors in action{'\n'}
+                Transaction: {formatBalance(testTransactionAmount, testCurrency)}
               </Text>
 
-              {/* Test circles in a grid layout */}
+              {/* Test circles in a simple flex layout */}
               <View style={styles.circleTestContainer}>
-                {testCategories.map((cat, index) => {
+                {testCategories.map((cat) => {
                   const selectedCategory = selectedCategories.find(
                     s => s.category === cat.category
                   );
 
-                  // Position in a circle pattern
-                  // Container is 400px tall, so center is at 200px
-                  const containerHeight = 400;
-                  const centerX = 0; // Will use transform to position from center
-                  const centerY = containerHeight / 2;
-
-                  const angle = (index / testCategories.length) * 2 * Math.PI - Math.PI / 2;
-                  const radius = 120;
-                  const x = Math.cos(angle) * radius;
-                  const y = Math.sin(angle) * radius;
-
                   return (
-                    <View
-                      key={cat.category}
-                      style={{
-                        position: 'absolute',
-                        left: centerX,
-                        top: centerY,
-                        transform: [{ translateX: x }, { translateY: y }],
-                      }}
-                    >
+                    <View key={cat.category} style={styles.circleWrapper}>
                       <CategoryCircle
                         category={cat.category}
                         emoji={cat.emoji}
@@ -225,6 +230,9 @@ export default function DashboardScreen() {
                         onStartEdit={handleStartEdit}
                         onSaveEdit={handleSaveEdit}
                         setEditAmountInput={setEditAmountInput}
+                        handleColor={cat.handleColor}
+                        handleStrokeColor={cat.handleStrokeColor}
+                        progressColor={cat.handleColor}
                       />
                     </View>
                   );
@@ -359,9 +367,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   circleTestContainer: {
-    height: 400,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+    gap: 16,
+    paddingVertical: 20,
+  },
+  circleWrapper: {
+    margin: 8,
   },
 });

@@ -20,6 +20,9 @@ interface CategoryCircleProps {
   onStartEdit: (category: string, amount: number) => void;
   onSaveEdit: () => void;
   setEditAmountInput: (value: string) => void;
+  handleColor?: string; // Optional override for drag handle inner color
+  handleStrokeColor?: string; // Optional override for drag handle outer color
+  progressColor?: string; // Optional override for progress ring fill color
 }
 
 /**
@@ -47,6 +50,9 @@ export const CategoryCircle = memo<CategoryCircleProps>(
     onStartEdit,
     onSaveEdit,
     setEditAmountInput,
+    handleColor: customHandleColor,
+    handleStrokeColor: customHandleStrokeColor,
+    progressColor: customProgressColor,
   }) => {
     const theme = useTheme();
 
@@ -62,21 +68,21 @@ export const CategoryCircle = memo<CategoryCircleProps>(
     const isSelected = displayAmount !== undefined && displayAmount > 0;
 
     // Memoize constants - increased size to prevent clipping
-    const circleSize = 120; // Increased from 100 to give handle room
+    const circleSize = 136; // Size to accommodate drag handle at all positions
     const strokeWidth = 3;
     const handleSize = 8;
 
     // Calculate radii to match CircularProgressRing
-    const center = circleSize / 2; // 60
-    const outerRadius = center - strokeWidth / 2; // 58.5
+    const center = circleSize / 2; // 68
+    const outerRadius = center - strokeWidth / 2; // 66.5
     const innerRadius = 47; // Slightly smaller than button radius to overlap and eliminate gap
-    const dragHandleRadius = (outerRadius + innerRadius) / 2; // Drag handle sits in middle of ring
+    const dragHandleRadius = (outerRadius + innerRadius) / 2; // 56.75 - sits in middle of ring
 
     // Memoize colors from theme
     const trackColor = 'rgba(103, 80, 164, 0.4)';
-    const progressColor = '#6750A4';
-    const handleColor = theme.colors.tertiary; // Inner dot
-    const handleStrokeColor = theme.colors.secondary; // Outer ring
+    const progressColor = customProgressColor ?? '#6750A4';
+    const handleColor = customHandleColor ?? theme.colors.secondary; // Use custom or theme color
+    const handleStrokeColor = customHandleStrokeColor ?? theme.colors.secondary; // Use custom or theme color
 
     // Calculate progress (0 to 1)
     const progress = useMemo(() => {
@@ -277,8 +283,8 @@ const styles = StyleSheet.create({
   },
   circleContainer: {
     position: 'relative',
-    width: 120, // Increased to prevent clipping the handle
-    height: 120,
+    width: 136, // Increased to prevent clipping the handle at all positions
+    height: 136,
     justifyContent: 'center',
     alignItems: 'center',
   },
