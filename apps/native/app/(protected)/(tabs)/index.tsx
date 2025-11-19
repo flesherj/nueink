@@ -6,6 +6,7 @@ import { useAccountProvider } from '@nueink/ui';
 import { FinancialAccountApi } from '@nueink/sdk';
 import type { FinancialAccount } from '@nueink/core';
 import { CategoryCircle } from '../../../components/CategoryCircle';
+import { getCategoryColorScheme, getCategoryEmoji } from '../../../constants/categoryColors';
 
 // Create API client
 const financialAccountApi = FinancialAccountApi.create();
@@ -26,39 +27,25 @@ export default function DashboardScreen() {
   const testTransactionAmount = -12500; // $125.00 expense
   const testCurrency = 'USD';
 
-  // Test categories with color options for visual comparison
+  // Test categories with their themed color schemes
+  // Sample from different groups to show color variety
   const testCategories = [
-    {
-      category: 'Option 1: Cyan & White',
-      emoji: '1️⃣',
-      handleColor: '#06B6D4',
-      handleStrokeColor: '#FFFFFF',
-    },
-    {
-      category: 'Option 2: Teal Two-Tone',
-      emoji: '2️⃣',
-      handleColor: '#67E8F9',
-      handleStrokeColor: '#0E7490',
-    },
-    {
-      category: 'Option 3: Pink & White',
-      emoji: '3️⃣',
-      handleColor: '#EC4899',
-      handleStrokeColor: '#FFFFFF',
-    },
-    {
-      category: 'Option 4: Coral & Peach',
-      emoji: '4️⃣',
-      handleColor: '#FB923C',
-      handleStrokeColor: '#FED7AA',
-    },
-    {
-      category: 'Option 5: Emerald & Mint',
-      emoji: '5️⃣',
-      handleColor: '#10B981',
-      handleStrokeColor: '#D1FAE5',
-    },
-  ];
+    'Food: Groceries',
+    'Food: Restaurants',
+    'Transportation: Gas/Fuel',
+    'Housing: Mortgage/Rent',
+    'Entertainment: Streaming',
+    'Shopping: General',
+    'Healthcare: Pharmacy',
+    'Personal: Fitness',
+  ].map(categoryName => {
+    const colorScheme = getCategoryColorScheme(categoryName);
+    return {
+      category: categoryName,
+      emoji: getCategoryEmoji(categoryName),
+      ...colorScheme,
+    };
+  });
 
   useEffect(() => {
     loadDashboardData();
@@ -118,32 +105,37 @@ export default function DashboardScreen() {
     }).format(amount);
   };
 
-  // Test handlers for CategoryCircle
-  const handleCategorySelect = useCallback((category: string) => {
-    console.log('Category selected:', category);
-    const existing = selectedCategories.find(c => c.category === category);
-
-    if (existing) {
-      // Deselect
-      setSelectedCategories(prev => prev.filter(c => c.category !== category));
-    } else {
-      // Select with 0 amount (will be set by drag)
-      setSelectedCategories(prev => [...prev, { category, amount: 0 }]);
-    }
-  }, [selectedCategories]);
-
+  // Simple amount-based handler - amount > 0 means selected, amount = 0 means deselected
   const handleAmountChange = useCallback((category: string, amount: number) => {
     console.log('Amount changed:', category, amount);
-    setSelectedCategories(prev =>
-      prev.map(c => (c.category === category ? { ...c, amount } : c))
-    );
+    setSelectedCategories(prev => {
+      if (amount <= 0) {
+        // Remove category if amount is 0 or negative
+        return prev.filter(c => c.category !== category);
+      }
+
+      const existing = prev.find(c => c.category === category);
+      if (existing) {
+        // Update existing category amount
+        return prev.map(c => (c.category === category ? { ...c, amount } : c));
+      } else {
+        // Add new category with amount
+        return [...prev, { category, amount }];
+      }
+    });
   }, []);
 
-  const getAvailableForCategory = useCallback((category: string) => {
-    const otherCategoriesTotal = selectedCategories
-      .filter(c => c.category !== category)
-      .reduce((sum, c) => sum + c.amount, 0);
-    return Math.abs(testTransactionAmount) - otherCategoriesTotal;
+  // Calculate how much of the transaction is still uncategorized
+  const remainingUncategorized = useMemo(() => {
+    const totalAllocated = selectedCategories.reduce((sum, c) => sum + c.amount, 0);
+    const remaining = Math.abs(testTransactionAmount) - totalAllocated;
+    console.log(`[PARENT] 📊 Recalculated remainingUncategorized:`, {
+      totalAllocated,
+      remaining,
+      selectedCategories: selectedCategories.map(c => `${c.category}: ${c.amount}`),
+      timestamp: Date.now()
+    });
+    return remaining;
   }, [selectedCategories, testTransactionAmount]);
 
   const handleStartEdit = useCallback((category: string, amount: number) => {
@@ -199,10 +191,10 @@ export default function DashboardScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.comingSoonTitle}>
-                🎨 Color Options Comparison
+                🎨 Category Color Schemes
               </Text>
               <Text variant="bodySmall" style={styles.comingSoonText}>
-                Drag each handle to see the colors in action{'\n'}
+                Each category has its own unique color identity{'\n'}
                 Transaction: {formatBalance(testTransactionAmount, testCurrency)}
               </Text>
 
@@ -221,10 +213,9 @@ export default function DashboardScreen() {
                         amount={selectedCategory?.amount}
                         transactionAmount={testTransactionAmount}
                         transactionCurrency={testCurrency}
-                        onCategorySelect={handleCategorySelect}
+                        remainingUncategorized={remainingUncategorized}
                         onAmountChange={handleAmountChange}
                         formatAmount={formatBalance}
-                        getAvailableForCategory={getAvailableForCategory}
                         editingCategory={editingCategory}
                         editAmountInput={editAmountInput}
                         onStartEdit={handleStartEdit}

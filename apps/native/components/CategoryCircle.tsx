@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo, memo } from 'react';
+import { useState, useRef, useCallback, useMemo, memo, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput as RNTextInput } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -11,10 +11,9 @@ interface CategoryCircleProps {
   amount: number | undefined;
   transactionAmount: number;
   transactionCurrency: string;
-  onCategorySelect: (category: string) => void;
+  remainingUncategorized: number; // Simple prop - how much is left to allocate
   onAmountChange: (category: string, amount: number) => void;
   formatAmount: (amount: number, currency: string) => string;
-  getAvailableForCategory: (category: string) => number;
   editingCategory: string | null;
   editAmountInput: string;
   onStartEdit: (category: string, amount: number) => void;
@@ -41,10 +40,9 @@ export const CategoryCircle = memo<CategoryCircleProps>(
     amount,
     transactionAmount,
     transactionCurrency,
-    onCategorySelect,
+    remainingUncategorized,
     onAmountChange,
     formatAmount,
-    getAvailableForCategory,
     editingCategory,
     editAmountInput,
     onStartEdit,
@@ -61,7 +59,16 @@ export const CategoryCircle = memo<CategoryCircleProps>(
 
     // Refs for gesture handling
     const lastAngleRef = useRef<number | undefined>(undefined);
-    const isSelectedRef = useRef(amount !== undefined && amount > 0);
+    const availableAtDragStartRef = useRef<number>(0);
+
+    // Log when remainingUncategorized changes
+    useEffect(() => {
+      console.log(`[${category}] 📥 Received remainingUncategorized:`, {
+        remainingUncategorized,
+        currentAmount: amount,
+        timestamp: Date.now()
+      });
+    }, [remainingUncategorized, category, amount]);
 
     // Use drag amount if dragging, otherwise use committed amount
     const displayAmount = dragAmount ?? amount;
@@ -117,67 +124,90 @@ export const CategoryCircle = memo<CategoryCircleProps>(
      * Pan gesture for circular dragging
      */
     const gesture = Gesture.Pan()
-      .minDistance(0)
+      .minDistance(5) // Small threshold to prevent accidental drags from taps
       .onStart(() => {
-        lastAngleRef.current = angle; // Initialize to current angle to prevent reset
-        isSelectedRef.current = amount !== undefined && amount > 0;
+        // Calculate max available: current amount + remaining uncategorized
+        // (freeing up current amount adds to remaining, so we can use both)
+        availableAtDragStartRef.current = (amount ?? 0) + remainingUncategorized;
+        console.log(`[${category}] 🎯 DRAG START:`, {
+          currentAmount: amount,
+          startAngle: angle,
+          remainingUncategorized: remainingUncategorized,
+          maxAvailable: availableAtDragStartRef.current,
+          timestamp: Date.now()
+        });
+        lastAngleRef.current = undefined; // Let first touch set the angle naturally
         setDragAmount(amount ?? 0);
       })
       .onUpdate((event) => {
         let newAngle = calculateAngleFromTouch(event.x, event.y);
+        const isFirstTouch = lastAngleRef.current === undefined;
 
         // Handle angle wrapping (prevent jumps from 359° to 0°)
         const lastAngle = lastAngleRef.current;
         if (lastAngle !== undefined) {
           const angleDelta = newAngle - lastAngle;
           if (angleDelta < -180) {
+            console.log(`[${category}] ⚠️ Angle wrap: ${newAngle}° -> 360° (delta: ${angleDelta})`);
             newAngle = 360; // Snap to max
           } else if (angleDelta > 180) {
+            console.log(`[${category}] ⚠️ Angle wrap: ${newAngle}° -> 0° (delta: ${angleDelta})`);
             newAngle = 0; // Snap to min
+          }
+        } else {
+          // First touch - check if touching close to current handle position
+          const currentAngle = angle; // Where the handle currently is
+          const touchDelta = Math.abs(newAngle - currentAngle);
+          const normalizedDelta = touchDelta > 180 ? 360 - touchDelta : touchDelta;
+
+          console.log(`[${category}] 👆 FIRST TOUCH: angle=${newAngle.toFixed(1)}° (vs stored angle=${currentAngle.toFixed(1)}°) delta=${normalizedDelta.toFixed(1)}°`);
+
+          // If touching within 30° of current handle, treat as "grabbing the handle" - no jump
+          if (normalizedDelta < 30) {
+            console.log(`[${category}] ✋ Close to handle - no jump`);
+            newAngle = currentAngle; // Start from current position
+          } else {
+            console.log(`[${category}] 🎯 Far from handle - repositioning`);
           }
         }
 
         lastAngleRef.current = newAngle;
 
-        // Calculate new amount based on angle and available
-        const availableForThisCategory = getAvailableForCategory(category);
+        // Use CACHED available amount - no recalculation every frame!
+        const availableForThisCategory = availableAtDragStartRef.current;
         const totalTransaction = Math.abs(transactionAmount);
 
-        // Snap to 100% when close to full circle
+        // Calculate the max angle this category can reach based on available amount
+        // This prevents dragging beyond what's visually represented
+        const maxAngleForAvailable = (availableForThisCategory / totalTransaction) * 360;
+
+        // Cap the angle to max available
+        const cappedAngle = Math.min(newAngle, maxAngleForAvailable);
+
+        // Calculate amount based on the TRANSACTION total (not available)
+        // This keeps the visual and the amount in sync
         let newAmount: number;
-        if (newAngle > 350) {
+        if (cappedAngle >= maxAngleForAvailable - 10) {
+          // Snap to max when close
           newAmount = availableForThisCategory;
         } else {
-          const percentage = newAngle / 360;
-          newAmount = Math.round(percentage * availableForThisCategory);
+          const percentage = cappedAngle / 360;
+          newAmount = Math.round(percentage * totalTransaction);
         }
 
         setDragAmount(newAmount);
-
-        // Track selection state
-        if (newAmount <= 100) {
-          isSelectedRef.current = false;
-        } else {
-          isSelectedRef.current = true;
-        }
       })
       .onEnd(() => {
         // Commit the final amount to parent
+        // Amount of 0 will automatically deselect (remove from array)
+        // Amount > 0 will add/update the category
+        console.log(`[${category}] ✅ DRAG END:`, {
+          startAmount: amount,
+          finalAmount: dragAmount,
+          timestamp: Date.now()
+        });
         if (dragAmount !== null) {
-          if (dragAmount <= 100) {
-            // Deselect if below threshold
-            const wasSelected = amount !== undefined && amount > 0;
-            if (wasSelected) {
-              onCategorySelect(category);
-            }
-          } else {
-            // Update or add category
-            const wasSelected = amount !== undefined && amount > 0;
-            if (!wasSelected) {
-              onCategorySelect(category);
-            }
-            onAmountChange(category, dragAmount);
-          }
+          onAmountChange(category, dragAmount);
         }
         setDragAmount(null);
       })
@@ -204,7 +234,10 @@ export const CategoryCircle = memo<CategoryCircleProps>(
                 { backgroundColor: theme.colors.surface },
                 isSelected && styles.centerButtonSelected,
               ]}
-              onPress={() => onCategorySelect(category)}
+              onPress={() => {
+                console.log(`[${category}] Center button clicked - resetting to 0`);
+                onAmountChange(category, 0);
+              }} // Set to 0 to deselect
               activeOpacity={0.7}
             >
               <View style={styles.centerContent}>
@@ -258,18 +291,21 @@ export const CategoryCircle = memo<CategoryCircleProps>(
 
         {/* Category label */}
         <Text variant="bodySmall" style={styles.label}>
-          {category.split(': ')[1] || category}
+          {category}
         </Text>
       </View>
     );
   },
   (prevProps, nextProps) => {
-    // Smart comparison: only re-render if necessary props changed
+    // Smart comparison: only re-render if these specific props changed
+    // We DO check remainingUncategorized - otherwise the gesture handler will have
+    // a stale closure with the old value!
     return (
       prevProps.amount === nextProps.amount &&
       prevProps.editingCategory === nextProps.editingCategory &&
       prevProps.editAmountInput === nextProps.editAmountInput &&
-      prevProps.category === nextProps.category
+      prevProps.category === nextProps.category &&
+      prevProps.remainingUncategorized === nextProps.remainingUncategorized
     );
   }
 );
