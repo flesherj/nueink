@@ -8,6 +8,12 @@ import {
 } from 'react-native';
 import { Text, Avatar, IconButton, useTheme } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
+import Svg, { Circle, Path } from 'react-native-svg';
+import {
+  GestureDetector,
+  Gesture,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 import {
   CATEGORY_METADATA,
   getAllGroups,
@@ -26,6 +32,262 @@ interface RadialCategoryPickerProps {
   transactionCurrency: string;
   formatAmount: (amount: number, currency: string) => string;
 }
+
+interface CategoryCircleProps {
+  category: string;
+  emoji: string;
+  amount: number | undefined;
+  selectedCategories: Array<{ category: string; amount: number }>;
+  transactionAmount: number;
+  transactionCurrency: string;
+  onCategorySelect: (category: string) => void;
+  onAmountChange: (category: string, amount: number) => void;
+  formatAmount: (amount: number, currency: string) => string;
+  position: { x: number; y: number };
+  animatedStyle: any;
+  editingCategory: string | null;
+  editAmountInput: string;
+  onStartEdit: (category: string, amount: number) => void;
+  onSaveEdit: () => void;
+  setEditAmountInput: (value: string) => void;
+}
+
+/**
+ * Individual category circle component
+ * Uses local drag state to avoid re-rendering parent during drag
+ */
+const CategoryCircle: React.FC<CategoryCircleProps> = ({
+  category,
+  emoji,
+  amount,
+  selectedCategories,
+  transactionAmount,
+  transactionCurrency,
+  onCategorySelect,
+  onAmountChange,
+  formatAmount,
+  position,
+  animatedStyle,
+  editingCategory,
+  editAmountInput,
+  onStartEdit,
+  onSaveEdit,
+  setEditAmountInput,
+}) => {
+  const theme = useTheme();
+
+  // Local state for drag amount (updates without re-rendering parent!)
+  const [dragAmount, setDragAmount] = useState<number | null>(null);
+
+  // Use drag amount if dragging, otherwise use committed amount
+  const displayAmount = dragAmount ?? amount;
+
+  const lastAngleRef = useRef<number | undefined>(undefined);
+  const isSelectedRef = useRef(displayAmount !== undefined && displayAmount > 0);
+
+  // Helper functions
+  const polarToCartesian = (
+    centerX: number,
+    centerY: number,
+    radius: number,
+    angleInDegrees: number
+  ) => {
+    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+    return {
+      x: centerX + radius * Math.cos(angleInRadians),
+      y: centerY + radius * Math.sin(angleInRadians),
+    };
+  };
+
+  const calculateAngleFromTouch = (touchX: number, touchY: number, centerX: number, centerY: number): number => {
+    const deltaX = touchX - centerX;
+    const deltaY = touchY - centerY;
+    let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+    angle = angle + 90;
+    if (angle < 0) angle += 360;
+    return angle;
+  };
+
+  const createArcPath = (
+    centerX: number,
+    centerY: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number
+  ): string => {
+    const start = polarToCartesian(centerX, centerY, radius, endAngle);
+    const end = polarToCartesian(centerX, centerY, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+    return [
+      'M', start.x, start.y,
+      'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y
+    ].join(' ');
+  };
+
+  // Create gesture - updates local state only, commits on end
+  const gesture = Gesture.Pan()
+    .minDistance(0)
+    .onStart(() => {
+      lastAngleRef.current = undefined;
+      isSelectedRef.current = amount !== undefined && amount > 0;
+      // Initialize drag with current amount (or 0 if not selected)
+      setDragAmount(amount ?? 0);
+    })
+    .onUpdate((event) => {
+      let angle = calculateAngleFromTouch(event.x, event.y, 50, 50);
+
+      const lastAngle = lastAngleRef.current;
+      if (lastAngle !== undefined) {
+        const angleDelta = angle - lastAngle;
+        if (angleDelta < -180) {
+          angle = 360;
+        } else if (angleDelta > 180) {
+          angle = 0;
+        }
+      }
+
+      lastAngleRef.current = angle;
+
+      // Calculate available using current selectedCategories (from closure)
+      const otherCategoriesTotal = selectedCategories
+        .filter(c => c.category !== category)
+        .reduce((sum, c) => sum + c.amount, 0);
+
+      const totalTransaction = Math.abs(transactionAmount);
+      const availableForThisCategory = totalTransaction - otherCategoriesTotal;
+      const percentage = angle / 360;
+      const newAmount = Math.round(percentage * availableForThisCategory);
+
+      // Update local state only - no parent re-render!
+      setDragAmount(newAmount);
+
+      // Handle selection/deselection
+      if (newAmount <= 100) {
+        if (isSelectedRef.current) {
+          isSelectedRef.current = false;
+        }
+      } else {
+        if (!isSelectedRef.current) {
+          isSelectedRef.current = true;
+        }
+      }
+    })
+    .onEnd(() => {
+      // Commit the final amount to parent (single re-render)
+      if (dragAmount !== null) {
+        if (dragAmount <= 100) {
+          // Deselect if below threshold
+          const wasSelected = amount !== undefined && amount > 0;
+          if (wasSelected) {
+            onCategorySelect(category);
+          }
+        } else {
+          // Update or add category
+          const wasSelected = amount !== undefined && amount > 0;
+          if (!wasSelected) {
+            onCategorySelect(category);
+          }
+          onAmountChange(category, dragAmount);
+        }
+      }
+      // Clear drag state
+      setDragAmount(null);
+    })
+    .runOnJS(true);
+
+  const isSelected = displayAmount !== undefined && displayAmount > 0;
+  const currentAngle = isSelected ? (displayAmount / Math.abs(transactionAmount)) * 360 : 0;
+  const handlePos = polarToCartesian(50, 50, 42, currentAngle);
+
+  return (
+    <Animated.View style={[styles.radialButton, animatedStyle]}>
+      <GestureDetector gesture={gesture}>
+        <View style={styles.categoryCircleContainer}>
+          <Svg width={100} height={100} style={styles.circularProgressSvg}>
+            <Circle
+              cx={50}
+              cy={50}
+              r={42}
+              stroke="rgba(103, 80, 164, 0.4)"
+              strokeWidth={3}
+              fill="none"
+            />
+            {isSelected && displayAmount > 0 && (
+              <Path
+                d={createArcPath(50, 50, 42, 0, currentAngle)}
+                stroke="#6750A4"
+                strokeWidth={3}
+                fill="none"
+                strokeLinecap="round"
+              />
+            )}
+          </Svg>
+
+          <TouchableOpacity
+            style={[
+              styles.categoryRadialButton,
+              { backgroundColor: theme.colors.surface },
+              isSelected && styles.categoryButtonSelected,
+            ]}
+            onPress={() => onCategorySelect(category)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.categoryEmojiSmall}>{emoji}</Text>
+
+            {isSelected && displayAmount && (
+              editingCategory === category ? (
+                <RNTextInput
+                  value={editAmountInput}
+                  onChangeText={setEditAmountInput}
+                  keyboardType="decimal-pad"
+                  autoFocus
+                  onBlur={onSaveEdit}
+                  onSubmitEditing={onSaveEdit}
+                  style={styles.circularAmountInput}
+                  placeholder="0.00"
+                  selectTextOnFocus
+                  placeholderTextColor="rgba(103, 80, 164, 0.4)"
+                />
+              ) : (
+                <TouchableOpacity
+                  onPress={() => onStartEdit(category, displayAmount)}
+                  activeOpacity={0.7}
+                  style={styles.circularAmountTouchable}
+                >
+                  <Text style={styles.circularAmount}>
+                    {formatAmount(
+                      transactionAmount < 0 ? -displayAmount : displayAmount,
+                      transactionCurrency
+                    ).replace(/[+\-]/, '')}
+                  </Text>
+                </TouchableOpacity>
+              )
+            )}
+          </TouchableOpacity>
+
+          <Svg
+            width={100}
+            height={100}
+            style={styles.circularProgressSvg}
+            pointerEvents="none"
+          >
+            <Circle
+              cx={handlePos.x}
+              cy={handlePos.y}
+              r={8}
+              fill="#6750A4"
+              stroke="#FFFFFF"
+              strokeWidth={3}
+            />
+          </Svg>
+        </View>
+      </GestureDetector>
+      <Text variant="bodySmall" style={styles.radialCategoryLabel}>
+        {category.split(': ')[1] || category}
+      </Text>
+    </Animated.View>
+  );
+};
 
 /**
  * Radial Category Picker
@@ -51,6 +313,10 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editAmountInput, setEditAmountInput] = useState('');
   const radialAnimValue = useRef(new Animated.Value(0)).current;
+
+  // Double-tap detection
+  const lastTapRef = useRef<{ category: string; time: number } | null>(null);
+  const DOUBLE_TAP_DELAY = 300; // milliseconds
 
   const categoryGroups = getAllGroups().filter(group => group !== 'Other');
 
@@ -103,12 +369,47 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
   }, []);
 
   /**
-   * Handle category selection - toggle selection without collapsing radial menu
+   * Handle category selection with double-tap detection
+   * Single tap: Toggle selection
+   * Double tap: Fill to uncategorized amount
    */
   const handleCategorySelect = useCallback((category: string) => {
-    // Just toggle the selection, keep radial menu open
-    onCategorySelect(category);
-  }, [onCategorySelect]);
+    const now = Date.now();
+    const lastTap = lastTapRef.current;
+
+    // Check for double-tap
+    if (
+      lastTap &&
+      lastTap.category === category &&
+      now - lastTap.time < DOUBLE_TAP_DELAY
+    ) {
+      console.log('Double-tap detected! Filling category:', category);
+      // Double-tap: Fill to uncategorized amount
+      const uncategorized = getUncategorizedAmount();
+      const selectedCategory = selectedCategories.find((c) => c.category === category);
+
+      if (selectedCategory) {
+        // Category already selected, fill to max (current + uncategorized)
+        const newAmount = selectedCategory.amount + uncategorized;
+        onAmountChange(category, newAmount);
+      } else {
+        // Category not selected yet, select and fill to full uncategorized
+        onCategorySelect(category);
+        // Need to wait for next render to update amount, use setTimeout
+        setTimeout(() => {
+          onAmountChange(category, uncategorized);
+        }, 0);
+      }
+
+      // Reset last tap
+      lastTapRef.current = null;
+    } else {
+      // Single tap: Toggle selection
+      onCategorySelect(category);
+      // Record this tap for double-tap detection
+      lastTapRef.current = { category, time: now };
+    }
+  }, [onCategorySelect, onAmountChange, getUncategorizedAmount, selectedCategories]);
 
   /**
    * Start editing amount for a category
@@ -322,82 +623,25 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
               };
 
               return (
-                <Animated.View
+                <CategoryCircle
                   key={categoryMeta.category}
-                  style={[styles.radialButton, animatedStyle]}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.categoryRadialButton,
-                      { backgroundColor: theme.colors.surface },
-                      isSelected && styles.categoryButtonSelected,
-                    ]}
-                    onPress={() => handleCategorySelect(categoryMeta.category)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.categoryEmojiSmall}>{categoryMeta.emoji}</Text>
-                    {isSelected && (
-                      <View style={styles.checkmarkSmall}>
-                        <Text style={styles.checkmarkText}>✓</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                  <Text variant="bodySmall" style={styles.radialCategoryLabel}>
-                    {categoryMeta.category.split(': ')[1] || categoryMeta.category}
-                  </Text>
-
-                  {/* Inline slider for selected categories */}
-                  {isSelected && selectedCategory && (
-                    <View style={styles.radialSliderContainer}>
-                      {/* Editable amount */}
-                      {editingCategory === categoryMeta.category ? (
-                        <RNTextInput
-                          value={editAmountInput}
-                          onChangeText={setEditAmountInput}
-                          keyboardType="decimal-pad"
-                          autoFocus
-                          onBlur={handleSaveEditAmount}
-                          onSubmitEditing={handleSaveEditAmount}
-                          style={styles.radialAmountInput}
-                          placeholder="0.00"
-                          selectTextOnFocus
-                          placeholderTextColor="rgba(103, 80, 164, 0.4)"
-                        />
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() => handleStartEditAmount(categoryMeta.category, selectedCategory.amount)}
-                          activeOpacity={0.7}
-                        >
-                          <Text variant="bodySmall" style={styles.radialAmount}>
-                            {formatAmount(
-                              transactionAmount < 0 ? -selectedCategory.amount : selectedCategory.amount,
-                              transactionCurrency
-                            )}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-
-                      {/* Slider */}
-                      <Slider
-                        style={styles.radialSlider}
-                        minimumValue={0}
-                        maximumValue={(selectedCategory.amount + getUncategorizedAmount()) / 100}
-                        step={0.01}
-                        value={selectedCategory.amount / 100}
-                        onValueChange={(value) => {
-                          const centsValue = Math.round(value * 100);
-                          const currentUncategorized = getUncategorizedAmount();
-                          const maxAllowed = selectedCategory.amount + currentUncategorized;
-                          const clampedValue = Math.min(centsValue, maxAllowed);
-                          onAmountChange(categoryMeta.category, clampedValue);
-                        }}
-                        minimumTrackTintColor="rgba(103, 80, 164, 0.9)"
-                        maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
-                        thumbTintColor="rgba(103, 80, 164, 1)"
-                      />
-                    </View>
-                  )}
-                </Animated.View>
+                  category={categoryMeta.category}
+                  emoji={categoryMeta.emoji}
+                  amount={selectedCategory?.amount}
+                  selectedCategories={selectedCategories}
+                  transactionAmount={transactionAmount}
+                  transactionCurrency={transactionCurrency}
+                  onCategorySelect={handleCategorySelect}
+                  onAmountChange={onAmountChange}
+                  formatAmount={formatAmount}
+                  position={position}
+                  animatedStyle={animatedStyle}
+                  editingCategory={editingCategory}
+                  editAmountInput={editAmountInput}
+                  onStartEdit={handleStartEditAmount}
+                  onSaveEdit={handleSaveEditAmount}
+                  setEditAmountInput={setEditAmountInput}
+                />
               );
             })}
           </View>
@@ -637,6 +881,7 @@ const styles = StyleSheet.create({
   radialButton: {
     position: 'absolute',
     alignItems: 'center',
+    overflow: 'visible',
   },
   categoryRadialButton: {
     width: 70,
@@ -700,9 +945,50 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     minWidth: 60,
   },
-  radialSlider: {
+  // Circular slider styles
+  categoryCircleContainer: {
+    position: 'relative',
     width: 100,
-    height: 30,
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  circularProgressSvg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    pointerEvents: 'none', // Allow touches to pass through to gesture detector
+  },
+  circularAmount: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(103, 80, 164, 1)',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  circularAmountTouchable: {
+    position: 'absolute',
+    bottom: 4,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  circularAmountInput: {
+    position: 'absolute',
+    bottom: 4,
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(103, 80, 164, 1)',
+    textAlign: 'center',
+    backgroundColor: 'rgba(103, 80, 164, 0.15)',
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(103, 80, 164, 0.4)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    minWidth: 45,
+    height: 16,
   },
   categoryGrid: {
     flexDirection: 'row',

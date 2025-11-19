@@ -98,7 +98,6 @@ export default function DashboardScreen() {
   // Test handlers for RadialCategoryPicker
   const handleCategorySelect = useCallback((category: string) => {
     console.log('Category selected:', category);
-    const absAmount = Math.abs(testTransactionAmount);
 
     const existing = selectedCategories.find(c => c.category === category);
 
@@ -106,14 +105,11 @@ export default function DashboardScreen() {
       // Category already selected - deselect it
       console.log('Deselecting category:', category);
       setSelectedCategories(prev => prev.filter(c => c.category !== category));
-    } else if (selectedCategories.length === 0) {
-      // First category gets full amount
-      setSelectedCategories([{ category, amount: absAmount }]);
     } else {
-      // Add category with some of uncategorized amount
+      // All categories start at $0 (use double-tap to fill, or slider to adjust)
       setSelectedCategories(prev => [...prev, { category, amount: 0 }]);
     }
-  }, [selectedCategories, testTransactionAmount]);
+  }, [selectedCategories]);
 
   const handleAmountChange = useCallback((category: string, amount: number) => {
     console.log('Amount changed:', category, amount);
