@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Animated } from 'react-native';
-import { Surface, Text, Card, ActivityIndicator, FAB } from 'react-native-paper';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { Surface, Text, Card, ActivityIndicator } from 'react-native-paper';
 import { useAccountProvider } from '@nueink/ui';
 import { FinancialAccountApi } from '@nueink/sdk';
 import type { FinancialAccount } from '@nueink/core';
-import { RadialCategoryPicker } from '../../../components/RadialCategoryPicker';
 
 // Create API client
 const financialAccountApi = FinancialAccountApi.create();
@@ -16,13 +14,6 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Test harness for RadialCategoryPicker
-  const [selectedCategories, setSelectedCategories] = useState<
-    Array<{ category: string; amount: number }>
-  >([]);
-  const testTransactionAmount = -12500; // $125.00 expense
-  const testCurrency = 'USD';
 
   useEffect(() => {
     loadDashboardData();
@@ -82,50 +73,6 @@ export default function DashboardScreen() {
     }).format(amount);
   };
 
-  // Handler for category selection (toggle on/off)
-  const handleCategorySelect = useCallback((category: string) => {
-    setSelectedCategories(prev => {
-      const exists = prev.find(c => c.category === category);
-      if (exists) {
-        // Remove category (deselect)
-        return prev.filter(c => c.category !== category);
-      } else {
-        // Add category with $0 initial amount - user drags to allocate
-        return [...prev, { category, amount: 0 }];
-      }
-    });
-  }, [testTransactionAmount]);
-
-  // Handler for amount changes from CategoryCircle drag
-  const handleAmountChange = useCallback((category: string, amount: number) => {
-    setSelectedCategories(prev => {
-      if (amount <= 0) {
-        // Remove category if amount is 0 or negative
-        return prev.filter(c => c.category !== category);
-      }
-
-      const existing = prev.find(c => c.category === category);
-      if (existing) {
-        // Update existing category amount
-        return prev.map(c => (c.category === category ? { ...c, amount } : c));
-      } else {
-        // Add new category with amount
-        return [...prev, { category, amount }];
-      }
-    });
-  }, []);
-
-  // Get uncategorized amount
-  const getUncategorizedAmount = useCallback(() => {
-    const totalAllocated = selectedCategories.reduce((sum, c) => sum + c.amount, 0);
-    return Math.abs(testTransactionAmount) - totalAllocated;
-  }, [selectedCategories, testTransactionAmount]);
-
-  // Clear all allocations
-  const handleClearAll = useCallback(() => {
-    setSelectedCategories([]);
-  }, []);
-
   if (loading) {
     return (
       <Surface style={styles.container}>
@@ -151,42 +98,14 @@ export default function DashboardScreen() {
   const totalBalance = getTotalBalance();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Surface style={styles.container}>
-        <ScrollView
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* RadialCategoryPicker Test Area */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.comingSoonTitle}>
-                🎨 Radial Category Picker
-              </Text>
-              <Text variant="bodySmall" style={styles.comingSoonText}>
-                Tap a category group to see categories radiate outward{'\n'}
-                Transaction: {formatBalance(testTransactionAmount, testCurrency)}
-              </Text>
-
-              {/* RadialCategoryPicker component */}
-              <View style={styles.pickerContainer}>
-                <RadialCategoryPicker
-                  selectedCategories={selectedCategories}
-                  onCategorySelect={handleCategorySelect}
-                  onAmountChange={handleAmountChange}
-                  onClearAll={handleClearAll}
-                  getUncategorizedAmount={getUncategorizedAmount}
-                  transactionAmount={testTransactionAmount}
-                  transactionCurrency={testCurrency}
-                  formatAmount={formatBalance}
-                />
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* What You Have Left Card */}
+    <Surface style={styles.container}>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* What You Have Left Card */}
           <Card style={styles.card}>
             <Card.Content>
               <View style={styles.cardHeader}>
@@ -229,7 +148,6 @@ export default function DashboardScreen() {
           </Card>
         </ScrollView>
       </Surface>
-    </GestureHandlerRootView>
   );
 }
 
@@ -301,18 +219,5 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     fontStyle: 'italic',
     marginTop: 4,
-  },
-  comingSoonTitle: {
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  comingSoonText: {
-    opacity: 0.6,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  pickerContainer: {
-    minHeight: 500,
-    marginTop: 8,
   },
 });
