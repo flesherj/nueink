@@ -21,7 +21,7 @@ echarts.use([
 
 const { width: screenWidth } = Dimensions.get('window');
 const chartWidth = screenWidth - 48; // Account for padding
-const chartHeight = 280;
+const chartHeight = 320; // Increased to accommodate bottom legend
 
 export interface CategoryPieChartProps {
   /** Category spending data to display */
@@ -118,24 +118,26 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
         padding: [8, 12],
       },
       legend: {
-        orient: 'vertical',
-        right: 10,
-        top: 'center',
+        orient: 'horizontal',
+        bottom: 0,
+        left: 'center',
         textStyle: {
           color: theme.colors.onSurface,
-          fontSize: 11,
+          fontSize: 10,
         },
-        itemGap: 8,
+        itemGap: 12,
+        itemWidth: 12,
+        itemHeight: 12,
         formatter: (name: string) => {
-          // Truncate long category names
-          return name.length > 20 ? name.substring(0, 18) + '...' : name;
+          // Truncate long category names for horizontal layout
+          return name.length > 15 ? name.substring(0, 13) + '...' : name;
         },
       },
       series: [
         {
           type: 'pie',
           radius: ['40%', '70%'], // Donut chart
-          center: ['35%', '50%'], // Shift left to make room for legend
+          center: ['50%', '45%'], // Center horizontally, shift up for bottom legend
           avoidLabelOverlap: true,
           itemStyle: {
             borderRadius: 8,
