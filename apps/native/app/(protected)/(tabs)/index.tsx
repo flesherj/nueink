@@ -189,12 +189,12 @@ export default function DashboardScreen() {
                   Total spending
                 </Text>
 
-                {/* Top Categories */}
+                {/* All Categories */}
                 <View style={styles.categorySection}>
                   <Text variant="titleSmall" style={styles.sectionTitle}>
-                    Top Spending Categories
+                    All Spending Categories ({analysis.spendingByCategory.length})
                   </Text>
-                  {analysis.spendingByCategory.slice(0, 5).map((cat) => (
+                  {analysis.spendingByCategory.map((cat) => (
                     <View key={cat.category} style={styles.categoryRow}>
                       <Text variant="bodyMedium" style={styles.categoryName}>
                         {cat.category}
