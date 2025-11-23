@@ -5,6 +5,7 @@ import {
   Transaction,
   TransactionSplit,
 } from '../models';
+import type { AIInsightProvider } from '../providers';
 import { TransactionService } from './TransactionService';
 import { TransactionSplitService } from './TransactionSplitService';
 
@@ -15,7 +16,8 @@ import { TransactionSplitService } from './TransactionSplitService';
 export class FinancialAnalysisService {
   constructor(
     private transactionService: TransactionService,
-    private splitService: TransactionSplitService<any>
+    private splitService: TransactionSplitService<any>,
+    private aiInsightProvider: AIInsightProvider
   ) {}
 
   /**
@@ -233,6 +235,17 @@ export class FinancialAnalysisService {
     limit: number = 3
   ): CategorySpending[] => {
     return analysis.spendingByCategory.slice(0, limit);
+  };
+
+  /**
+   * Generate AI-powered insights from analysis
+   * @param analysis Financial analysis
+   * @returns Promise of AI-generated insight strings
+   */
+  public generateAIInsights = async (
+    analysis: FinancialAnalysis
+  ): Promise<string[]> => {
+    return this.aiInsightProvider.generateInsights(analysis);
   };
 
   /**

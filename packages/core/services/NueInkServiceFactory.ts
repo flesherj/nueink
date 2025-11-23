@@ -16,6 +16,8 @@ import { AnalyticsService } from './AnalyticsService';
 import { FinancialAnalysisService } from './FinancialAnalysisService';
 import type { SecretManager } from './SecretManager';
 import type { EventPublisher } from '../events';
+import type { AIInsightProvider } from '../providers';
+import { SimpleAIInsightProvider } from '../providers';
 
 /**
  * Service type mapping for type-safe factory method
@@ -98,6 +100,10 @@ export class NueInkServiceFactory {
     new IntegrationService(this._repositoryFactory.integrationConfig(), secretManager, eventPublisher);
   public analytics = (): AnalyticsService =>
     new AnalyticsService(this.transaction(), this.transactionSplit());
-  public financialAnalysis = (): FinancialAnalysisService =>
-    new FinancialAnalysisService(this.transaction(), this.transactionSplit());
+  public financialAnalysis = (aiProvider?: AIInsightProvider): FinancialAnalysisService =>
+    new FinancialAnalysisService(
+      this.transaction(),
+      this.transactionSplit(),
+      aiProvider || new SimpleAIInsightProvider()
+    );
 }

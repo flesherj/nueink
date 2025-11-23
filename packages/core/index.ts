@@ -6,6 +6,9 @@ export * from './models';
 // Repository interfaces
 export * from './repositories';
 
+// Provider interfaces
+export * from './providers';
+
 // Event-driven architecture
 export * from './events';
 

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { serviceFactory } from '../handler';
+import { serviceFactory, awsFactory } from '../handler';
+import { BedrockAIInsightProvider } from '@nueink/aws/services';
 
 /**
  * Financial Analysis Controller
@@ -33,7 +34,9 @@ class FinancialAnalysisController {
       // For now, using accountId as profileOwner (should be cognito user ID)
       const profileOwner = accountId;
 
-      const analysisService = serviceFactory.financialAnalysis();
+      // Create Bedrock AI provider and inject into service
+      const aiProvider = new BedrockAIInsightProvider(awsFactory.bedrock());
+      const analysisService = serviceFactory.financialAnalysis(aiProvider);
 
       const analysis = await analysisService.analyzeSpending(
         organizationId,
@@ -42,10 +45,10 @@ class FinancialAnalysisController {
         months
       );
 
-      // Get simple insights
-      const insights = analysisService.getSimpleInsights(analysis);
+      // Generate AI-powered insights
+      const insights = await analysisService.generateAIInsights(analysis);
 
-      // Return analysis with insights
+      // Return analysis with AI insights
       res.json({
         ...analysis,
         insights
