@@ -68,7 +68,11 @@ export type FinancialAccountStatus = 'active' | 'inactive' | 'closed';
 
 export type BudgetPeriod = 'monthly' | 'weekly' | 'yearly';
 
-export type BudgetStatus = 'active' | 'inactive';
+export type BudgetStatus =
+  | 'baseline'    // Created from current spending
+  | 'optimized'   // Has AI-suggested optimizations applied
+  | 'active'      // Currently being tracked/used
+  | 'archived';   // No longer active
 
 export type DebtType = 'credit_card' | 'loan' | 'mortgage' | 'other';
 

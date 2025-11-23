@@ -11,12 +11,20 @@ export interface BudgetRepository<T> extends Repository<T> {
   findByOrganization(organizationId: string): Promise<T[]>;
 
   /**
-   * Find active budgets for an organization
+   * Find active budget for an organization (one per organization)
    */
-  findActiveByOrganization(organizationId: string): Promise<T[]>;
+  findActiveByOrganization(organizationId: string): Promise<T | null>;
 
   /**
-   * Find budget by category
+   * Find all budgets for an account
    */
-  findByCategory(organizationId: string, category: string): Promise<T | null>;
+  findByAccount(accountId: string): Promise<T[]>;
+
+  /**
+   * Find budgets by status for an organization
+   */
+  findByStatus(
+    organizationId: string,
+    status: 'baseline' | 'optimized' | 'active' | 'archived'
+  ): Promise<T[]>;
 }

@@ -268,25 +268,41 @@ const schema = a.schema({
             .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
             .secondaryIndexes(index => [index('organizationId')]),
 
+        // CategoryBudget: Nested object for individual category budgets
+        CategoryBudget: a.customType({
+            category: a.string().required(),            // Category name
+            budgetAmount: a.float().required(),         // Budgeted amount for this category (cents)
+            currentSpending: a.float(),                 // Current/historical spending (cents)
+            percentage: a.float().required(),           // Percentage of total budget
+            trend: a.string(),                          // up|down|stable
+            notes: a.string(),                          // Notes or optimizations
+        }),
+
+        // Budget: Master budget containing all category budgets
         Budget: a.model({
             budgetId: a.id().required(),
+            accountId: a.string().required(),           // FK to Account
             organizationId: a.string().required(),      // FK to Organization
-            category: a.string().required(),            // Budget category
-            amount: a.float().required(),               // Budgeted amount
-            period: a.string().required(),              // monthly|weekly|yearly
-            startDate: a.datetime().required(),         // Budget period start
-            endDate: a.datetime(),                      // Budget period end (optional for ongoing budgets)
-            spent: a.float(),                           // Auto-calculated spent amount
-            remaining: a.float(),                       // Auto-calculated remaining
-            status: a.string().required(),              // active|inactive
-            syncedAt: a.datetime(),                     // Last sync timestamp from provider
+            name: a.string().required(),                // Budget name (e.g., "January 2024 Budget")
+            periodStart: a.datetime().required(),       // Budget period start
+            periodEnd: a.datetime().required(),         // Budget period end
+            categoryBudgets: a.ref('CategoryBudget').array().required(),  // All category budgets
+            totalBudget: a.float().required(),          // Total budget amount (cents)
+            status: a.string().required(),              // baseline|optimized|active|archived
+            sourceAnalysisId: a.string(),               // FK to analysis if created from analysis
             createdAt: a.datetime().required(),
             updatedAt: a.datetime().required(),
             profileOwner: a.string(),
         })
             .identifier(['budgetId'])
-            .authorization((allow) => [allow.ownerDefinedIn("profileOwner")])
-            .secondaryIndexes(index => [index('organizationId')]),
+            .authorization((allow) => [
+                allow.ownerDefinedIn("profileOwner"),
+                allow.publicApiKey()
+            ])
+            .secondaryIndexes(index => [
+                index('organizationId'),
+                index('accountId').queryField('listBudgetByAccountId')
+            ]),
 
         Debt: a.model({
             debtId: a.id().required(),

@@ -21,18 +21,18 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
   public save = async (entity: BudgetEntity): Promise<BudgetEntity> => {
     const response = await this.dbClient.models.Budget.create({
       budgetId: entity.budgetId,
+      accountId: entity.accountId,
       organizationId: entity.organizationId,
-      category: entity.category,
-      amount: entity.amount,
-      period: entity.period,
-      startDate: entity.startDate,
-      endDate: entity.endDate,
-      spent: entity.spent,
-      remaining: entity.remaining,
+      name: entity.name,
+      periodStart: entity.periodStart,
+      periodEnd: entity.periodEnd,
+      categoryBudgets: entity.categoryBudgets,
+      totalBudget: entity.totalBudget,
       status: entity.status,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       profileOwner: entity.profileOwner,
+      sourceAnalysisId: entity.sourceAnalysisId,
     });
 
     if (!response.data) {
@@ -44,18 +44,16 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
   public update = async (id: string, entity: Partial<BudgetEntity>): Promise<BudgetEntity> => {
     const updates: any = { budgetId: id };
 
-    if (entity.category !== undefined) updates.category = entity.category;
-    if (entity.amount !== undefined) updates.amount = entity.amount;
-    if (entity.period !== undefined) updates.period = entity.period;
-    if (entity.startDate !== undefined)
-      updates.startDate = entity.startDate;
-    if (entity.endDate !== undefined)
-      updates.endDate = entity.endDate;
-    if (entity.spent !== undefined) updates.spent = entity.spent;
-    if (entity.remaining !== undefined) updates.remaining = entity.remaining;
+    if (entity.accountId !== undefined) updates.accountId = entity.accountId;
+    if (entity.organizationId !== undefined) updates.organizationId = entity.organizationId;
+    if (entity.name !== undefined) updates.name = entity.name;
+    if (entity.periodStart !== undefined) updates.periodStart = entity.periodStart;
+    if (entity.periodEnd !== undefined) updates.periodEnd = entity.periodEnd;
+    if (entity.categoryBudgets !== undefined) updates.categoryBudgets = entity.categoryBudgets;
+    if (entity.totalBudget !== undefined) updates.totalBudget = entity.totalBudget;
     if (entity.status !== undefined) updates.status = entity.status;
-    if (entity.updatedAt !== undefined)
-      updates.updatedAt = entity.updatedAt;
+    if (entity.updatedAt !== undefined) updates.updatedAt = entity.updatedAt;
+    if (entity.sourceAnalysisId !== undefined) updates.sourceAnalysisId = entity.sourceAnalysisId;
 
     const response = await this.dbClient.models.Budget.update(updates);
     if (!response.data) {
@@ -75,18 +73,27 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
     return response.data.map((item: any) => this.toBudget(item));
   };
 
-  public findActiveByOrganization = async (organizationId: string): Promise<BudgetEntity[]> => {
-    const allBudgets = await this.findByOrganization(organizationId);
-    return allBudgets.filter((budget: any) => budget.status === 'active');
-  };
-
-  public findByCategory = async (
-    organizationId: string,
-    category: string
+  public findActiveByOrganization = async (
+    organizationId: string
   ): Promise<BudgetEntity | null> => {
     const allBudgets = await this.findByOrganization(organizationId);
-    const found = allBudgets.find((budget: any) => budget.category === category);
+    const found = allBudgets.find((budget: any) => budget.status === 'active');
     return found ?? null;
+  };
+
+  public findByAccount = async (accountId: string): Promise<BudgetEntity[]> => {
+    const response = await this.dbClient.models.Budget.listBudgetByAccountId({
+      accountId,
+    });
+    return response.data.map((item: any) => this.toBudget(item));
+  };
+
+  public findByStatus = async (
+    organizationId: string,
+    status: 'baseline' | 'optimized' | 'active' | 'archived'
+  ): Promise<BudgetEntity[]> => {
+    const allBudgets = await this.findByOrganization(organizationId);
+    return allBudgets.filter((budget: any) => budget.status === status);
   };
 
   /**
@@ -95,18 +102,18 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
   private toBudget = (data: any): BudgetEntity => {
     return {
       budgetId: data.budgetId,
+      accountId: data.accountId,
       organizationId: data.organizationId,
-      category: data.category,
-      amount: data.amount,
-      period: data.period,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      spent: data.spent ?? undefined,
-      remaining: data.remaining ?? undefined,
+      name: data.name,
+      periodStart: data.periodStart,
+      periodEnd: data.periodEnd,
+      categoryBudgets: data.categoryBudgets ?? [],
+      totalBudget: data.totalBudget,
       status: data.status,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       profileOwner: data.profileOwner ?? undefined,
+      sourceAnalysisId: data.sourceAnalysisId ?? undefined,
     };
   };
 }

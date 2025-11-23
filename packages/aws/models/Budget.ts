@@ -1,18 +1,32 @@
-import { BudgetPeriod, BudgetStatus } from './types';
+import { BudgetStatus } from './types';
 
+/**
+ * Category budget entity (stored as JSON in categoryBudgets array)
+ */
+export type CategoryBudgetEntity = {
+  category: string;
+  budgetAmount: number;
+  currentSpending?: number;
+  percentage: number;
+  trend?: 'up' | 'down' | 'stable';
+  notes?: string;
+};
+
+/**
+ * Budget entity - DynamoDB/AppSync representation
+ */
 export type BudgetEntity = {
   budgetId: string;
+  accountId: string;
   organizationId: string;
-  category: string;
-  amount: number; // Budgeted amount
-  period: BudgetPeriod;
-  startDate: string; // Budget period start
-  endDate?: string; // Budget period end
-  spent?: number; // Auto-calculated spent amount
-  remaining?: number; // Auto-calculated remaining
+  name: string;
+  periodStart: string; // ISO date string
+  periodEnd: string; // ISO date string
+  categoryBudgets: CategoryBudgetEntity[]; // DynamoDB List of Maps
+  totalBudget: number;
   status: BudgetStatus;
-  syncedAt?: string; // Last sync timestamp from provider
   createdAt: string;
   updatedAt: string;
-  profileOwner?: string;
+  profileOwner: string;
+  sourceAnalysisId?: string;
 };

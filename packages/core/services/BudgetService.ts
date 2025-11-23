@@ -28,9 +28,9 @@ export class BudgetService {
     return entities.map((entity) => this.converter.toDomain(entity));
   };
 
-  public findActiveBudgets = async (organizationId: string): Promise<Budget[]> => {
-    const entities = await this.repository.findActiveByOrganization(organizationId);
-    return entities.map((entity) => this.converter.toDomain(entity));
+  public findActiveBudget = async (organizationId: string): Promise<Budget | null> => {
+    const entity = await this.repository.findActiveByOrganization(organizationId);
+    return entity ? this.converter.toDomain(entity) : null;
   };
 
   public create = async (budget: Budget): Promise<Budget> => {

@@ -1,6 +1,6 @@
 import { Converter } from './Converter';
-import { Budget } from '../models';
-import { BudgetEntity } from '@nueink/aws';
+import { Budget, CategoryBudget } from '../models';
+import { BudgetEntity, CategoryBudgetEntity } from '@nueink/aws';
 
 /**
  * Converter for Budget domain model and BudgetEntity
@@ -9,36 +9,36 @@ export class BudgetConverter implements Converter<BudgetEntity, Budget> {
   public toEntity = (domain: Budget): BudgetEntity => {
     return {
       budgetId: domain.budgetId,
+      accountId: domain.accountId,
       organizationId: domain.organizationId,
-      category: domain.category,
-      amount: domain.amount,
-      period: domain.period,
-      startDate: domain.startDate.toISOString().split('T')[0],
-      endDate: domain.endDate?.toISOString().split('T')[0],
-      spent: domain.spent,
-      remaining: domain.remaining,
+      name: domain.name,
+      periodStart: domain.periodStart.toISOString(),
+      periodEnd: domain.periodEnd.toISOString(),
+      categoryBudgets: domain.categoryBudgets,
+      totalBudget: domain.totalBudget,
       status: domain.status,
       createdAt: domain.createdAt.toISOString(),
       updatedAt: domain.updatedAt.toISOString(),
       profileOwner: domain.profileOwner,
+      sourceAnalysisId: domain.sourceAnalysisId,
     };
   };
 
   public toDomain = (entity: BudgetEntity): Budget => {
     return {
       budgetId: entity.budgetId,
+      accountId: entity.accountId,
       organizationId: entity.organizationId,
-      category: entity.category,
-      amount: entity.amount,
-      period: entity.period,
-      startDate: new Date(entity.startDate),
-      endDate: entity.endDate ? new Date(entity.endDate) : undefined,
-      spent: entity.spent,
-      remaining: entity.remaining,
+      name: entity.name,
+      periodStart: new Date(entity.periodStart),
+      periodEnd: new Date(entity.periodEnd),
+      categoryBudgets: entity.categoryBudgets,
+      totalBudget: entity.totalBudget,
       status: entity.status,
       createdAt: new Date(entity.createdAt),
       updatedAt: new Date(entity.updatedAt),
-      profileOwner: entity.profileOwner!,
+      profileOwner: entity.profileOwner,
+      sourceAnalysisId: entity.sourceAnalysisId,
     };
   };
 }
