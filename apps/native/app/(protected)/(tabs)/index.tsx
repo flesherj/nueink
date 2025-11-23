@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Surface, Text, Card, ActivityIndicator, Button } from 'react-native-paper';
 import { useAccountProvider, CategoryPieChart } from '@nueink/ui';
-import { FinancialAccountApi, FinancialAnalysisApi } from '@nueink/sdk';
-import type { FinancialAccount, FinancialAnalysis } from '@nueink/core';
+import { FinancialAccountApi, FinancialAnalysisApi, BudgetApi } from '@nueink/sdk';
+import type { FinancialAccount, FinancialAnalysis, Budget } from '@nueink/core';
 
 // Create API clients
 const financialAccountApi = FinancialAccountApi.create();
 const financialAnalysisApi = FinancialAnalysisApi.create();
+const budgetApi = BudgetApi.create();
 
 export default function DashboardScreen() {
   const { account } = useAccountProvider();
@@ -20,6 +21,11 @@ export default function DashboardScreen() {
   const [analysis, setAnalysis] = useState<FinancialAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // Budget creation state
+  const [createdBudget, setCreatedBudget] = useState<Budget | null>(null);
+  const [creatingBudget, setCreatingBudget] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -103,6 +109,33 @@ export default function DashboardScreen() {
       setAnalysisError(err instanceof Error ? err.message : 'Failed to analyze spending');
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  /**
+   * Create baseline budget from current analysis
+   */
+  const handleCreateBudget = async () => {
+    if (!account?.defaultOrgId || !account?.accountId) return;
+
+    try {
+      setCreatingBudget(true);
+      setBudgetError(null);
+      console.log('Creating budget from analysis...');
+
+      const result = await budgetApi.createFromAnalysis({
+        organizationId: account.defaultOrgId,
+        accountId: account.accountId,
+        periodMonths: 3, // Same as analysis
+      });
+
+      setCreatedBudget(result.budget);
+      console.log('Budget created:', result.budget);
+    } catch (err) {
+      console.error('Error creating budget:', err);
+      setBudgetError(err instanceof Error ? err.message : 'Failed to create budget');
+    } finally {
+      setCreatingBudget(false);
     }
   };
 
@@ -230,6 +263,50 @@ export default function DashboardScreen() {
                         • {insight}
                       </Text>
                     ))}
+                  </View>
+                )}
+
+                {/* Create Budget Section */}
+                {!createdBudget && (
+                  <View style={styles.budgetSection}>
+                    <Text variant="titleSmall" style={styles.sectionTitle}>
+                      💰 Ready to Create Your Budget?
+                    </Text>
+                    <Text variant="bodySmall" style={styles.subtitle}>
+                      We'll create a baseline budget based on your current spending patterns
+                    </Text>
+                    <Button
+                      mode="contained"
+                      onPress={handleCreateBudget}
+                      style={styles.createBudgetButton}
+                      loading={creatingBudget}
+                      disabled={creatingBudget}
+                    >
+                      {creatingBudget ? 'Creating Budget...' : 'Create Baseline Budget'}
+                    </Button>
+                    {budgetError && (
+                      <Text variant="bodySmall" style={styles.errorText}>
+                        {budgetError}
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Budget Created Success */}
+                {createdBudget && (
+                  <View style={styles.budgetSuccessSection}>
+                    <Text variant="titleSmall" style={styles.successTitle}>
+                      ✅ Budget Created!
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.budgetName}>
+                      {createdBudget.name}
+                    </Text>
+                    <Text variant="bodySmall" style={styles.subtitle}>
+                      Total Budget: {formatBalance(createdBudget.totalBudget)}
+                    </Text>
+                    <Text variant="bodySmall" style={styles.subtitle}>
+                      {createdBudget.categoryBudgets.length} categories • Status: {createdBudget.status}
+                    </Text>
                   </View>
                 )}
 
@@ -409,5 +486,33 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     lineHeight: 20,
     marginBottom: 8,
+  },
+  budgetSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  createBudgetButton: {
+    marginTop: 12,
+  },
+  budgetSuccessSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderRadius: 8,
+  },
+  successTitle: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#4caf50',
+  },
+  budgetName: {
+    fontWeight: '600',
+    marginBottom: 4,
   },
 });
