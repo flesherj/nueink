@@ -85,7 +85,27 @@ export class FinancialAnalysisService {
     splits: TransactionSplit[]
   ): CategorySpending[] => {
     // Filter to expense splits only (negative amounts)
-    const expenseSplits = splits.filter((s) => s.amount < 0);
+    // Exclude transfers, inflows, and debt payments (not actual spending)
+    const expenseSplits = splits.filter((s) => {
+      if (s.amount >= 0) return false; // Only expenses
+
+      const category = (s.category || '').toLowerCase();
+
+      // Exclude transfers between accounts
+      if (category.includes('transfer')) return false;
+
+      // Exclude inflows (income)
+      if (category.includes('inflow')) return false;
+
+      // Exclude debt payments (credit card payments, loan payments)
+      if (category.includes('credit card payment')) return false;
+      if (category.includes('loan payment')) return false;
+
+      // Exclude internal movements
+      if (category.includes('ready to assign')) return false;
+
+      return true;
+    });
 
     // Calculate total spending
     const totalSpending = expenseSplits.reduce(
