@@ -242,3 +242,4 @@ await secretManager.storeSecret('my-secret-name', { key: 'value' });
 - **Workspace Dependencies**: Use `yarn workspace <name> <command>` to run commands in specific workspaces, or root-level scripts which delegate to workspaces.
 - **TypeScript**: All packages use TypeScript with strict mode. Main entry points use `index.ts` with explicit exports.
 - **Amplify Gen2 Pattern**: Backend uses defineBackend, defineAuth, defineData, defineFunction APIs (not Amplify Gen1 CLI).
+- use touch to retrigger amplify deployments to lambda functions

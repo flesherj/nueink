@@ -55,10 +55,12 @@ export class FinancialAnalysisService {
     // Analyze spending by category using splits
     const spendingByCategory = this.analyzeByCategory(transactions, splits);
 
-    // Calculate total spending (only negative amounts = expenses)
-    const totalSpending = transactions
-      .filter((t) => t.amount < 0)
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    // Calculate total spending from filtered categories
+    // This ensures total matches the filtered expense splits
+    const totalSpending = spendingByCategory.reduce(
+      (sum, cat) => sum + cat.amount,
+      0
+    );
 
     // Generate analysis
     const analysis: FinancialAnalysis = {
