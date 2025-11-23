@@ -13,6 +13,7 @@ import { BudgetService } from './BudgetService';
 import { DebtService } from './DebtService';
 import { IntegrationService } from './IntegrationService';
 import { AnalyticsService } from './AnalyticsService';
+import { FinancialAnalysisService } from './FinancialAnalysisService';
 import type { SecretManager } from './SecretManager';
 import type { EventPublisher } from '../events';
 
@@ -34,6 +35,7 @@ type ServiceMap = {
   debt: DebtService;
   integration: IntegrationService;
   analytics: AnalyticsService;
+  financialAnalysis: FinancialAnalysisService;
 };
 
 /**
@@ -96,4 +98,6 @@ export class NueInkServiceFactory {
     new IntegrationService(this._repositoryFactory.integrationConfig(), secretManager, eventPublisher);
   public analytics = (): AnalyticsService =>
     new AnalyticsService(this.transaction(), this.transactionSplit());
+  public financialAnalysis = (): FinancialAnalysisService =>
+    new FinancialAnalysisService(this.transaction(), this.transactionSplit());
 }

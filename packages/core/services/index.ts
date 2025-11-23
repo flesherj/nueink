@@ -7,6 +7,7 @@ export * from './TransactionService';
 export * from './TransactionSplitService';
 export * from './UserCategorizationFeedbackService';
 export * from './AnalyticsService';
+export * from './FinancialAnalysisService';
 export * from './CommentService';
 export * from './PersonService';
 export * from './BudgetService';

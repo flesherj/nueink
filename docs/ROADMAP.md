@@ -109,13 +109,13 @@
 
 ---
 
-### 🔄 Phase 1.9: Dashboard & Intelligence Foundation (In Progress)
+### 🔄 Phase 1.9: AI Financial Discovery Dashboard (In Progress)
 
-**Target:** 1-2 days
+**Target:** 2-3 days
 
-**Goal:** Build "Financial GPS" dashboard - passive, always-on awareness vs manual budgeting
+**Goal:** AI-powered financial analysis that discovers spending patterns, identifies habits, and provides goal-based recommendations WITHOUT requiring upfront budgeting knowledge
 
-**Decision:** Deferred native widgets to Phase 5 (Polish) - Dashboard provides more value for MVP
+**Decision:** Deferred native widgets to Phase 5 (Polish) - AI Discovery provides more value for MVP
 
 **💡 KEY INSIGHT - The NueInk Differentiator:**
 
@@ -141,6 +141,68 @@
 4. "What are my actual habits?" → AI Discovered Patterns card
 5. "What just happened?" → Recent Transactions (auto-categorized)
 6. "How can I save?" → Actionable Suggestions card
+
+**🤖 AI Financial Discovery - The Core Innovation:**
+
+**User Journey:**
+1. **One-Click Analysis** - "Analyze My Spending with AI" button
+2. **Automatic Discovery** - AI analyzes last 3 months of transactions
+3. **Visual Breakdown** - Needs (62%) vs Requirements (23%) vs Wants (15%)
+4. **AI Insights** - Specific, actionable findings with dollar amounts
+5. **Goal Selection** - Pick from common goals (debt, vacation, car, emergency fund)
+6. **Smart Budget** - AI generates realistic budget based on YOUR spending + goal
+7. **Progress Tracking** - Monthly updates with celebrations and adjustments
+
+**Three-Phase Implementation:**
+
+**Phase 1a: Basic Spending Analysis** (START HERE - Current focus)
+- FinancialAnalysisService: Aggregate transactions by category
+- Calculate totals, percentages, trends over 3 months
+- Dashboard card: "Financial Discovery" with analyze button
+- Display category breakdown with simple insights
+- Identify top 3 spending categories
+- **Success:** User sees where money goes without manual categorization
+
+**Phase 1b: AI Intelligence Layer**
+- Integrate with AWS Bedrock (Claude)
+- Send transaction summary → receive insights
+- Classify transactions as Needs/Requirements/Wants
+- Detect spending habits (recurring, trends, patterns)
+- Flag concerning behaviors and highlight wins
+- **Success:** AI provides personalized, context-aware insights
+
+**Phase 1c: Goal-Based Budgeting**
+- Goal selection UI (debt, vacation, car, emergency fund)
+- AI budget generation based on goal + current spending
+- Suggest realistic spending cuts by category
+- Calculate timeline to goal achievement
+- Progress tracking with monthly updates
+- **Success:** User has actionable plan without budgeting expertise
+
+**Data Models:**
+```typescript
+FinancialAnalysis {
+  analysisId, accountId, periodStart, periodEnd
+  spendingByCategory: { category, amount, percentage, trend }[]
+  needsVsWants: { needs: number, requirements: number, wants: number }
+  habits: { type, description, impact, recommendation }[]
+  healthScore: 0-100
+  aiInsights: string[]
+  createdAt
+}
+
+Goal {
+  goalId, accountId
+  type: 'debt' | 'savings' | 'vacation' | 'car' | 'emergency'
+  name, description
+  targetAmount, targetDate
+  currentProgress: number
+  suggestedBudget: { category, currentAmount, suggestedAmount, savingsImpact }[]
+  aiRecommendations: string[]
+  status: 'active' | 'completed' | 'paused'
+  createdAt, updatedAt
+}
+```
 
 **Implementation Order (Vertical Slices):**
 
@@ -407,4 +469,4 @@
 
 ---
 
-*Last updated: November 16, 2025 by James Flesher*
+*Last updated: November 23, 2025 by James Flesher*

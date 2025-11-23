@@ -13,3 +13,4 @@ export * from './Debt';
 export * from './FinancialIntegration';
 export * from './IntegrationConfig';
 export * from './IntegrationTokens';
+export * from './FinancialAnalysis';

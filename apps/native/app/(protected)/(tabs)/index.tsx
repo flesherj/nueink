@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Surface, Text, Card, ActivityIndicator } from 'react-native-paper';
+import { Surface, Text, Card, ActivityIndicator, Button } from 'react-native-paper';
 import { useAccountProvider } from '@nueink/ui';
 import { FinancialAccountApi } from '@nueink/sdk';
-import type { FinancialAccount } from '@nueink/core';
+import type { FinancialAccount, FinancialAnalysis } from '@nueink/core';
 
 // Create API client
 const financialAccountApi = FinancialAccountApi.create();
@@ -14,6 +14,11 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Financial analysis state
+  const [analysis, setAnalysis] = useState<FinancialAnalysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
