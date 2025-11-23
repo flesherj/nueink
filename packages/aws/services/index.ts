@@ -13,4 +13,4 @@
 export * from './AwsServiceFactory';
 export * from './CloudWatchMetricsService';
 export * from './SecretsManagerService';
-export * from './AIInsightService'; // Exports BedrockAIInsightProvider
+export * from './BedrockAIInsightProvider';
