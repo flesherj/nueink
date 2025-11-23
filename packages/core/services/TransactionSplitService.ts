@@ -22,7 +22,9 @@ export class TransactionSplitService<TEntity> {
     return entities.map((entity) => this.toDomain(entity));
   };
 
-  public findByTransaction = async (transactionId: string): Promise<TransactionSplit[]> => {
+  public findByTransaction = async (
+    transactionId: string
+  ): Promise<TransactionSplit[]> => {
     const entities = await this.repository.findByTransaction(transactionId);
     return entities.map((entity) => this.toDomain(entity));
   };
@@ -46,7 +48,9 @@ export class TransactionSplitService<TEntity> {
     };
   };
 
-  public findByCategory = async (category: string): Promise<TransactionSplit[]> => {
+  public findByCategory = async (
+    category: string
+  ): Promise<TransactionSplit[]> => {
     const entities = await this.repository.findByCategory(category);
     return entities.map((entity) => this.toDomain(entity));
   };
@@ -68,7 +72,9 @@ export class TransactionSplitService<TEntity> {
     };
   };
 
-  public create = async (split: Omit<TransactionSplit, 'splitId' | 'createdAt' | 'updatedAt'>): Promise<TransactionSplit> => {
+  public create = async (
+    split: Omit<TransactionSplit, 'splitId' | 'createdAt' | 'updatedAt'>
+  ): Promise<TransactionSplit> => {
     // Generate missing fields
     const completeSplit: TransactionSplit = {
       ...split,
@@ -98,13 +104,12 @@ export class TransactionSplitService<TEntity> {
       );
     }
 
-    // Create all splits
-    const entities = splits.map((split) => this.toEntity(split));
-    const savedEntities = await Promise.all(
-      entities.map((entity) => this.repository.save(entity))
+    // Create all splits using create() to ensure ID generation
+    const savedSplits = await Promise.all(
+      splits.map((split) => this.create(split))
     );
 
-    return savedEntities.map((entity) => this.toDomain(entity));
+    return savedSplits;
   };
 
   /**
@@ -176,8 +181,10 @@ export class TransactionSplitService<TEntity> {
       amount: e.amount,
       percentage: e.percentage,
       notes: e.notes,
-      createdAt: typeof e.createdAt === 'string' ? new Date(e.createdAt) : e.createdAt,
-      updatedAt: typeof e.updatedAt === 'string' ? new Date(e.updatedAt) : e.updatedAt,
+      createdAt:
+        typeof e.createdAt === 'string' ? new Date(e.createdAt) : e.createdAt,
+      updatedAt:
+        typeof e.updatedAt === 'string' ? new Date(e.updatedAt) : e.updatedAt,
       profileOwner: e.profileOwner,
     };
   };
@@ -191,8 +198,14 @@ export class TransactionSplitService<TEntity> {
       amount: domain.amount,
       percentage: domain.percentage,
       notes: domain.notes,
-      createdAt: domain.createdAt instanceof Date ? domain.createdAt.toISOString() : domain.createdAt,
-      updatedAt: domain.updatedAt instanceof Date ? domain.updatedAt.toISOString() : domain.updatedAt,
+      createdAt:
+        domain.createdAt instanceof Date
+          ? domain.createdAt.toISOString()
+          : domain.createdAt,
+      updatedAt:
+        domain.updatedAt instanceof Date
+          ? domain.updatedAt.toISOString()
+          : domain.updatedAt,
       profileOwner: domain.profileOwner,
     } as any;
   };

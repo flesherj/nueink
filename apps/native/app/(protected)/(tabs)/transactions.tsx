@@ -30,7 +30,7 @@ export default function TransactionsFeedScreen() {
   // Refresh data when screen comes into focus (e.g., returning from transaction details)
   useFocusEffect(
     useCallback(() => {
-      if (account?.defaultOrgId && transactions.length > 0) {
+      if (account?.defaultOrgId) {
         // Silently refresh without showing loading state
         loadTransactions();
       }

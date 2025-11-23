@@ -30,6 +30,7 @@ import {
 } from 'react-native-paper';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useAccountProvider, CategorySpendingChart } from '@nueink/ui';
+import { RadialCategoryPicker } from '../../../components/RadialCategoryPicker';
 import {
   TransactionApi,
   TransactionSplitApi,
@@ -106,6 +107,8 @@ export default function TransactionDetailScreen() {
     Array<{ category: string; amount: number }>
   >([]);
   const savingRef = useRef(false);
+  // Keep ref to current transaction to avoid stale closures
+  const transactionRef = useRef<Transaction | null>(null);
   // Click-to-edit state
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editAmountInput, setEditAmountInput] = useState('');
@@ -125,6 +128,15 @@ export default function TransactionDetailScreen() {
       loadTransactionDetail();
     }
   }, [id]);
+
+  // Update transaction ref whenever transaction state changes
+  useEffect(() => {
+    transactionRef.current = transaction;
+    console.log('[transactionRef] Updated:', {
+      hasTransaction: !!transaction,
+      transactionId: transaction?.transactionId,
+    });
+  }, [transaction]);
 
   const loadTransactionDetail = async () => {
     if (!id) return;
@@ -175,131 +187,136 @@ export default function TransactionDetailScreen() {
    * Get date range based on selected time period and transaction date
    * Uses the transaction's date as the reference point, not current date
    */
-  const getDateRange = useCallback((
-    period: 'week' | 'month' | 'quarter' | 'year'
-  ): { startDate: Date; endDate: Date } => {
-    // Use transaction date if available, otherwise fallback to current date
-    const txDate = transaction ? new Date(transaction.date) : new Date();
+  const getDateRange = useCallback(
+    (
+      period: 'week' | 'month' | 'quarter' | 'year'
+    ): { startDate: Date; endDate: Date } => {
+      // Use transaction date if available, otherwise fallback to current date
+      const txDate = transaction ? new Date(transaction.date) : new Date();
 
-    // Strategy pattern: map period types to their date calculation logic
-    const dateRangeStrategies = {
-      week: (date: Date) => {
-        // Start of the week containing the transaction (Sunday)
-        const startDate = new Date(date);
-        startDate.setDate(date.getDate() - date.getDay());
-        startDate.setHours(0, 0, 0, 0);
-        // End of that week (Saturday)
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
-        endDate.setHours(23, 59, 59, 999);
-        return { startDate, endDate };
-      },
-      month: (date: Date) => {
-        // Start of the month containing the transaction
-        const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-        // End of that month
-        const endDate = new Date(
-          date.getFullYear(),
-          date.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
-        return { startDate, endDate };
-      },
-      quarter: (date: Date) => {
-        // Start of the quarter containing the transaction (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)
-        const quarter = Math.floor(date.getMonth() / 3);
-        const startDate = new Date(date.getFullYear(), quarter * 3, 1);
-        // End of that quarter
-        const endDate = new Date(
-          date.getFullYear(),
-          quarter * 3 + 3,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
-        return { startDate, endDate };
-      },
-      year: (date: Date) => {
-        // Start of the year containing the transaction
-        const startDate = new Date(date.getFullYear(), 0, 1);
-        // End of that year
-        const endDate = new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999);
-        return { startDate, endDate };
-      },
-    };
+      // Strategy pattern: map period types to their date calculation logic
+      const dateRangeStrategies = {
+        week: (date: Date) => {
+          // Start of the week containing the transaction (Sunday)
+          const startDate = new Date(date);
+          startDate.setDate(date.getDate() - date.getDay());
+          startDate.setHours(0, 0, 0, 0);
+          // End of that week (Saturday)
+          const endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+          return { startDate, endDate };
+        },
+        month: (date: Date) => {
+          // Start of the month containing the transaction
+          const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+          // End of that month
+          const endDate = new Date(
+            date.getFullYear(),
+            date.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999
+          );
+          return { startDate, endDate };
+        },
+        quarter: (date: Date) => {
+          // Start of the quarter containing the transaction (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)
+          const quarter = Math.floor(date.getMonth() / 3);
+          const startDate = new Date(date.getFullYear(), quarter * 3, 1);
+          // End of that quarter
+          const endDate = new Date(
+            date.getFullYear(),
+            quarter * 3 + 3,
+            0,
+            23,
+            59,
+            59,
+            999
+          );
+          return { startDate, endDate };
+        },
+        year: (date: Date) => {
+          // Start of the year containing the transaction
+          const startDate = new Date(date.getFullYear(), 0, 1);
+          // End of that year
+          const endDate = new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999);
+          return { startDate, endDate };
+        },
+      };
 
-    return dateRangeStrategies[period](txDate);
-  }, [transaction]);
+      return dateRangeStrategies[period](txDate);
+    },
+    [transaction]
+  );
 
   /**
    * Load analytics timeline data for all categories
    * Shows spending context for all categorized splits
    */
-  const loadAnalyticsData = useCallback(async (
-    txData: Transaction,
-    splitsData: TransactionSplit[]
-  ) => {
-    if (!account) return;
+  const loadAnalyticsData = useCallback(
+    async (txData: Transaction, splitsData: TransactionSplit[]) => {
+      if (!account) return;
 
-    try {
-      // Find all categorized splits (excluding Uncategorized)
-      const categorizedSplits = splitsData.filter(
-        (s) => s.category !== 'Uncategorized'
-      );
-      if (categorizedSplits.length === 0) {
-        setChartData([]);
-        return;
+      try {
+        // Find all categorized splits (excluding Uncategorized)
+        const categorizedSplits = splitsData.filter(
+          (s) => s.category !== 'Uncategorized'
+        );
+        if (categorizedSplits.length === 0) {
+          setChartData([]);
+          return;
+        }
+
+        setChartLoading(true);
+        setChartError(null);
+
+        // Get date range based on selected time period
+        const { startDate, endDate } = getDateRange(timePeriod);
+
+        // Get merchant name if filter is enabled
+        const merchantFilter = merchantFilterEnabled
+          ? txData.merchantName || txData.name
+          : undefined;
+
+        console.log('📊 Loading analytics:', {
+          transactionDate: txData.date,
+          timePeriod,
+          dateRange: { startDate, endDate },
+          merchantFilterEnabled,
+          merchantFilter,
+          categories: categorizedSplits.map((s) => s.category),
+        });
+
+        // Fetch timeline data for all categories in parallel
+        const timelinePromises = categorizedSplits.map((split) =>
+          analyticsApi.getCategoryTimeline(
+            account.defaultOrgId,
+            split.category,
+            startDate,
+            endDate,
+            txData.transactionId, // Highlight this transaction
+            merchantFilter // Filter by merchant if enabled
+          )
+        );
+
+        const timelines = await Promise.all(timelinePromises);
+        setChartData(timelines);
+      } catch (err) {
+        console.error('Error loading analytics data:', err);
+        setChartError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to load spending insights'
+        );
+      } finally {
+        setChartLoading(false);
       }
-
-      setChartLoading(true);
-      setChartError(null);
-
-      // Get date range based on selected time period
-      const { startDate, endDate } = getDateRange(timePeriod);
-
-      // Get merchant name if filter is enabled
-      const merchantFilter = merchantFilterEnabled
-        ? txData.merchantName || txData.name
-        : undefined;
-
-      console.log('📊 Loading analytics:', {
-        transactionDate: txData.date,
-        timePeriod,
-        dateRange: { startDate, endDate },
-        merchantFilterEnabled,
-        merchantFilter,
-        categories: categorizedSplits.map((s) => s.category),
-      });
-
-      // Fetch timeline data for all categories in parallel
-      const timelinePromises = categorizedSplits.map((split) =>
-        analyticsApi.getCategoryTimeline(
-          account.defaultOrgId,
-          split.category,
-          startDate,
-          endDate,
-          txData.transactionId, // Highlight this transaction
-          merchantFilter // Filter by merchant if enabled
-        )
-      );
-
-      const timelines = await Promise.all(timelinePromises);
-      setChartData(timelines);
-    } catch (err) {
-      console.error('Error loading analytics data:', err);
-      setChartError(
-        err instanceof Error ? err.message : 'Failed to load spending insights'
-      );
-    } finally {
-      setChartLoading(false);
-    }
-  }, [account, merchantFilterEnabled, timePeriod, analyticsApi, getDateRange]);
+    },
+    [account, merchantFilterEnabled, timePeriod, analyticsApi, getDateRange]
+  );
 
   /**
    * Reload analytics data when merchant filter or time period changes
@@ -314,7 +331,13 @@ export default function TransactionDetailScreen() {
       });
       loadAnalyticsData(transaction, splits);
     }
-  }, [merchantFilterEnabled, timePeriod, transaction, splits, loadAnalyticsData]);
+  }, [
+    merchantFilterEnabled,
+    timePeriod,
+    transaction,
+    splits,
+    loadAnalyticsData,
+  ]);
 
   /**
    * Format amount with sign and color
@@ -472,7 +495,66 @@ export default function TransactionDetailScreen() {
   );
 
   /**
-   * Handle category selection
+   * Handle category selection for RadialCategoryPicker (toggle on/off)
+   */
+  const handleRadialCategorySelect = useCallback(
+    (categoryName: string) => {
+      setSelectedCategories((prev) => {
+        const exists = prev.find((c) => c.category === categoryName);
+        if (exists) {
+          // Remove category (deselect) - save the removal
+          const updated = prev.filter((c) => c.category !== categoryName);
+          autoSaveSplits(updated);
+          return updated;
+        } else {
+          // Add category with $0 initial amount - DON'T save yet!
+          // User will drag to allocate amount, which triggers handleRadialAmountChange
+          const updated = [...prev, { category: categoryName, amount: 0 }];
+          return updated; // <-- No autoSaveSplits call!
+        }
+      });
+    },
+    [autoSaveSplits]
+  );
+
+  /**
+   * Handle amount change for RadialCategoryPicker
+   */
+  const handleRadialAmountChange = useCallback(
+    (categoryName: string, amount: number) => {
+      console.log(`[handleRadialAmountChange] ${categoryName}: ${amount}`);
+      setSelectedCategories((prev) => {
+        if (amount <= 0) {
+          // Remove category if amount is 0 or negative
+          const updated = prev.filter((c) => c.category !== categoryName);
+          console.log(
+            '[handleRadialAmountChange] Calling autoSaveSplits with:',
+            updated
+          );
+          autoSaveSplits(updated);
+          return updated;
+        }
+
+        const existing = prev.find((c) => c.category === categoryName);
+        const updated = existing
+          ? prev.map((c) =>
+              c.category === categoryName ? { ...c, amount } : c
+            )
+          : [...prev, { category: categoryName, amount }];
+
+        console.log(
+          '[handleRadialAmountChange] Calling autoSaveSplits with:',
+          updated
+        );
+        autoSaveSplits(updated);
+        return updated;
+      });
+    },
+    [autoSaveSplits]
+  );
+
+  /**
+   * Handle category selection (OLD GRID VERSION)
    * - First category: 100% split, close modal
    * - Additional categories: Enable split mode with sliders
    * Works with ABSOLUTE VALUES internally
@@ -535,7 +617,25 @@ export default function TransactionDetailScreen() {
   const autoSaveSplits = useCallback(
     async (categoriesToSave?: Array<{ category: string; amount: number }>) => {
       const categories = categoriesToSave || selectedCategories;
-      if (!transaction || !account || !categories) return;
+      const currentTransaction = transactionRef.current; // Get current value from ref
+      console.log('[autoSaveSplits] Called with categories:', categories);
+      if (!currentTransaction || !account || !categories) {
+        console.log('[autoSaveSplits] Missing required data:', {
+          hasTransaction: !!currentTransaction,
+          hasAccount: !!account,
+          hasCategories: !!categories,
+        });
+        return;
+      }
+
+      // Filter out 0-amount categories - don't save empty splits
+      const nonZeroCategories = categories.filter((c) => c.amount > 0);
+      if (nonZeroCategories.length === 0 && categories.length > 0) {
+        console.log(
+          '[autoSaveSplits] All categories have 0 amount, skipping save'
+        );
+        return;
+      }
 
       // Prevent concurrent saves
       if (savingRef.current) {
@@ -545,18 +645,25 @@ export default function TransactionDetailScreen() {
 
       try {
         savingRef.current = true;
-        const absTransactionAmount = Math.abs(transaction.amount);
-        const isNegative = transaction.amount < 0;
+        console.log('[autoSaveSplits] Starting save...');
+        const absTransactionAmount = Math.abs(currentTransaction.amount);
+        const isNegative = currentTransaction.amount < 0;
 
-        // Calculate uncategorized amount from the categories we're saving
-        const totalAllocated = categories.reduce((sum, c) => sum + c.amount, 0);
+        // Calculate uncategorized amount from the categories we're saving (only non-zero)
+        const totalAllocated = nonZeroCategories.reduce(
+          (sum, c) => sum + c.amount,
+          0
+        );
         const uncategorizedAmount = absTransactionAmount - totalAllocated;
 
         // Build all splits to save (including Uncategorized if needed)
         // Convert absolute values back to signed
         let totalAllocatedSigned = 0;
-        const categoriesToCreate = categories.filter((c) => c.amount > 0);
-        const allSplits: Omit<TransactionSplit, 'splitId' | 'createdAt' | 'updatedAt'>[] = [];
+        const categoriesToCreate = nonZeroCategories; // Already filtered above
+        const allSplits: Omit<
+          TransactionSplit,
+          'splitId' | 'createdAt' | 'updatedAt'
+        >[] = [];
 
         for (let i = 0; i < categoriesToCreate.length; i++) {
           const category = categoriesToCreate[i];
@@ -577,7 +684,7 @@ export default function TransactionDetailScreen() {
             (Math.abs(signedAmount) / absTransactionAmount) * 100;
 
           allSplits.push({
-            transactionId: transaction.transactionId,
+            transactionId: currentTransaction.transactionId,
             organizationId: account.defaultOrgId,
             category: category.category,
             amount: signedAmount,
@@ -594,7 +701,7 @@ export default function TransactionDetailScreen() {
             : uncategorizedAmount;
 
           allSplits.push({
-            transactionId: transaction.transactionId,
+            transactionId: currentTransaction.transactionId,
             organizationId: account.defaultOrgId,
             category: 'Uncategorized',
             amount: signedAmount,
@@ -604,16 +711,19 @@ export default function TransactionDetailScreen() {
         }
 
         // Update all splits in one call (automatically tracks feedback)
+        console.log('[autoSaveSplits] Calling API with splits:', allSplits);
         const updatedSplits = await transactionSplitApi.updateTransactionSplits(
-          transaction.transactionId,
+          currentTransaction.transactionId,
           account.accountId,
-          transaction.amount,
+          currentTransaction.amount,
           allSplits
         );
+        console.log('[autoSaveSplits] API returned splits:', updatedSplits);
         setSplits(updatedSplits);
 
         // Reload analytics data to reflect updated splits
-        loadAnalyticsData(transaction, updatedSplits);
+        loadAnalyticsData(currentTransaction, updatedSplits);
+        console.log('[autoSaveSplits] Save completed successfully');
       } catch (err) {
         console.error('Error auto-saving splits:', err);
         console.error('Error details:', {
@@ -626,7 +736,7 @@ export default function TransactionDetailScreen() {
         savingRef.current = false;
       }
     },
-    [transaction, account, selectedCategories, splits]
+    [account, selectedCategories] // transaction is accessed via ref to avoid stale closures
   );
 
   /**
@@ -1317,202 +1427,23 @@ export default function TransactionDetailScreen() {
           handleIndicatorStyle={styles.bottomSheetHandle}
         >
           <View style={styles.bottomSheetContent}>
-            {/* Uncategorized Amount Display */}
-            {selectedCategories.length > 0 && (
-              <View style={styles.uncategorizedDisplay}>
-                <View style={styles.uncategorizedRow}>
-                  <Text variant="titleSmall" style={styles.uncategorizedLabel}>
-                    Uncategorized
-                  </Text>
-                  <Text
-                    variant="titleMedium"
-                    style={styles.uncategorizedAmount}
-                  >
-                    {formatAmount(
-                      transaction.amount < 0
-                        ? -getUncategorizedAmount()
-                        : getUncategorizedAmount(),
-                      transaction.currency || 'USD'
-                    )}
-                  </Text>
-                </View>
-                <Text
-                  variant="bodySmall"
-                  style={styles.uncategorizedDescription}
-                >
-                  {getUncategorizedAmount() === 0
-                    ? 'All allocated'
-                    : 'Remaining unallocated amount'}
-                </Text>
-              </View>
-            )}
-
-            {/* Category Grid with inline sliders */}
             <BottomSheetScrollView
               style={styles.categoryScrollContainer}
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.categoryGrid}>
-                {CATEGORIES.map((category) => {
-                  const selectedCategory = selectedCategories.find(
-                    (c) => c.category === category.name
-                  );
-                  const isSelected = !!selectedCategory;
-
-                  return (
-                    <View
-                      key={category.name}
-                      style={styles.categoryItemContainer}
-                    >
-                      <View
-                        style={[
-                          styles.categoryItem,
-                          isSelected && styles.categoryItemSelected,
-                        ]}
-                      >
-                        <TouchableOpacity
-                          style={styles.categoryButton}
-                          onPress={() => handleSelectCategory(category.name)}
-                          activeOpacity={0.7}
-                        >
-                          {isSelected && (
-                            <View style={styles.checkmark}>
-                              <IconButton
-                                icon="check"
-                                size={16}
-                                iconColor="#fff"
-                              />
-                            </View>
-                          )}
-                          <Avatar.Icon
-                            size={48}
-                            icon={category.icon}
-                            style={styles.categoryIcon}
-                          />
-                          <Text variant="bodySmall" style={styles.categoryName}>
-                            {category.name}
-                          </Text>
-
-                          {/* Show amount for selected categories - convert to signed for display */}
-                          {isSelected &&
-                            selectedCategory &&
-                            (editingCategory === category.name ? (
-                              <View style={styles.categoryAmountInputContainer}>
-                                <RNTextInput
-                                  value={editAmountInput}
-                                  onChangeText={setEditAmountInput}
-                                  keyboardType="decimal-pad"
-                                  autoFocus
-                                  onBlur={handleSaveEditAmount}
-                                  onSubmitEditing={handleSaveEditAmount}
-                                  style={styles.categoryAmountInput}
-                                  placeholder="0.00"
-                                  selectTextOnFocus
-                                  placeholderTextColor="rgba(103, 80, 164, 0.4)"
-                                />
-                              </View>
-                            ) : (
-                              <TouchableOpacity
-                                onPress={() =>
-                                  handleStartEditAmount(
-                                    category.name,
-                                    selectedCategory.amount
-                                  )
-                                }
-                                activeOpacity={0.7}
-                              >
-                                <Text
-                                  variant="bodySmall"
-                                  style={[
-                                    styles.categoryAmount,
-                                    styles.editableAmount,
-                                  ]}
-                                >
-                                  {formatAmount(
-                                    transaction.amount < 0
-                                      ? -selectedCategory.amount
-                                      : selectedCategory.amount,
-                                    transaction.currency || 'USD'
-                                  )}
-                                </Text>
-                              </TouchableOpacity>
-                            ))}
-                        </TouchableOpacity>
-
-                        {/* Inline slider - OUTSIDE TouchableOpacity */}
-                        {isSelected && selectedCategory && (
-                          <View style={styles.categorySliderContainer}>
-                            <Slider
-                              style={styles.categorySlider}
-                              minimumValue={0}
-                              maximumValue={
-                                (selectedCategory.amount +
-                                  getUncategorizedAmount()) /
-                                100
-                              }
-                              step={0.01}
-                              value={selectedCategory.amount / 100}
-                              onValueChange={(value) => {
-                                // Convert dollars to cents (keep as absolute/positive)
-                                // Use Math.round instead of Math.floor to avoid precision issues
-                                const centsValue = Math.round(value * 100);
-
-                                // Clamp to prevent over-allocation
-                                const currentUncategorized =
-                                  getUncategorizedAmount();
-                                const maxAllowed =
-                                  selectedCategory.amount +
-                                  currentUncategorized;
-                                const clampedValue = Math.min(
-                                  centsValue,
-                                  maxAllowed
-                                );
-
-                                setSelectedCategories((prev) =>
-                                  prev.map((c) =>
-                                    c.category === category.name
-                                      ? { ...c, amount: clampedValue }
-                                      : c
-                                  )
-                                );
-                              }}
-                              onSlidingComplete={(value) => {
-                                // Convert dollars to cents and clamp to prevent over-allocation
-                                // Use Math.round instead of Math.floor to avoid precision issues
-                                const centsValue = Math.round(value * 100);
-                                const currentUncategorized =
-                                  getUncategorizedAmount();
-                                const maxAllowed =
-                                  selectedCategory.amount +
-                                  currentUncategorized;
-                                const clampedValue = Math.min(
-                                  centsValue,
-                                  maxAllowed
-                                );
-
-                                // Update state
-                                const updatedCategories =
-                                  selectedCategories.map((c) =>
-                                    c.category === category.name
-                                      ? { ...c, amount: clampedValue }
-                                      : c
-                                  );
-                                setSelectedCategories(updatedCategories);
-
-                                // Auto-save immediately with updated categories
-                                autoSaveSplits(updatedCategories);
-                              }}
-                              minimumTrackTintColor="rgba(103, 80, 164, 0.9)"
-                              maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
-                              thumbTintColor="rgba(103, 80, 164, 1)"
-                            />
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
+              <RadialCategoryPicker
+                selectedCategories={selectedCategories}
+                onCategorySelect={handleRadialCategorySelect}
+                onAmountChange={handleRadialAmountChange}
+                onClearAll={() => {
+                  setSelectedCategories([]);
+                  autoSaveSplits([]);
+                }}
+                getUncategorizedAmount={getUncategorizedAmount}
+                transactionAmount={transaction.amount}
+                transactionCurrency={transaction.currency || 'USD'}
+                formatAmount={formatAmount}
+              />
             </BottomSheetScrollView>
           </View>
         </BottomSheet>
