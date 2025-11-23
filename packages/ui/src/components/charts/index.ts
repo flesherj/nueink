@@ -8,3 +8,4 @@
  */
 
 export * from './CategorySpendingChart';
+export * from './CategoryPieChart';

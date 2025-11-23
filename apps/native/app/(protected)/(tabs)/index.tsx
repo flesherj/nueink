@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Surface, Text, Card, ActivityIndicator, Button } from 'react-native-paper';
-import { useAccountProvider } from '@nueink/ui';
+import { useAccountProvider, CategoryPieChart } from '@nueink/ui';
 import { FinancialAccountApi, FinancialAnalysisApi } from '@nueink/sdk';
 import type { FinancialAccount, FinancialAnalysis } from '@nueink/core';
 
@@ -188,6 +188,14 @@ export default function DashboardScreen() {
                 <Text variant="bodySmall" style={styles.subtitle}>
                   Total spending
                 </Text>
+
+                {/* Pie Chart */}
+                {analysis.spendingByCategory.length > 0 && (
+                  <CategoryPieChart
+                    data={analysis.spendingByCategory}
+                    topN={7}
+                  />
+                )}
 
                 {/* All Categories */}
                 <View style={styles.categorySection}>
