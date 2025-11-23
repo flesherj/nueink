@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Surface, Text, Card, ActivityIndicator, Button } from 'react-native-paper';
 import { useAccountProvider } from '@nueink/ui';
-import { FinancialAccountApi } from '@nueink/sdk';
+import { FinancialAccountApi, FinancialAnalysisApi } from '@nueink/sdk';
 import type { FinancialAccount, FinancialAnalysis } from '@nueink/core';
 
-// Create API client
+// Create API clients
 const financialAccountApi = FinancialAccountApi.create();
+const financialAnalysisApi = FinancialAnalysisApi.create();
 
 export default function DashboardScreen() {
   const { account } = useAccountProvider();
@@ -78,6 +79,33 @@ export default function DashboardScreen() {
     }).format(amount);
   };
 
+  /**
+   * Analyze spending with AI
+   */
+  const handleAnalyzeSpending = async () => {
+    if (!account?.defaultOrgId || !account?.accountId) return;
+
+    try {
+      setAnalyzing(true);
+      setAnalysisError(null);
+      console.log('Analyzing spending for organization:', account.defaultOrgId);
+
+      const result = await financialAnalysisApi.analyzeSpending(
+        account.defaultOrgId,
+        account.accountId,
+        3 // Last 3 months
+      );
+
+      setAnalysis(result);
+      console.log('Analysis complete:', result);
+    } catch (err) {
+      console.error('Error analyzing spending:', err);
+      setAnalysisError(err instanceof Error ? err.message : 'Failed to analyze spending');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   if (loading) {
     return (
       <Surface style={styles.container}>
@@ -110,6 +138,105 @@ export default function DashboardScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Financial Discovery Card */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <View style={styles.cardHeader}>
+              <Text variant="titleMedium" style={styles.cardTitle}>
+                🔍 Financial Discovery
+              </Text>
+            </View>
+
+            {!analysis && !analyzing && (
+              <>
+                <Text variant="bodyMedium" style={styles.subtitle}>
+                  Let AI analyze your spending patterns and discover insights
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={handleAnalyzeSpending}
+                  style={styles.analyzeButton}
+                  disabled={!account?.defaultOrgId}
+                >
+                  Analyze My Spending
+                </Button>
+              </>
+            )}
+
+            {analyzing && (
+              <View style={styles.centerContent}>
+                <ActivityIndicator size="large" />
+                <Text style={styles.loadingText}>Analyzing your spending...</Text>
+              </View>
+            )}
+
+            {analysisError && (
+              <Text variant="bodyMedium" style={styles.errorText}>
+                {analysisError}
+              </Text>
+            )}
+
+            {analysis && !analyzing && (
+              <View>
+                <Text variant="bodyMedium" style={styles.subtitle}>
+                  Analysis of last 3 months
+                </Text>
+
+                <Text variant="displaySmall" style={styles.balanceAmount}>
+                  {formatBalance(analysis.totalSpending)}
+                </Text>
+                <Text variant="bodySmall" style={styles.subtitle}>
+                  Total spending
+                </Text>
+
+                {/* Top Categories */}
+                <View style={styles.categorySection}>
+                  <Text variant="titleSmall" style={styles.sectionTitle}>
+                    Top Spending Categories
+                  </Text>
+                  {analysis.spendingByCategory.slice(0, 5).map((cat) => (
+                    <View key={cat.category} style={styles.categoryRow}>
+                      <Text variant="bodyMedium" style={styles.categoryName}>
+                        {cat.category}
+                      </Text>
+                      <View style={styles.categoryAmounts}>
+                        <Text variant="bodyMedium" style={styles.categoryAmount}>
+                          {formatBalance(cat.amount)}
+                        </Text>
+                        <Text variant="bodySmall" style={styles.categoryPercent}>
+                          {cat.percentage.toFixed(1)}%
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Simple Insights */}
+                {(analysis as any).insights && (analysis as any).insights.length > 0 && (
+                  <View style={styles.insightsSection}>
+                    <Text variant="titleSmall" style={styles.sectionTitle}>
+                      💡 Insights
+                    </Text>
+                    {(analysis as any).insights.map((insight: string, idx: number) => (
+                      <Text key={idx} variant="bodySmall" style={styles.insightText}>
+                        • {insight}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                <Button
+                  mode="outlined"
+                  onPress={handleAnalyzeSpending}
+                  style={styles.reanalyzeButton}
+                >
+                  Re-analyze
+                </Button>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+
         {/* What You Have Left Card */}
           <Card style={styles.card}>
             <Card.Content>
@@ -224,5 +351,55 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  analyzeButton: {
+    marginTop: 16,
+  },
+  reanalyzeButton: {
+    marginTop: 16,
+  },
+  categorySection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sectionTitle: {
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  categoryName: {
+    flex: 1,
+    opacity: 0.9,
+  },
+  categoryAmounts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  categoryAmount: {
+    fontWeight: '600',
+  },
+  categoryPercent: {
+    opacity: 0.6,
+    minWidth: 50,
+    textAlign: 'right',
+  },
+  insightsSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  insightText: {
+    opacity: 0.8,
+    lineHeight: 20,
+    marginBottom: 8,
   },
 });

@@ -13,3 +13,4 @@ export * from './TransactionSplitApi';
 export * from './SyncApi';
 export * from './CommentApi';
 export * from './AnalyticsApi';
+export * from './FinancialAnalysisApi';
