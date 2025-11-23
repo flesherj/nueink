@@ -99,9 +99,15 @@ export type FinancialAccountStatus = 'active' | 'inactive' | 'closed';
 export type BudgetPeriod = 'monthly' | 'weekly' | 'yearly';
 
 /**
- * Budget status
+ * Budget status - tracks budget lifecycle and workflow stage
+ *
+ * Workflow: baseline → optimized → active → archived
  */
-export type BudgetStatus = 'active' | 'inactive';
+export type BudgetStatus =
+  | 'baseline'    // Created from current spending (no optimizations yet)
+  | 'optimized'   // Has AI-suggested optimizations applied
+  | 'active'      // Currently being tracked/used (one per org)
+  | 'archived';   // No longer active, kept for history/comparison
 
 /**
  * Integration configuration status
