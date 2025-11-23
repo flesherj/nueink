@@ -136,8 +136,8 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
       series: [
         {
           type: 'pie',
-          radius: ['40%', '70%'], // Donut chart
-          center: ['50%', '45%'], // Center horizontally, shift up for bottom legend
+          radius: ['35%', '60%'], // Smaller donut chart
+          center: ['50%', '35%'], // Center horizontally, shift up more for bottom legend
           avoidLabelOverlap: true,
           itemStyle: {
             borderRadius: 8,
