@@ -219,11 +219,11 @@ export default function DashboardScreen() {
                   ))}
                 </View>
 
-                {/* Simple Insights */}
+                {/* AI Insights */}
                 {(analysis as any).insights && (analysis as any).insights.length > 0 && (
                   <View style={styles.insightsSection}>
                     <Text variant="titleSmall" style={styles.sectionTitle}>
-                      💡 Insights
+                      🤖 AI Insights
                     </Text>
                     {(analysis as any).insights.map((insight: string, idx: number) => (
                       <Text key={idx} variant="bodySmall" style={styles.insightText}>
