@@ -38,6 +38,7 @@ import SyncRouter from './routers/SyncRouter';
 import CommentRouter from './routers/CommentRouter';
 import AnalyticsRouter from './routers/AnalyticsRouter';
 import FinancialAnalysisRouter from './routers/FinancialAnalysisRouter';
+import BudgetRouter from './routers/BudgetRouter';
 
 // Create Express app
 const app = express();
@@ -54,6 +55,7 @@ app.use('/sync', SyncRouter);
 app.use('/comment', CommentRouter);
 app.use('/analytics', AnalyticsRouter);
 app.use('/financial-analysis', FinancialAnalysisRouter);
+app.use('/budget', BudgetRouter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

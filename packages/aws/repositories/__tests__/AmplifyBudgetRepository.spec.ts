@@ -1,10 +1,27 @@
 import { AmplifyBudgetRepository } from '../AmplifyBudgetRepository';
-import { BudgetEntity } from '../../models';
+import { BudgetEntity, CategoryBudgetEntity } from '../../models';
 import { createMockDbClient, createMockResponse, createMockListResponse } from './test-utils';
 
 describe('AmplifyBudgetRepository', () => {
   let repository: AmplifyBudgetRepository;
   let mockDbClient: ReturnType<typeof createMockDbClient>;
+
+  const mockCategoryBudgets: CategoryBudgetEntity[] = [
+    {
+      category: 'Groceries',
+      budgetAmount: 50000,
+      currentSpending: 48000,
+      percentage: 33.3,
+      trend: 'stable',
+    },
+    {
+      category: 'Dining',
+      budgetAmount: 30000,
+      currentSpending: 32000,
+      percentage: 20.0,
+      trend: 'up',
+    },
+  ];
 
   beforeEach(() => {
     mockDbClient = createMockDbClient();
@@ -19,18 +36,18 @@ describe('AmplifyBudgetRepository', () => {
     it('should return budget when found', async () => {
       const mockData = {
         budgetId: 'budget-1',
+        accountId: 'acc-1',
         organizationId: 'org-1',
-        category: 'Food and Drink',
-        amount: 500.0,
-        period: 'monthly',
-        startDate: '2025-01-01T00:00:00.000Z',
-        endDate: '2025-01-31T23:59:59.999Z',
-        spent: 234.56,
-        remaining: 265.44,
-        status: 'active',
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-15T12:00:00.000Z',
+        name: 'January 2024 Budget',
+        periodStart: '2024-01-01T00:00:00.000Z',
+        periodEnd: '2024-01-31T23:59:59.999Z',
+        categoryBudgets: mockCategoryBudgets,
+        totalBudget: 150000,
+        status: 'baseline',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-15T12:00:00.000Z',
         profileOwner: 'user-1',
+        sourceAnalysisId: 'analysis-123',
       };
 
       mockDbClient.models.Budget.get.mockResolvedValue(
@@ -42,21 +59,7 @@ describe('AmplifyBudgetRepository', () => {
       expect(mockDbClient.models.Budget.get).toHaveBeenCalledWith({
         budgetId: 'budget-1',
       });
-      expect(result).toEqual({
-        budgetId: 'budget-1',
-        organizationId: 'org-1',
-        category: 'Food and Drink',
-        amount: 500.0,
-        period: 'monthly',
-        startDate: '2025-01-01T00:00:00.000Z',
-        endDate: '2025-01-31T23:59:59.999Z',
-        spent: 234.56,
-        remaining: 265.44,
-        status: 'active',
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-15T12:00:00.000Z',
-        profileOwner: 'user-1',
-      });
+      expect(result).toEqual(mockData);
     });
 
     it('should return null when budget not found', async () => {
@@ -72,15 +75,16 @@ describe('AmplifyBudgetRepository', () => {
     it('should handle optional fields being undefined', async () => {
       const mockData = {
         budgetId: 'budget-1',
+        accountId: 'acc-1',
         organizationId: 'org-1',
-        category: 'Entertainment',
-        amount: 200.0,
-        period: 'monthly',
-        startDate: '2025-01-01T00:00:00.000Z',
-        endDate: '2025-01-31T23:59:59.999Z',
+        name: 'Test Budget',
+        periodStart: '2024-01-01T00:00:00.000Z',
+        periodEnd: '2024-01-31T23:59:59.999Z',
+        categoryBudgets: [],
+        totalBudget: 100000,
         status: 'active',
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-01T00:00:00.000Z',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
       mockDbClient.models.Budget.get.mockResolvedValue(
@@ -89,111 +93,87 @@ describe('AmplifyBudgetRepository', () => {
 
       const result = await repository.findById('budget-1');
 
-      expect(result?.spent).toBeUndefined();
-      expect(result?.remaining).toBeUndefined();
       expect(result?.profileOwner).toBeUndefined();
+      expect(result?.sourceAnalysisId).toBeUndefined();
     });
   });
 
   describe('save', () => {
     it('should create new budget with all fields', async () => {
       const entity: BudgetEntity = {
-        budgetId: 'budget-1',
+        budgetId: 'budget-new',
+        accountId: 'acc-1',
         organizationId: 'org-1',
-        category: 'Food and Drink',
-        amount: 500.0,
-        period: 'monthly',
-        startDate: '2025-01-01T00:00:00.000Z',
-        endDate: '2025-01-31T23:59:59.999Z',
-        spent: 234.56,
-        remaining: 265.44,
-        status: 'active',
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-15T12:00:00.000Z',
+        name: 'February 2024 Budget',
+        periodStart: '2024-02-01T00:00:00.000Z',
+        periodEnd: '2024-02-29T23:59:59.999Z',
+        categoryBudgets: mockCategoryBudgets,
+        totalBudget: 150000,
+        status: 'baseline',
+        createdAt: '2024-02-01T00:00:00.000Z',
+        updatedAt: '2024-02-01T00:00:00.000Z',
         profileOwner: 'user-1',
+        sourceAnalysisId: 'analysis-456',
       };
 
       mockDbClient.models.Budget.create.mockResolvedValue(
-        createMockResponse({
-          ...entity,
-          startDate: entity.startDate,
-          endDate: entity.endDate,
-          createdAt: entity.createdAt,
-          updatedAt: entity.updatedAt,
-        })
+        createMockResponse(entity)
       );
 
       const result = await repository.save(entity);
 
-      expect(mockDbClient.models.Budget.create).toHaveBeenCalledWith({
-        budgetId: 'budget-1',
-        organizationId: 'org-1',
-        category: 'Food and Drink',
-        amount: 500.0,
-        period: 'monthly',
-        startDate: '2025-01-01T00:00:00.000Z',
-        endDate: '2025-01-31T23:59:59.999Z',
-        spent: 234.56,
-        remaining: 265.44,
-        status: 'active',
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-15T12:00:00.000Z',
-        profileOwner: 'user-1',
-      });
+      expect(mockDbClient.models.Budget.create).toHaveBeenCalledWith(entity);
       expect(result).toEqual(entity);
     });
 
-    it('should create budget with only required fields', async () => {
+    it('should throw error when creation fails', async () => {
       const entity: BudgetEntity = {
-        budgetId: 'budget-1',
+        budgetId: 'budget-fail',
+        accountId: 'acc-1',
         organizationId: 'org-1',
-        category: 'Transportation',
-        amount: 300.0,
-        period: 'monthly',
-        startDate: '2025-01-01T00:00:00.000Z',
-        endDate: '2025-01-31T23:59:59.999Z',
-        status: 'active',
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-01T00:00:00.000Z',
+        name: 'Test Budget',
+        periodStart: '2024-01-01T00:00:00.000Z',
+        periodEnd: '2024-01-31T23:59:59.999Z',
+        categoryBudgets: [],
+        totalBudget: 100000,
+        status: 'baseline',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        profileOwner: 'user-1',
       };
 
       mockDbClient.models.Budget.create.mockResolvedValue(
-        createMockResponse({
-          ...entity,
-          startDate: entity.startDate,
-          endDate: entity.endDate,
-          createdAt: entity.createdAt,
-          updatedAt: entity.updatedAt,
-        })
+        createMockResponse(null)
       );
 
-      const result = await repository.save(entity);
-
-      expect(result.category).toBe('Transportation');
+      await expect(repository.save(entity)).rejects.toThrow(
+        'Failed to create Budget: response.data is null'
+      );
     });
   });
 
   describe('update', () => {
-    it('should update budget spent and remaining', async () => {
+    it('should update budget fields', async () => {
       const updates = {
-        spent: 350.0,
-        remaining: 150.0,
-        updatedAt: '2025-01-20T12:00:00.000Z',
+        budgetId: 'budget-1',
+        name: 'Updated Budget Name',
+        status: 'active' as const,
+        updatedAt: '2024-01-20T00:00:00.000Z',
       };
 
       const mockUpdated = {
         budgetId: 'budget-1',
+        accountId: 'acc-1',
         organizationId: 'org-1',
-        category: 'Food and Drink',
-        amount: 500.0,
-        period: 'monthly',
-        startDate: '2025-01-01T00:00:00.000Z',
-        endDate: '2025-01-31T23:59:59.999Z',
-        spent: 350.0,
-        remaining: 150.0,
+        name: 'Updated Budget Name',
+        periodStart: '2024-01-01T00:00:00.000Z',
+        periodEnd: '2024-01-31T23:59:59.999Z',
+        categoryBudgets: mockCategoryBudgets,
+        totalBudget: 150000,
         status: 'active',
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-20T12:00:00.000Z',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-20T00:00:00.000Z',
+        profileOwner: 'user-1',
       };
 
       mockDbClient.models.Budget.update.mockResolvedValue(
@@ -204,21 +184,26 @@ describe('AmplifyBudgetRepository', () => {
 
       expect(mockDbClient.models.Budget.update).toHaveBeenCalledWith({
         budgetId: 'budget-1',
-        spent: 350.0,
-        remaining: 150.0,
-        updatedAt: '2025-01-20T12:00:00.000Z',
+        name: 'Updated Budget Name',
+        status: 'active',
+        updatedAt: '2024-01-20T00:00:00.000Z',
       });
-      expect(result.spent).toBe(350.0);
-      expect(result.remaining).toBe(150.0);
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('should throw error when update fails', async () => {
+      mockDbClient.models.Budget.update.mockResolvedValue(
+        createMockResponse(null)
+      );
+
+      await expect(
+        repository.update('budget-1', { status: 'archived' })
+      ).rejects.toThrow('Failed to update Budget: response.data is null');
     });
   });
 
   describe('delete', () => {
-    it('should delete budget by id', async () => {
-      mockDbClient.models.Budget.delete.mockResolvedValue(
-        createMockResponse(null)
-      );
-
+    it('should delete budget by ID', async () => {
       await repository.delete('budget-1');
 
       expect(mockDbClient.models.Budget.delete).toHaveBeenCalledWith({
@@ -228,151 +213,216 @@ describe('AmplifyBudgetRepository', () => {
   });
 
   describe('findByOrganization', () => {
-    it('should return all budgets for an organization', async () => {
-      const mockData = [
+    it('should return all budgets for organization', async () => {
+      const mockBudgets = [
         {
           budgetId: 'budget-1',
+          accountId: 'acc-1',
           organizationId: 'org-1',
-          category: 'Food and Drink',
-          amount: 500.0,
-          period: 'monthly',
-          startDate: '2025-01-01T00:00:00.000Z',
-          endDate: '2025-01-31T23:59:59.999Z',
-          status: 'active',
-          createdAt: '2025-01-01T00:00:00.000Z',
-          updatedAt: '2025-01-01T00:00:00.000Z',
+          name: 'January Budget',
+          periodStart: '2024-01-01T00:00:00.000Z',
+          periodEnd: '2024-01-31T23:59:59.999Z',
+          categoryBudgets: mockCategoryBudgets,
+          totalBudget: 150000,
+          status: 'baseline',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          profileOwner: 'user-1',
         },
         {
           budgetId: 'budget-2',
+          accountId: 'acc-1',
           organizationId: 'org-1',
-          category: 'Transportation',
-          amount: 300.0,
-          period: 'monthly',
-          startDate: '2025-01-01T00:00:00.000Z',
-          endDate: '2025-01-31T23:59:59.999Z',
+          name: 'February Budget',
+          periodStart: '2024-02-01T00:00:00.000Z',
+          periodEnd: '2024-02-29T23:59:59.999Z',
+          categoryBudgets: [],
+          totalBudget: 120000,
           status: 'active',
-          createdAt: '2025-01-01T00:00:00.000Z',
-          updatedAt: '2025-01-01T00:00:00.000Z',
+          createdAt: '2024-02-01T00:00:00.000Z',
+          updatedAt: '2024-02-01T00:00:00.000Z',
+          profileOwner: 'user-1',
         },
       ];
 
       mockDbClient.models.Budget.listBudgetByOrganizationId.mockResolvedValue(
-        createMockListResponse(mockData)
+        createMockListResponse(mockBudgets)
       );
 
       const result = await repository.findByOrganization('org-1');
 
-      expect(mockDbClient.models.Budget.listBudgetByOrganizationId).toHaveBeenCalledWith({
+      expect(
+        mockDbClient.models.Budget.listBudgetByOrganizationId
+      ).toHaveBeenCalledWith({
         organizationId: 'org-1',
       });
+      expect(result).toEqual(mockBudgets);
       expect(result).toHaveLength(2);
-      expect(result.every((b) => b.organizationId === 'org-1')).toBe(true);
     });
   });
 
   describe('findActiveByOrganization', () => {
-    it('should return only active budgets', async () => {
-      const mockData = [
+    it('should return active budget for organization', async () => {
+      const mockBudgets = [
         {
           budgetId: 'budget-1',
+          accountId: 'acc-1',
           organizationId: 'org-1',
-          category: 'Food and Drink',
-          amount: 500.0,
-          period: 'monthly',
-          startDate: '2025-01-01T00:00:00.000Z',
-          endDate: '2025-01-31T23:59:59.999Z',
-          status: 'active',
-          createdAt: '2025-01-01T00:00:00.000Z',
-          updatedAt: '2025-01-01T00:00:00.000Z',
+          name: 'Baseline Budget',
+          periodStart: '2024-01-01T00:00:00.000Z',
+          periodEnd: '2024-01-31T23:59:59.999Z',
+          categoryBudgets: [],
+          totalBudget: 150000,
+          status: 'baseline',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          profileOwner: 'user-1',
         },
         {
           budgetId: 'budget-2',
+          accountId: 'acc-1',
           organizationId: 'org-1',
-          category: 'Transportation',
-          amount: 300.0,
-          period: 'monthly',
-          startDate: '2024-12-01T00:00:00.000Z',
-          endDate: '2024-12-31T23:59:59.999Z',
-          status: 'inactive',
-          createdAt: '2024-12-01T00:00:00.000Z',
-          updatedAt: '2024-12-01T00:00:00.000Z',
+          name: 'Active Budget',
+          periodStart: '2024-02-01T00:00:00.000Z',
+          periodEnd: '2024-02-29T23:59:59.999Z',
+          categoryBudgets: mockCategoryBudgets,
+          totalBudget: 120000,
+          status: 'active',
+          createdAt: '2024-02-01T00:00:00.000Z',
+          updatedAt: '2024-02-01T00:00:00.000Z',
+          profileOwner: 'user-1',
         },
       ];
 
       mockDbClient.models.Budget.listBudgetByOrganizationId.mockResolvedValue(
-        createMockListResponse(mockData)
+        createMockListResponse(mockBudgets)
       );
 
       const result = await repository.findActiveByOrganization('org-1');
 
-      expect(result).toHaveLength(1);
-      expect(result[0].status).toBe('active');
-      expect(result.find((b) => b.budgetId === 'budget-2')).toBeUndefined();
+      expect(result).toBeDefined();
+      expect(result?.budgetId).toBe('budget-2');
+      expect(result?.status).toBe('active');
+    });
+
+    it('should return null when no active budget exists', async () => {
+      const mockBudgets = [
+        {
+          budgetId: 'budget-1',
+          accountId: 'acc-1',
+          organizationId: 'org-1',
+          name: 'Baseline Budget',
+          periodStart: '2024-01-01T00:00:00.000Z',
+          periodEnd: '2024-01-31T23:59:59.999Z',
+          categoryBudgets: [],
+          totalBudget: 150000,
+          status: 'baseline',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          profileOwner: 'user-1',
+        },
+      ];
+
+      mockDbClient.models.Budget.listBudgetByOrganizationId.mockResolvedValue(
+        createMockListResponse(mockBudgets)
+      );
+
+      const result = await repository.findActiveByOrganization('org-1');
+
+      expect(result).toBeNull();
     });
   });
 
-  describe('findByCategory', () => {
-    it('should return budget by category', async () => {
-      const mockData = [
+  describe('findByAccount', () => {
+    it('should return all budgets for account', async () => {
+      const mockBudgets = [
         {
           budgetId: 'budget-1',
+          accountId: 'acc-1',
           organizationId: 'org-1',
-          category: 'Food and Drink',
-          amount: 500.0,
-          period: 'monthly',
-          startDate: '2025-01-01T00:00:00.000Z',
-          endDate: '2025-01-31T23:59:59.999Z',
-          status: 'active',
-          createdAt: '2025-01-01T00:00:00.000Z',
-          updatedAt: '2025-01-01T00:00:00.000Z',
+          name: 'Budget 1',
+          periodStart: '2024-01-01T00:00:00.000Z',
+          periodEnd: '2024-01-31T23:59:59.999Z',
+          categoryBudgets: [],
+          totalBudget: 100000,
+          status: 'baseline',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          profileOwner: 'user-1',
+        },
+      ];
+
+      mockDbClient.models.Budget.listBudgetByAccountId.mockResolvedValue(
+        createMockListResponse(mockBudgets)
+      );
+
+      const result = await repository.findByAccount('acc-1');
+
+      expect(
+        mockDbClient.models.Budget.listBudgetByAccountId
+      ).toHaveBeenCalledWith({
+        accountId: 'acc-1',
+      });
+      expect(result).toEqual(mockBudgets);
+    });
+  });
+
+  describe('findByStatus', () => {
+    it('should return budgets filtered by status', async () => {
+      const mockBudgets = [
+        {
+          budgetId: 'budget-1',
+          accountId: 'acc-1',
+          organizationId: 'org-1',
+          name: 'Baseline 1',
+          periodStart: '2024-01-01T00:00:00.000Z',
+          periodEnd: '2024-01-31T23:59:59.999Z',
+          categoryBudgets: [],
+          totalBudget: 100000,
+          status: 'baseline',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          profileOwner: 'user-1',
         },
         {
           budgetId: 'budget-2',
+          accountId: 'acc-1',
           organizationId: 'org-1',
-          category: 'Transportation',
-          amount: 300.0,
-          period: 'monthly',
-          startDate: '2025-01-01T00:00:00.000Z',
-          endDate: '2025-01-31T23:59:59.999Z',
+          name: 'Active Budget',
+          periodStart: '2024-02-01T00:00:00.000Z',
+          periodEnd: '2024-02-29T23:59:59.999Z',
+          categoryBudgets: [],
+          totalBudget: 120000,
           status: 'active',
-          createdAt: '2025-01-01T00:00:00.000Z',
-          updatedAt: '2025-01-01T00:00:00.000Z',
+          createdAt: '2024-02-01T00:00:00.000Z',
+          updatedAt: '2024-02-01T00:00:00.000Z',
+          profileOwner: 'user-1',
         },
-      ];
-
-      mockDbClient.models.Budget.listBudgetByOrganizationId.mockResolvedValue(
-        createMockListResponse(mockData)
-      );
-
-      const result = await repository.findByCategory('org-1', 'Food and Drink');
-
-      expect(result).not.toBeNull();
-      expect(result?.category).toBe('Food and Drink');
-    });
-
-    it('should return null when category not found', async () => {
-      const mockData = [
         {
-          budgetId: 'budget-1',
+          budgetId: 'budget-3',
+          accountId: 'acc-1',
           organizationId: 'org-1',
-          category: 'Food and Drink',
-          amount: 500.0,
-          period: 'monthly',
-          startDate: '2025-01-01T00:00:00.000Z',
-          endDate: '2025-01-31T23:59:59.999Z',
-          status: 'active',
-          createdAt: '2025-01-01T00:00:00.000Z',
-          updatedAt: '2025-01-01T00:00:00.000Z',
+          name: 'Baseline 2',
+          periodStart: '2024-03-01T00:00:00.000Z',
+          periodEnd: '2024-03-31T23:59:59.999Z',
+          categoryBudgets: [],
+          totalBudget: 110000,
+          status: 'baseline',
+          createdAt: '2024-03-01T00:00:00.000Z',
+          updatedAt: '2024-03-01T00:00:00.000Z',
+          profileOwner: 'user-1',
         },
       ];
 
       mockDbClient.models.Budget.listBudgetByOrganizationId.mockResolvedValue(
-        createMockListResponse(mockData)
+        createMockListResponse(mockBudgets)
       );
 
-      const result = await repository.findByCategory('org-1', 'Nonexistent Category');
+      const result = await repository.findByStatus('org-1', 'baseline');
 
-      expect(result).toBeNull();
+      expect(result).toHaveLength(2);
+      expect(result[0].status).toBe('baseline');
+      expect(result[1].status).toBe('baseline');
     });
   });
 });

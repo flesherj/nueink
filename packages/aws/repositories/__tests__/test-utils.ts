@@ -88,6 +88,7 @@ export const createMockDbClient = () => {
         update: jest.fn(),
         delete: jest.fn(),
         listBudgetByOrganizationId: jest.fn(),
+        listBudgetByAccountId: jest.fn(),
       },
       Debt: {
         get: jest.fn(),
