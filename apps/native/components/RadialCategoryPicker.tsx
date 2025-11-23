@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,7 +7,6 @@ import {
   Animated,
 } from 'react-native';
 import { Text, Avatar, IconButton, useTheme } from 'react-native-paper';
-import Slider from '@react-native-community/slider';
 import {
   CATEGORY_METADATA,
   getAllGroups,
@@ -15,6 +14,96 @@ import {
   getCategoryMetadata,
   type TransactionCategory,
 } from '@nueink/core';
+import { CategoryCircle } from './CategoryCircle';
+import { getCategoryColorScheme } from '../constants/categoryColors';
+
+/**
+ * Individual radial category button with animated label
+ */
+interface RadialCategoryButtonProps {
+  categoryMeta: { category: string; emoji: string };
+  isSelected: boolean;
+  selectedAmount?: number;
+  animatedStyle: any;
+  transactionAmount: number;
+  transactionCurrency: string;
+  uncategorizedAmount: number;
+  editingCategory: string | null;
+  editAmountInput: string;
+  onCategorySelect: (category: string) => void;
+  onAmountChange: (category: string, amount: number) => void;
+  formatAmount: (amount: number, currency: string) => string;
+  handleStartEditAmount: (category: string, amount: number) => void;
+  handleSaveEditAmount: () => void;
+  setEditAmountInput: (value: string) => void;
+  theme: any;
+}
+
+const RadialCategoryButton: React.FC<RadialCategoryButtonProps> = ({
+  categoryMeta,
+  isSelected,
+  selectedAmount,
+  animatedStyle,
+  transactionAmount,
+  transactionCurrency,
+  uncategorizedAmount,
+  editingCategory,
+  editAmountInput,
+  onCategorySelect,
+  onAmountChange,
+  formatAmount,
+  handleStartEditAmount,
+  handleSaveEditAmount,
+  setEditAmountInput,
+  theme,
+}) => {
+  // Get color scheme for this category
+  const colors = getCategoryColorScheme(categoryMeta.category);
+
+  return (
+    <Animated.View style={[styles.radialButton, animatedStyle]}>
+      {isSelected ? (
+        <CategoryCircle
+          category={categoryMeta.category}
+          emoji={categoryMeta.emoji}
+          amount={selectedAmount}
+          transactionAmount={transactionAmount}
+          transactionCurrency={transactionCurrency}
+          remainingUncategorized={uncategorizedAmount}
+          onAmountChange={onAmountChange}
+          formatAmount={formatAmount}
+          editingCategory={editingCategory}
+          editAmountInput={editAmountInput}
+          onStartEdit={handleStartEditAmount}
+          onSaveEdit={handleSaveEditAmount}
+          setEditAmountInput={setEditAmountInput}
+          handleColor={colors.handleColor}
+          handleStrokeColor={colors.handleStrokeColor}
+          progressColor={colors.progressColor}
+          showLabel={false}
+        />
+      ) : (
+        <TouchableOpacity
+          style={[
+            styles.categoryRadialButton,
+            { backgroundColor: theme.colors.surface },
+          ]}
+          onPress={() => onCategorySelect(categoryMeta.category)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.categoryEmojiSmall}>{categoryMeta.emoji}</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Label - only show when not selected */}
+      {!isSelected && (
+        <Text style={styles.radialCategoryLabel} numberOfLines={2}>
+          {categoryMeta.category.split(': ')[1] || categoryMeta.category}
+        </Text>
+      )}
+    </Animated.View>
+  );
+};
 
 interface RadialCategoryPickerProps {
   selectedCategories: Array<{ category: string; amount: number }>;
@@ -58,14 +147,6 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
    * Handle group button tap - expand/collapse radial menu or directly select single-item groups
    */
   const handleGroupTap = useCallback((groupName: string) => {
-    const categories = getCategoriesByGroup(groupName);
-
-    // If group has only 1 category, select it directly (skip radial expansion)
-    if (categories.length === 1) {
-      onCategorySelect(categories[0].category);
-      return;
-    }
-
     if (expandedGroup === groupName) {
       // Collapse
       Animated.timing(radialAnimValue, {
@@ -115,7 +196,8 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
    */
   const handleStartEditAmount = useCallback((category: string, amount: number) => {
     setEditingCategory(category);
-    setEditAmountInput((amount / 100).toFixed(2));
+    // Empty string for $0 so user can type immediately, otherwise show current amount
+    setEditAmountInput(amount > 0 ? (amount / 100).toFixed(2) : '');
   }, []);
 
   /**
@@ -127,20 +209,31 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
     const dollarValue = parseFloat(editAmountInput);
     if (!isNaN(dollarValue) && dollarValue >= 0) {
       const centsValue = Math.round(dollarValue * 100);
-      onAmountChange(editingCategory, centsValue);
+
+      // Calculate max allowed: current category amount + remaining uncategorized
+      const currentCategory = selectedCategories.find(c => c.category === editingCategory);
+      const currentAmount = currentCategory?.amount || 0;
+      const maxAllowed = currentAmount + uncategorizedAmount;
+
+      // Clamp to max allowed to prevent over-allocation
+      const clampedValue = Math.min(centsValue, maxAllowed);
+
+      onAmountChange(editingCategory, clampedValue);
     }
 
     setEditingCategory(null);
     setEditAmountInput('');
-  }, [editingCategory, editAmountInput, onAmountChange]);
+  }, [editingCategory, editAmountInput, onAmountChange, selectedCategories, uncategorizedAmount]);
 
   // Get categories for expanded group
   const expandedCategories = expandedGroup ? getCategoriesByGroup(expandedGroup) : [];
-  const baseRadius = 120; // Base radius for unselected categories
-  const selectedRadius = 145; // Slightly larger radius for selected categories with sliders
+  const baseRadius = 150; // Radius for radial layout (increased to prevent overlap)
 
-  // Calculate uncategorized percentage for progress bar
-  const uncategorizedAmount = getUncategorizedAmount();
+  // Calculate uncategorized amount (memoized to prevent recalculation)
+  const uncategorizedAmount = useMemo(() => getUncategorizedAmount(), [
+    selectedCategories,
+    transactionAmount,
+  ]);
   const totalAmount = Math.abs(transactionAmount);
   const uncategorizedPercentage = totalAmount > 0 ? (uncategorizedAmount / totalAmount) * 100 : 0;
 
@@ -194,7 +287,7 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
               const firstCategoryInGroup = getCategoriesByGroup(groupName)[0];
               const groupCategories = getCategoriesByGroup(groupName);
               const selectedInGroup = selectedCategories.filter(
-                (sel) => groupCategories.some((cat) => cat.category === sel.category)
+                (sel) => sel.amount > 0 && groupCategories.some((cat) => cat.category === sel.category)
               );
               const hasSelections = selectedInGroup.length > 0;
 
@@ -285,18 +378,17 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Radial category buttons */}
+            {/* Radial category circles */}
             {expandedCategories.map((categoryMeta, index) => {
               const selectedCategory = selectedCategories.find(
                 (c) => c.category === categoryMeta.category
               );
               const isSelected = !!selectedCategory;
 
-              // Use larger radius for selected categories to prevent overlap
-              const effectiveRadius = isSelected ? selectedRadius : baseRadius;
-              const position = calculateRadialPosition(index, expandedCategories.length, effectiveRadius);
+              // Position calculation for radial layout
+              const position = calculateRadialPosition(index, expandedCategories.length, baseRadius);
 
-              // Animated position
+              // Animated position for radial expansion
               const animatedStyle = {
                 transform: [
                   {
@@ -322,82 +414,25 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
               };
 
               return (
-                <Animated.View
+                <RadialCategoryButton
                   key={categoryMeta.category}
-                  style={[styles.radialButton, animatedStyle]}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.categoryRadialButton,
-                      { backgroundColor: theme.colors.surface },
-                      isSelected && styles.categoryButtonSelected,
-                    ]}
-                    onPress={() => handleCategorySelect(categoryMeta.category)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.categoryEmojiSmall}>{categoryMeta.emoji}</Text>
-                    {isSelected && (
-                      <View style={styles.checkmarkSmall}>
-                        <Text style={styles.checkmarkText}>✓</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                  <Text variant="bodySmall" style={styles.radialCategoryLabel}>
-                    {categoryMeta.category.split(': ')[1] || categoryMeta.category}
-                  </Text>
-
-                  {/* Inline slider for selected categories */}
-                  {isSelected && selectedCategory && (
-                    <View style={styles.radialSliderContainer}>
-                      {/* Editable amount */}
-                      {editingCategory === categoryMeta.category ? (
-                        <RNTextInput
-                          value={editAmountInput}
-                          onChangeText={setEditAmountInput}
-                          keyboardType="decimal-pad"
-                          autoFocus
-                          onBlur={handleSaveEditAmount}
-                          onSubmitEditing={handleSaveEditAmount}
-                          style={styles.radialAmountInput}
-                          placeholder="0.00"
-                          selectTextOnFocus
-                          placeholderTextColor="rgba(103, 80, 164, 0.4)"
-                        />
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() => handleStartEditAmount(categoryMeta.category, selectedCategory.amount)}
-                          activeOpacity={0.7}
-                        >
-                          <Text variant="bodySmall" style={styles.radialAmount}>
-                            {formatAmount(
-                              transactionAmount < 0 ? -selectedCategory.amount : selectedCategory.amount,
-                              transactionCurrency
-                            )}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-
-                      {/* Slider */}
-                      <Slider
-                        style={styles.radialSlider}
-                        minimumValue={0}
-                        maximumValue={(selectedCategory.amount + getUncategorizedAmount()) / 100}
-                        step={0.01}
-                        value={selectedCategory.amount / 100}
-                        onValueChange={(value) => {
-                          const centsValue = Math.round(value * 100);
-                          const currentUncategorized = getUncategorizedAmount();
-                          const maxAllowed = selectedCategory.amount + currentUncategorized;
-                          const clampedValue = Math.min(centsValue, maxAllowed);
-                          onAmountChange(categoryMeta.category, clampedValue);
-                        }}
-                        minimumTrackTintColor="rgba(103, 80, 164, 0.9)"
-                        maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
-                        thumbTintColor="rgba(103, 80, 164, 1)"
-                      />
-                    </View>
-                  )}
-                </Animated.View>
+                  categoryMeta={categoryMeta}
+                  isSelected={isSelected}
+                  selectedAmount={selectedCategory?.amount}
+                  animatedStyle={animatedStyle}
+                  transactionAmount={transactionAmount}
+                  transactionCurrency={transactionCurrency}
+                  uncategorizedAmount={uncategorizedAmount}
+                  editingCategory={editingCategory}
+                  editAmountInput={editAmountInput}
+                  onCategorySelect={handleCategorySelect}
+                  onAmountChange={onAmountChange}
+                  formatAmount={formatAmount}
+                  handleStartEditAmount={handleStartEditAmount}
+                  handleSaveEditAmount={handleSaveEditAmount}
+                  setEditAmountInput={setEditAmountInput}
+                  theme={theme}
+                />
               );
             })}
           </View>
@@ -405,87 +440,6 @@ export const RadialCategoryPicker: React.FC<RadialCategoryPickerProps> = ({
       </View>
 
 
-      {/* Remove old selected categories section */}
-      {false && selectedCategories.length > 0 && (
-        <View style={styles.selectedCategoriesSection}>
-          <View style={styles.selectedCategoriesHeader}>
-            <Text variant="titleSmall" style={styles.selectedCategoriesTitle}>
-              Selected Categories
-            </Text>
-            <Text variant="bodySmall" style={styles.uncategorizedAmount}>
-              Uncategorized: {formatAmount(getUncategorizedAmount(), transactionCurrency)}
-            </Text>
-          </View>
-
-          {selectedCategories.map((selected) => {
-            const categoryMeta = getCategoryMetadata(selected.category as any);
-
-            return (
-              <View key={selected.category} style={styles.selectedCategoryCard}>
-                <View style={styles.selectedCategoryHeader}>
-                  <View style={styles.selectedCategoryInfo}>
-                    <Text style={styles.selectedCategoryEmoji}>{categoryMeta.emoji}</Text>
-                    <Text variant="bodyMedium" style={styles.selectedCategoryName}>
-                      {categoryMeta.category.split(': ')[1] || categoryMeta.category}
-                    </Text>
-                  </View>
-
-                  {/* Editable amount */}
-                  {editingCategory === selected.category ? (
-                    <View style={styles.categoryAmountInputContainer}>
-                      <RNTextInput
-                        value={editAmountInput}
-                        onChangeText={setEditAmountInput}
-                        keyboardType="decimal-pad"
-                        autoFocus
-                        onBlur={handleSaveEditAmount}
-                        onSubmitEditing={handleSaveEditAmount}
-                        style={styles.categoryAmountInput}
-                        placeholder="0.00"
-                        selectTextOnFocus
-                        placeholderTextColor="rgba(103, 80, 164, 0.4)"
-                      />
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => handleStartEditAmount(selected.category, selected.amount)}
-                      activeOpacity={0.7}
-                    >
-                      <Text variant="titleSmall" style={styles.selectedCategoryAmount}>
-                        {formatAmount(
-                          transactionAmount < 0 ? -selected.amount : selected.amount,
-                          transactionCurrency
-                        )}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Slider */}
-                <View style={styles.categorySliderContainer}>
-                  <Slider
-                    style={styles.categorySlider}
-                    minimumValue={0}
-                    maximumValue={(selected.amount + getUncategorizedAmount()) / 100}
-                    step={0.01}
-                    value={selected.amount / 100}
-                    onValueChange={(value) => {
-                      const centsValue = Math.round(value * 100);
-                      const currentUncategorized = getUncategorizedAmount();
-                      const maxAllowed = selected.amount + currentUncategorized;
-                      const clampedValue = Math.min(centsValue, maxAllowed);
-                      onAmountChange(selected.category, clampedValue);
-                    }}
-                    minimumTrackTintColor="rgba(103, 80, 164, 0.9)"
-                    maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
-                    thumbTintColor="rgba(103, 80, 164, 1)"
-                  />
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
     </View>
   );
 };
@@ -560,7 +514,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 8,
-    gap: 16,
+    gap: 12,
   },
   groupButtonContainer: {
     position: 'relative',
@@ -650,10 +604,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
-  categoryButtonSelected: {
-    borderWidth: 3,
-    borderColor: 'rgba(103, 80, 164, 0.9)',
-  },
   categoryEmojiSmall: {
     fontSize: 28,
   },
@@ -662,47 +612,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 10,
     maxWidth: 80,
-  },
-  checkmarkSmall: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: 'rgba(103, 80, 164, 0.9)',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkmarkText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  // Inline slider styles for radial menu
-  radialSliderContainer: {
-    marginTop: 8,
-    width: 100,
-    alignItems: 'center',
-  },
-  radialAmount: {
-    fontSize: 12,
+    color: '#FFFFFF',
     fontWeight: '600',
-    color: 'rgba(103, 80, 164, 1)',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  radialAmountInput: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(103, 80, 164, 1)',
-    textAlign: 'center',
-    marginBottom: 4,
-    minWidth: 60,
-  },
-  radialSlider: {
-    width: 100,
-    height: 30,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -769,56 +680,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(103, 80, 164, 1)',
     paddingVertical: 2,
-  },
-  categorySliderContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  categorySlider: {
-    width: '100%',
-    height: 40,
-  },
-  // Selected categories section styles
-  selectedCategoriesSection: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  selectedCategoriesHeader: {
-    marginBottom: 16,
-  },
-  selectedCategoriesTitle: {
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  uncategorizedAmount: {
-    opacity: 0.6,
-  },
-  selectedCategoryCard: {
-    backgroundColor: 'rgba(103, 80, 164, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  selectedCategoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  selectedCategoryInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  selectedCategoryEmoji: {
-    fontSize: 24,
-  },
-  selectedCategoryName: {
-    fontWeight: '500',
-  },
-  selectedCategoryAmount: {
-    fontWeight: '600',
-    color: 'rgba(103, 80, 164, 1)',
   },
 });

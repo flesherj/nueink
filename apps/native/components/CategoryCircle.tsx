@@ -22,6 +22,7 @@ interface CategoryCircleProps {
   handleColor?: string; // Optional override for drag handle inner color
   handleStrokeColor?: string; // Optional override for drag handle outer color
   progressColor?: string; // Optional override for progress ring fill color
+  showLabel?: boolean; // Optional - show category label inside circle (default true)
 }
 
 /**
@@ -48,6 +49,7 @@ export const CategoryCircle = memo<CategoryCircleProps>(
     onStartEdit,
     onSaveEdit,
     setEditAmountInput,
+    showLabel = true,
     handleColor: customHandleColor,
     handleStrokeColor: customHandleStrokeColor,
     progressColor: customProgressColor,
@@ -72,7 +74,7 @@ export const CategoryCircle = memo<CategoryCircleProps>(
 
     // Use drag amount if dragging, otherwise use committed amount
     const displayAmount = dragAmount ?? amount;
-    const isSelected = displayAmount !== undefined && displayAmount > 0;
+    const isSelected = displayAmount !== undefined && displayAmount >= 0;
 
     // Memoize constants - increased size to prevent clipping
     const circleSize = 136; // Size to accommodate drag handle at all positions
@@ -241,16 +243,29 @@ export const CategoryCircle = memo<CategoryCircleProps>(
               activeOpacity={0.7}
             >
               <View style={styles.centerContent}>
+                {/* Category name - show only the category part, not the group */}
+                {showLabel && (
+                  <Text style={styles.categoryLabel}>
+                    {category.split(': ')[1] || category}
+                  </Text>
+                )}
+
                 <Text style={styles.emoji}>{emoji}</Text>
 
                 {/* Amount display */}
-                {isSelected && displayAmount && (
-                  editingCategory === category ? (
+                {isSelected && (
+                  editingCategory === category || !displayAmount ? (
                     <RNTextInput
-                      value={editAmountInput}
+                      value={editingCategory === category ? editAmountInput : ''}
                       onChangeText={setEditAmountInput}
+                      onFocus={() => {
+                        // Initialize editing state when focusing a $0 input
+                        if (editingCategory !== category) {
+                          onStartEdit(category, displayAmount || 0);
+                        }
+                      }}
                       keyboardType="decimal-pad"
-                      autoFocus
+                      autoFocus={editingCategory === category}
                       onBlur={onSaveEdit}
                       onSubmitEditing={onSaveEdit}
                       style={styles.amountInput}
@@ -288,11 +303,6 @@ export const CategoryCircle = memo<CategoryCircleProps>(
             />
           </View>
         </GestureDetector>
-
-        {/* Category label */}
-        <Text variant="bodySmall" style={styles.label}>
-          {category}
-        </Text>
       </View>
     );
   },
@@ -344,6 +354,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  categoryLabel: {
+    fontSize: 8,
+    fontWeight: '600',
+    textAlign: 'center',
+    opacity: 0.7,
+    marginBottom: 2,
+    maxWidth: 80,
+  },
   emoji: {
     fontSize: 28,
     marginBottom: 2,
@@ -354,13 +372,13 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(103, 80, 164, 1)',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   amountInput: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(103, 80, 164, 1)',
+    color: '#FFFFFF',
     textAlign: 'center',
     backgroundColor: 'rgba(103, 80, 164, 0.15)',
     borderRadius: 3,
@@ -370,11 +388,5 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     minWidth: 45,
     height: 16,
-  },
-  label: {
-    marginTop: 4,
-    textAlign: 'center',
-    fontSize: 10,
-    maxWidth: 80,
   },
 });

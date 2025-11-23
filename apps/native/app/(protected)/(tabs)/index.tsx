@@ -5,8 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAccountProvider } from '@nueink/ui';
 import { FinancialAccountApi } from '@nueink/sdk';
 import type { FinancialAccount } from '@nueink/core';
-import { CategoryCircle } from '../../../components/CategoryCircle';
-import { getCategoryColorScheme, getCategoryEmoji } from '../../../constants/categoryColors';
+import { RadialCategoryPicker } from '../../../components/RadialCategoryPicker';
 
 // Create API client
 const financialAccountApi = FinancialAccountApi.create();
@@ -18,34 +17,12 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Test harness for CategoryCircle
+  // Test harness for RadialCategoryPicker
   const [selectedCategories, setSelectedCategories] = useState<
     Array<{ category: string; amount: number }>
   >([]);
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editAmountInput, setEditAmountInput] = useState('');
   const testTransactionAmount = -12500; // $125.00 expense
   const testCurrency = 'USD';
-
-  // Test categories with their themed color schemes
-  // Sample from different groups to show color variety
-  const testCategories = [
-    'Food: Groceries',
-    'Food: Restaurants',
-    'Transportation: Gas/Fuel',
-    'Housing: Mortgage/Rent',
-    'Entertainment: Streaming',
-    'Shopping: General',
-    'Healthcare: Pharmacy',
-    'Personal: Fitness',
-  ].map(categoryName => {
-    const colorScheme = getCategoryColorScheme(categoryName);
-    return {
-      category: categoryName,
-      emoji: getCategoryEmoji(categoryName),
-      ...colorScheme,
-    };
-  });
 
   useEffect(() => {
     loadDashboardData();
@@ -105,9 +82,22 @@ export default function DashboardScreen() {
     }).format(amount);
   };
 
-  // Simple amount-based handler - amount > 0 means selected, amount = 0 means deselected
+  // Handler for category selection (toggle on/off)
+  const handleCategorySelect = useCallback((category: string) => {
+    setSelectedCategories(prev => {
+      const exists = prev.find(c => c.category === category);
+      if (exists) {
+        // Remove category (deselect)
+        return prev.filter(c => c.category !== category);
+      } else {
+        // Add category with $0 initial amount - user drags to allocate
+        return [...prev, { category, amount: 0 }];
+      }
+    });
+  }, [testTransactionAmount]);
+
+  // Handler for amount changes from CategoryCircle drag
   const handleAmountChange = useCallback((category: string, amount: number) => {
-    console.log('Amount changed:', category, amount);
     setSelectedCategories(prev => {
       if (amount <= 0) {
         // Remove category if amount is 0 or negative
@@ -125,34 +115,16 @@ export default function DashboardScreen() {
     });
   }, []);
 
-  // Calculate how much of the transaction is still uncategorized
-  const remainingUncategorized = useMemo(() => {
+  // Get uncategorized amount
+  const getUncategorizedAmount = useCallback(() => {
     const totalAllocated = selectedCategories.reduce((sum, c) => sum + c.amount, 0);
-    const remaining = Math.abs(testTransactionAmount) - totalAllocated;
-    console.log(`[PARENT] 📊 Recalculated remainingUncategorized:`, {
-      totalAllocated,
-      remaining,
-      selectedCategories: selectedCategories.map(c => `${c.category}: ${c.amount}`),
-      timestamp: Date.now()
-    });
-    return remaining;
+    return Math.abs(testTransactionAmount) - totalAllocated;
   }, [selectedCategories, testTransactionAmount]);
 
-  const handleStartEdit = useCallback((category: string, amount: number) => {
-    setEditingCategory(category);
-    setEditAmountInput((amount / 100).toFixed(2));
+  // Clear all allocations
+  const handleClearAll = useCallback(() => {
+    setSelectedCategories([]);
   }, []);
-
-  const handleSaveEdit = useCallback(() => {
-    if (!editingCategory) return;
-    const dollarValue = parseFloat(editAmountInput);
-    if (!isNaN(dollarValue) && dollarValue >= 0) {
-      const centsValue = Math.round(dollarValue * 100);
-      handleAmountChange(editingCategory, centsValue);
-    }
-    setEditingCategory(null);
-    setEditAmountInput('');
-  }, [editingCategory, editAmountInput, handleAmountChange]);
 
   if (loading) {
     return (
@@ -187,47 +159,29 @@ export default function DashboardScreen() {
           }
           contentContainerStyle={styles.scrollContent}
         >
-          {/* CategoryCircle Test Area */}
+          {/* RadialCategoryPicker Test Area */}
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.comingSoonTitle}>
-                🎨 Category Color Schemes
+                🎨 Radial Category Picker
               </Text>
               <Text variant="bodySmall" style={styles.comingSoonText}>
-                Each category has its own unique color identity{'\n'}
+                Tap a category group to see categories radiate outward{'\n'}
                 Transaction: {formatBalance(testTransactionAmount, testCurrency)}
               </Text>
 
-              {/* Test circles in a simple flex layout */}
-              <View style={styles.circleTestContainer}>
-                {testCategories.map((cat) => {
-                  const selectedCategory = selectedCategories.find(
-                    s => s.category === cat.category
-                  );
-
-                  return (
-                    <View key={cat.category} style={styles.circleWrapper}>
-                      <CategoryCircle
-                        category={cat.category}
-                        emoji={cat.emoji}
-                        amount={selectedCategory?.amount}
-                        transactionAmount={testTransactionAmount}
-                        transactionCurrency={testCurrency}
-                        remainingUncategorized={remainingUncategorized}
-                        onAmountChange={handleAmountChange}
-                        formatAmount={formatBalance}
-                        editingCategory={editingCategory}
-                        editAmountInput={editAmountInput}
-                        onStartEdit={handleStartEdit}
-                        onSaveEdit={handleSaveEdit}
-                        setEditAmountInput={setEditAmountInput}
-                        handleColor={cat.handleColor}
-                        handleStrokeColor={cat.handleStrokeColor}
-                        progressColor={cat.handleColor}
-                      />
-                    </View>
-                  );
-                })}
+              {/* RadialCategoryPicker component */}
+              <View style={styles.pickerContainer}>
+                <RadialCategoryPicker
+                  selectedCategories={selectedCategories}
+                  onCategorySelect={handleCategorySelect}
+                  onAmountChange={handleAmountChange}
+                  onClearAll={handleClearAll}
+                  getUncategorizedAmount={getUncategorizedAmount}
+                  transactionAmount={testTransactionAmount}
+                  transactionCurrency={testCurrency}
+                  formatAmount={formatBalance}
+                />
               </View>
             </Card.Content>
           </Card>
@@ -357,15 +311,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 16,
   },
-  circleTestContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    paddingVertical: 20,
-  },
-  circleWrapper: {
-    margin: 8,
+  pickerContainer: {
+    minHeight: 500,
+    marginTop: 8,
   },
 });
