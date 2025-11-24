@@ -75,6 +75,19 @@ export default function DebtOverviewScreen() {
   };
 
   /**
+   * Format debt balance (show as negative progressing to zero)
+   */
+  const formatDebtBalance = (cents: number) => {
+    // Debt balances are stored as positive for calculations,
+    // but display as negative to show progression to $0
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      signDisplay: 'always',
+    }).format(-cents / 100);
+  };
+
+  /**
    * Format date
    */
   const formatDate = (date: Date) => {
@@ -175,7 +188,7 @@ export default function DebtOverviewScreen() {
             Your Debts
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
-            Found {debts.length} debt{debts.length !== 1 ? 's' : ''} in your accounts
+            Found {debts.length} debt{debts.length !== 1 ? 's' : ''}{avalanchePlan ? ` totaling ${formatDebtBalance(avalanchePlan.summary.totalDebt)}` : ''}
           </Text>
         </Card.Content>
       </Card>
@@ -192,7 +205,7 @@ export default function DebtOverviewScreen() {
                 </Text>
               </View>
               <Text variant="titleLarge" style={styles.balance}>
-                {formatCurrency(debt.currentBalance || 0)}
+                {formatDebtBalance(debt.currentBalance || 0)}
               </Text>
             </View>
             <View style={styles.debtDetails}>

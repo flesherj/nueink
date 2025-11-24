@@ -94,6 +94,19 @@ export default function DashboardScreen() {
   };
 
   /**
+   * Format debt balance (show as negative progressing to zero)
+   */
+  const formatDebtBalance = (cents: number): string => {
+    // Debt balances are stored as positive for calculations,
+    // but display as negative to show progression to $0
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      signDisplay: 'always',
+    }).format(-cents / 100);
+  };
+
+  /**
    * Analyze spending with AI
    */
   const handleAnalyzeSpending = async () => {
@@ -376,7 +389,7 @@ export default function DashboardScreen() {
                       return (
                         <>
                           <Text variant="bodyMedium" style={styles.debtSummaryText}>
-                            Found {totalDebts} debt{totalDebts !== 1 ? 's' : ''} totaling {formatBalance(totalDebt)}
+                            Found {totalDebts} debt{totalDebts !== 1 ? 's' : ''} totaling {formatDebtBalance(totalDebt)}
                           </Text>
                           {avalanchePlan && (
                             <Text variant="bodySmall" style={styles.subtitle}>

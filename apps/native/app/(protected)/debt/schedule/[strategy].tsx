@@ -80,6 +80,19 @@ export default function PaymentScheduleScreen() {
   };
 
   /**
+   * Format debt balance (show as negative progressing to zero)
+   */
+  const formatDebtBalance = (cents: number) => {
+    // Debt balances are stored as positive for calculations,
+    // but display as negative to show progression to $0
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      signDisplay: 'always',
+    }).format(-cents / 100);
+  };
+
+  /**
    * Format date
    */
   const formatDate = (date: Date) => {
@@ -169,7 +182,7 @@ export default function PaymentScheduleScreen() {
                 Total Debt
               </Text>
               <Text variant="titleMedium">
-                {formatCurrency(plan.summary.totalDebt)}
+                {formatDebtBalance(plan.summary.totalDebt)}
               </Text>
             </View>
 
@@ -297,7 +310,7 @@ export default function PaymentScheduleScreen() {
                             Interest: {formatCurrency(payment.interest)}
                           </Text>
                           <Text variant="bodySmall" style={styles.paymentDetail}>
-                            Remaining: {formatCurrency(payment.remainingBalance)}
+                            Remaining: {formatDebtBalance(payment.remainingBalance)}
                           </Text>
                         </View>
                         {payment.remainingBalance === 0 && (
