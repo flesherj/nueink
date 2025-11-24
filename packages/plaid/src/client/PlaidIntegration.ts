@@ -5,6 +5,12 @@ import type {
   Transaction,
 } from '@nueink/core';
 import { PlaidApi } from 'plaid';
+import {
+  PlaidAccountConverter,
+  PlaidAccountConversionContext,
+  PlaidTransactionConverter,
+  PlaidTransactionConversionContext,
+} from '../converters';
 
 /**
  * Plaid Integration
@@ -15,10 +21,23 @@ import { PlaidApi } from 'plaid';
 export class PlaidIntegration implements FinancialIntegration {
   private plaidClient: PlaidApi;
   private accessToken: string;
+  private organizationId: string;
+  private profileOwner: string;
+  private accountConverter: PlaidAccountConverter;
+  private transactionConverter: PlaidTransactionConverter;
 
-  constructor(plaidClient: PlaidApi, accessToken: string) {
+  constructor(
+    plaidClient: PlaidApi,
+    accessToken: string,
+    organizationId: string,
+    profileOwner: string
+  ) {
     this.plaidClient = plaidClient;
     this.accessToken = accessToken;
+    this.organizationId = organizationId;
+    this.profileOwner = profileOwner;
+    this.accountConverter = new PlaidAccountConverter();
+    this.transactionConverter = new PlaidTransactionConverter();
   }
 
   public getAccounts = async (): Promise<Array<FinancialAccount>> => {
@@ -26,9 +45,16 @@ export class PlaidIntegration implements FinancialIntegration {
       access_token: this.accessToken,
     });
 
-    // TODO: Convert Plaid accounts to NueInk FinancialAccount format
-    // For now, returning empty array - need to implement converter
-    return [];
+    const context: PlaidAccountConversionContext = {
+      organizationId: this.organizationId,
+      profileOwner: this.profileOwner,
+      institutionId: response.data.item.institution_id || undefined,
+      institutionName: undefined, // Will be enriched separately if needed
+    };
+
+    return response.data.accounts.map(account =>
+      this.accountConverter.convert(account, context)
+    );
   };
 
   public getTransactions = async (
@@ -41,9 +67,14 @@ export class PlaidIntegration implements FinancialIntegration {
       end_date: endDate || new Date().toISOString().split('T')[0],
     });
 
-    // TODO: Convert Plaid transactions to NueInk Transaction format
-    // For now, returning empty array - need to implement converter
-    return [];
+    const context: PlaidTransactionConversionContext = {
+      organizationId: this.organizationId,
+      profileOwner: this.profileOwner,
+    };
+
+    return response.data.transactions.map(transaction =>
+      this.transactionConverter.convert(transaction, context)
+    );
   };
 
   public getAccountTransactions = async (
@@ -62,9 +93,16 @@ export class PlaidIntegration implements FinancialIntegration {
       access_token: this.accessToken,
     });
 
-    // TODO: Convert Plaid accounts to NueInk FinancialAccount format
-    // For now, returning empty array - need to implement converter
-    return [];
+    const context: PlaidAccountConversionContext = {
+      organizationId: this.organizationId,
+      profileOwner: this.profileOwner,
+      institutionId: response.data.item.institution_id || undefined,
+      institutionName: undefined, // Will be enriched separately if needed
+    };
+
+    return response.data.accounts.map(account =>
+      this.accountConverter.convert(account, context)
+    );
   };
 
   public getStatus = async (): Promise<IntegrationStatus> => {

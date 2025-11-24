@@ -30,7 +30,13 @@ export class PlaidProviderFactory implements ProviderFactory {
     accountId: string
   ): PlaidSyncProvider => {
     // Create integration wrapper with shared PlaidApi client and user's access token
-    const integration = new PlaidIntegration(this.plaidClient, tokens.accessToken);
+    // Note: accountId serves as profileOwner (Cognito user ID) in our system
+    const integration = new PlaidIntegration(
+      this.plaidClient,
+      tokens.accessToken,
+      organizationId,
+      accountId
+    );
 
     // Create and return sync provider
     return new PlaidSyncProvider(integration);
