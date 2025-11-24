@@ -91,7 +91,7 @@ export class BudgetService {
     const monthlyIncome = analysis.monthlyAverageIncome;
     const surplus = monthlyIncome - analysis.monthlyAverageSpending;
 
-    // Create baseline monthly budget
+    // Create active monthly budget
     const budget: Budget = {
       budgetId: this.generateBudgetId(),
       accountId: analysis.accountId,
@@ -103,7 +103,7 @@ export class BudgetService {
       totalBudget: analysis.monthlyAverageSpending, // Monthly average, not period total
       monthlyIncome, // Average monthly income from analysis
       surplus, // Income - spending
-      status: 'baseline',
+      status: 'active',
       sourceAnalysisId: analysis.analysisId,
       createdAt: new Date(),
       updatedAt: new Date(),
