@@ -38,13 +38,16 @@ export class FinancialAnalysisService {
     // 12 months captures seasonal patterns and annual expenses
     const monthsToAnalyze = Math.min(periodMonths, 12);
 
-    // Calculate date range - setMonth handles year rollover automatically
-    const periodEnd = new Date();
-    const periodStart = new Date();
+    // Calculate date range - EXCLUDE current partial month, only analyze complete months
+    // Set periodEnd to last day of previous month (11:59:59 PM)
+    const now = new Date();
+    const periodEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
-    // Subtract months - JavaScript automatically handles year changes
-    // Example: Jan 2025 - 12 months = Jan 2024
-    periodStart.setMonth(periodStart.getMonth() - monthsToAnalyze);
+    // Calculate periodStart - N complete months before periodEnd
+    const periodStart = new Date(periodEnd);
+    periodStart.setMonth(periodStart.getMonth() - monthsToAnalyze + 1); // +1 because we want N complete months
+    periodStart.setDate(1); // First day of the start month
+    periodStart.setHours(0, 0, 0, 0); // Start of day
 
     // Fetch all transactions for the period
     const transactions = await this.fetchTransactionsForPeriod(
