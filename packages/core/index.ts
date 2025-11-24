@@ -27,3 +27,4 @@ export * from './config/metrics';
 // Utilities
 export * from './utils/aws';
 export * from './utils/debtEstimation';
+export * from './utils/dateUtils';

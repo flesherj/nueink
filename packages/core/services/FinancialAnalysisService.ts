@@ -268,9 +268,9 @@ export class FinancialAnalysisService {
       );
 
       // Filter to transactions in period
+      // Dates are already Date objects from the service layer converter
       const periodTransactions = result.items.filter((t) => {
-        const txDate = new Date(t.date);
-        return txDate >= periodStart && txDate <= periodEnd;
+        return t.date >= periodStart && t.date <= periodEnd;
       });
 
       allTransactions.push(...periodTransactions);
@@ -281,8 +281,8 @@ export class FinancialAnalysisService {
       // Safety: If transaction dates are outside period, we've gone far enough
       if (result.items.length > 0) {
         const oldestTx = result.items[result.items.length - 1];
-        const oldestDate = new Date(oldestTx.date);
-        if (oldestDate < periodStart) {
+        // Dates are already Date objects from the service layer converter
+        if (oldestTx.date < periodStart) {
           // We've gone past the period start, stop fetching
           break;
         }
@@ -311,7 +311,8 @@ export class FinancialAnalysisService {
     }
 
     // Find earliest and latest transaction dates
-    const dates = transactions.map((t) => new Date(t.date));
+    // Dates are already Date objects from the service layer converter
+    const dates = transactions.map((t) => t.date);
     const earliest = new Date(Math.min(...dates.map((d) => d.getTime())));
     const latest = new Date(Math.max(...dates.map((d) => d.getTime())));
 

@@ -22,6 +22,16 @@ export class YnabTransactionConverter {
     context: YnabTransactionConversionContext
   ): Transaction => {
     const status = this.convertClearedStatus(source.cleared);
+    const transactionName = source.memo || source.payee_name || 'Transaction';
+
+    // Prepare raw data with YNAB fields
+    const rawData = source as unknown as Record<string, any>;
+
+    // CRITICAL: Starting Balance transactions must be categorized as internal
+    // YNAB doesn't set category_name for starting balances, so we need to set it explicitly
+    if (source.payee_name === 'Starting Balance') {
+      rawData.category_name = 'Internal: Starting Balance';
+    }
 
     return {
       transactionId: source.id,
@@ -34,12 +44,12 @@ export class YnabTransactionConverter {
       date: new Date(source.date),
       authorizedDate: undefined,
       merchantName: source.payee_name || undefined,
-      name: source.memo || source.payee_name || 'Transaction',
+      name: transactionName,
       status,
       pending: status === 'pending',
       personId: undefined, // Enriched downstream by event handlers
       receiptUrls: undefined,
-      rawData: source as unknown as Record<string, any>, // Preserve complete YNAB response
+      rawData, // Preserve complete YNAB response with enriched category_name
       syncedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
