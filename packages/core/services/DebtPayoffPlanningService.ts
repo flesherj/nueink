@@ -219,11 +219,16 @@ export class DebtPayoffPlanningService {
         // For debt accounts with negative balances, convert to positive for payoff calculations
         const debtBalance = balance < 0 ? Math.abs(balance) : balance;
 
-        return {
+        // Create updated account with positive balance for estimation functions
+        const accountForEstimation = {
           ...account,
-          currentBalance: debtBalance, // Use absolute value for debt calculations
-          interestRate: this.estimateInterestRate(account),
-          minimumPayment: this.estimateMinimumPayment(account),
+          currentBalance: debtBalance,
+        };
+
+        return {
+          ...accountForEstimation,
+          interestRate: this.estimateInterestRate(accountForEstimation),
+          minimumPayment: this.estimateMinimumPayment(accountForEstimation),
         };
       });
   };
@@ -257,6 +262,12 @@ export class DebtPayoffPlanningService {
           const balance = account.currentBalance || 0;
           const debtBalance = balance < 0 ? Math.abs(balance) : balance;
 
+          // Create updated account with positive balance for estimation functions
+          const accountForEstimation = {
+            ...account,
+            currentBalance: debtBalance,
+          };
+
           // Calculate promotional end date if promotional period detected
           let promotionalEndDate: Date | undefined;
           if (estimate?.hasPromotionalPeriod && estimate.promotionalMonths) {
@@ -265,10 +276,9 @@ export class DebtPayoffPlanningService {
           }
 
           return {
-            ...account,
-            currentBalance: debtBalance, // Use absolute value for debt calculations
-            interestRate: estimate?.estimatedRate || this.estimateInterestRate(account),
-            minimumPayment: this.estimateMinimumPayment(account),
+            ...accountForEstimation,
+            interestRate: estimate?.estimatedRate || this.estimateInterestRate(accountForEstimation),
+            minimumPayment: this.estimateMinimumPayment(accountForEstimation),
             // Apply promotional period information from AI
             promotionalRate: estimate?.hasPromotionalPeriod ? estimate.promotionalRate : undefined,
             promotionalEndDate,
