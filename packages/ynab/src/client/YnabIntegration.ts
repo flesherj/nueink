@@ -57,15 +57,25 @@ export class YnabIntegration implements FinancialIntegration {
 
   /**
    * Get transactions within a date range
+   *
+   * YNAB API returns ALL transactions since startDate in a single response.
+   * No traditional pagination needed, but we filter by endDate client-side if provided.
+   *
+   * For incremental syncs, pass the last sync timestamp as startDate to get only new/updated transactions.
    */
   public getTransactions = async (
     startDate: string,
     endDate?: string
   ): Promise<Array<Transaction>> => {
     const budgetId = await this.getDefaultBudgetId();
+
+    console.log(`[YNAB] Fetching transactions since ${startDate}...`);
+
     const response = await this.ynabClient.transactions.getTransactions(
       budgetId,
-      startDate
+      startDate,
+      undefined, // type filter (uncategorized/unapproved) - undefined = all types
+      undefined  // last_knowledge_of_server - for delta syncs (not implemented yet)
     );
 
     const context: YnabTransactionConversionContext = {
@@ -75,6 +85,8 @@ export class YnabIntegration implements FinancialIntegration {
 
     this.lastSyncTime = new Date();
 
+    console.log(`[YNAB] Received ${response.data.transactions.length} transactions from API`);
+
     let transactions = response.data.transactions.map(transaction =>
       this.transactionConverter.convert(transaction, context)
     );
@@ -82,11 +94,14 @@ export class YnabIntegration implements FinancialIntegration {
     // Filter by end date if provided
     if (endDate) {
       const endDateTime = new Date(endDate).getTime();
+      const beforeFilter = transactions.length;
       transactions = transactions.filter(
         t => t.date.getTime() <= endDateTime
       );
+      console.log(`[YNAB] Filtered ${beforeFilter - transactions.length} transactions after endDate ${endDate}`);
     }
 
+    console.log(`[YNAB] Returning ${transactions.length} transactions after filtering`);
     return transactions;
   };
 

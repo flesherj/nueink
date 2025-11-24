@@ -11,7 +11,7 @@
     "packages/*"
   ],
   "scripts": {
-    "transactions:clear": "yarn workspace @nueink/aws clear-transactions",
+    "clear:db": "yarn workspace @nueink/aws clear:db",
     "build": "yarn build:core && yarn build:aws && yarn build:ui && yarn build:plaid && yarn build:sdk && yarn build:ynab",
     "build:aws": "yarn workspace @nueink/aws build",
     "build:core": "yarn workspace @nueink/core build",

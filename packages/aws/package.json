@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "clear-transactions": "tsx scripts/clearTransactions.ts",
+    "clear:db": "tsx scripts/clearDynamodb.ts",
     "touch:api": "touch amplify/functions/api/handler.ts",
     "touch:financial:connect": "touch amplify/functions/financial/connect/handler.ts",
     "touch:financial:sync": "touch amplify/functions/financial/sync/handler.ts"

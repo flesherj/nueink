@@ -38,12 +38,14 @@ import {initializeAmplifyClient} from '../../../shared/initializeClient';
 interface SyncTarget {
     accountId: string;
     provider: FinancialProvider;
+    fullResync?: boolean; // Force full historical sync (ignores lastTransactionSyncAt)
 }
 
 interface FinancialSyncEvent {
     // If present, sync these specific integrations (single or bulk)
     // If absent, sync all active integrations (scheduled behavior)
     integrations?: SyncTarget[];
+    fullResync?: boolean; // Apply fullResync to all integrations
 }
 
 // ========== Service Initialization ==========
@@ -279,7 +281,8 @@ const storeTransactionsWithDeduplication = async (
  */
 const syncIntegration = async (
     accountId: string,
-    provider: FinancialProvider
+    provider: FinancialProvider,
+    fullResync: boolean = false
 ): Promise<void> => {
     const startTime = Date.now();
 
@@ -363,9 +366,26 @@ const syncIntegration = async (
             }
         }
 
-        // Define date range for transaction sync (last 12 months for pattern analysis)
+        // Define date range for transaction sync
+        // Use incremental sync if available, otherwise full historical sync (12 months)
+        let startDate: Date;
+
+        if (fullResync) {
+            // Full resync requested - fetch last 12 months
+            startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+            console.log(`[SYNC] Full resync requested - fetching transactions from ${startDate.toISOString()}`);
+        } else if (config.lastTransactionSyncAt) {
+            // Incremental sync - fetch only since last sync
+            startDate = config.lastTransactionSyncAt;
+            console.log(`[SYNC] Incremental sync - fetching transactions since last sync at ${startDate.toISOString()}`);
+        } else {
+            // First sync - fetch last 12 months for pattern analysis
+            startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+            console.log(`[SYNC] First sync - fetching transactions from ${startDate.toISOString()}`);
+        }
+
         const dateRange: SyncDateRange = {
-            startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 12 months ago
+            startDate,
             endDate: new Date(),
         };
 
@@ -424,8 +444,14 @@ const syncIntegration = async (
                 Status: 'success',
             });
 
-            // Update last sync time
+            // Update last sync time (overall sync)
             await integrationService.updateLastSyncTime(accountId, provider);
+
+            // Update last transaction sync time (for incremental sync)
+            await integrationService.update(config.integrationId, {
+                lastTransactionSyncAt: new Date(),
+                updatedAt: new Date(),
+            });
 
             console.log(`Successfully synced ${provider} for account ${accountId} in ${duration}ms`);
         }
@@ -575,7 +601,11 @@ export const handler = async (
         // - 1K+ users: Implement batching with pagination
         // - 10K+ users: Fan-out architecture (publish to EventBridge/SQS, separate consumer Lambda)
         const syncPromises = targets.map((target) =>
-            syncIntegration(target.accountId, target.provider).catch((error) => {
+            syncIntegration(
+                target.accountId,
+                target.provider,
+                target.fullResync || syncEvent.fullResync || false
+            ).catch((error) => {
                 // Catch individual sync errors to prevent one failure from stopping all syncs
                 console.error(`Sync failed for ${target.accountId}/${target.provider}:`, error);
             })

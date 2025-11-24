@@ -15,6 +15,7 @@ export type IntegrationConfigEntity = {
   expiresAt?: string;              // Token expiration timestamp (ISO string, cached)
   status: IntegrationConfigStatus; // active, disabled, error, expired
   syncedAt?: string;               // Last successful sync timestamp (ISO string)
+  lastTransactionSyncAt?: string;  // Last successful transaction sync timestamp (ISO string, for incremental sync)
   syncInProgress?: boolean;        // True when sync is actively running
   syncStartedAt?: string;          // When current/last sync started (ISO string)
   lastSyncError?: string;          // Last error message (if any)

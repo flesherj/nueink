@@ -376,6 +376,7 @@ const schema = a.schema({
             expiresAt: a.datetime(),                    // Token expiration (cached)
             status: a.string().required(),              // active|disabled|error|expired
             syncedAt: a.datetime(),                     // Last successful sync timestamp
+            lastTransactionSyncAt: a.datetime(),        // Last successful transaction sync (for incremental sync)
             syncInProgress: a.boolean(),                // True when sync is actively running
             syncStartedAt: a.datetime(),                // When current/last sync started
             lastSyncError: a.string(),                  // Last error message (if any)
