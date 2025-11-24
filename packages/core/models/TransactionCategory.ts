@@ -75,6 +75,7 @@ export type TransactionCategory =
   | 'Transfer: Between Accounts'
   | 'Income: Salary'
   | 'Income: Other'
+  | 'Internal: Starting Balance'
   | 'Uncategorized';
 
 /**
@@ -161,6 +162,7 @@ export const CATEGORY_METADATA: CategoryMetadata[] = [
   { category: 'Transfer: Between Accounts', group: 'Transfer', emoji: '🔄', color: '#9C27B0', description: 'Transfers between your accounts' },
   { category: 'Income: Salary', group: 'Income', emoji: '💵', color: '#4CAF50', description: 'Salary and wages' },
   { category: 'Income: Other', group: 'Income', emoji: '💰', color: '#4CAF50', description: 'Other income sources' },
+  { category: 'Internal: Starting Balance', group: 'Internal', emoji: '🔢', color: '#757575', description: 'Account balance initialization (not real spending)' },
   { category: 'Uncategorized', group: 'Other', emoji: '❓', color: '#757575', description: 'Uncategorized transactions' },
 ];
 

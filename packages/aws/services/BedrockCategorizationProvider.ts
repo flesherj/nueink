@@ -94,13 +94,18 @@ ${JSON.stringify(txData, null, 2)}
 
 CATEGORIZATION RULES:
 
-**CRITICAL FIRST RULE - TRANSFERS:**
+**CRITICAL FIRST RULE - INTERNAL TRANSACTIONS:**
+- **If merchant/name is "Starting Balance", ALWAYS categorize as "Internal: Starting Balance" (100% confidence)**
+- Starting Balance transactions are YNAB account initialization entries (not real spending)
+- Example: {merchant: "Starting Balance", amount: -186926.85} → 100% "Internal: Starting Balance"
+
+**SECOND RULE - TRANSFERS:**
 - **If isTransfer is true, ALWAYS categorize as "Transfer: Between Accounts" (100% confidence)**
 - Transfers are money moving between accounts (not income or expense)
 - Do NOT categorize transfers as income, even if positive amount
 - Example: {amount: +500, isTransfer: true} → 100% "Transfer: Between Accounts"
 
-**SECOND RULE - INCOME DETECTION:**
+**THIRD RULE - INCOME DETECTION:**
 - **ANY positive amount (> $0) that is NOT a transfer MUST be categorized as Income**
 - Positive amounts are NEVER expenses - they are income deposits
 - Merchant names like "Check #", "Payroll", "Direct Deposit", "Deposit" → "Income: Salary" (95-100% confidence)

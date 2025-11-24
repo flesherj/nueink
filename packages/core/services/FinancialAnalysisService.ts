@@ -127,7 +127,7 @@ export class FinancialAnalysisService {
     monthsAnalyzed: number
   ): CategorySpending[] => {
     // Filter to expense splits only (negative amounts)
-    // Exclude transfers, inflows, income, and debt payments (not actual spending)
+    // Exclude transfers, inflows, income, internal transactions, and debt payments (not actual spending)
     const expenseSplits = splits.filter((s) => {
       if (s.amount >= 0) return false; // Only expenses
 
@@ -139,6 +139,9 @@ export class FinancialAnalysisService {
 
       // Exclude transfers between accounts
       if (category.includes('transfer')) return false;
+
+      // Exclude internal transactions (starting balance, reconciliations, etc.)
+      if (category.includes('internal:')) return false;
 
       // Exclude debt payments (credit card payments, loan payments)
       if (category.includes('credit card payment')) return false;
@@ -264,19 +267,7 @@ export class FinancialAnalysisService {
       // Filter to transactions in period
       const periodTransactions = result.items.filter((t) => {
         const txDate = new Date(t.date);
-        if (txDate < periodStart || txDate > periodEnd) {
-          return false;
-        }
-
-        // Exclude YNAB "Starting Balance" accounting adjustments
-        // These are not real transactions, just balance initialization entries
-        const name = (t.name || '').toLowerCase();
-        const merchantName = (t.merchantName || '').toLowerCase();
-        if (name === 'starting balance' || merchantName === 'starting balance') {
-          return false;
-        }
-
-        return true;
+        return txDate >= periodStart && txDate <= periodEnd;
       });
 
       allTransactions.push(...periodTransactions);
