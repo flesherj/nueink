@@ -24,6 +24,7 @@ export class BedrockAIInsightProvider implements AIInsightProvider {
 
     try {
       const response = await this.bedrockService.invokeSimple(prompt, {
+        modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0', // Better reasoning for insights
         temperature: 0.7, // Higher for more creative insights
         maxTokens: 1000,
       });
