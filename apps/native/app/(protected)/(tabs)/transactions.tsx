@@ -57,19 +57,13 @@ export default function TransactionsFeedScreen() {
       });
 
       console.log('Transactions loaded:', result);
-      console.log(`[DEBUG] API returned ${result.items?.length || 0} transactions`);
 
       if (nextCursor) {
         // Append to existing transactions (pagination)
-        setTransactions((prev) => {
-          const updated = [...prev, ...(result.items || [])];
-          console.log(`[DEBUG] After pagination: total ${updated.length} transactions in state`);
-          return updated;
-        });
+        setTransactions((prev) => [...prev, ...(result.items || [])]);
       } else {
         // Replace transactions (initial load or refresh)
         setTransactions(result.items || []);
-        console.log(`[DEBUG] After initial load: ${result.items?.length || 0} transactions in state`);
       }
 
       setCursor(result.nextCursor);
@@ -185,11 +179,20 @@ export default function TransactionsFeedScreen() {
    * Group transactions by date
    */
   const groupTransactionsByDate = (txs: Transaction[]): { date: string; transactions: Transaction[] }[] => {
-    console.log(`[DEBUG] groupTransactionsByDate called with ${txs.length} transactions`);
     const groups: Record<string, { dateKey: string; timestamp: number; transactions: Transaction[] }> = {};
 
     txs.forEach((tx) => {
-      const txDate = new Date(tx.date);
+      // Parse date in local timezone to avoid UTC conversion issues
+      // Transaction dates are YYYY-MM-DD at midnight UTC, but we want to group by local date
+      const dateStr = typeof tx.date === 'string' ? tx.date : tx.date.toISOString();
+      const dateParts = dateStr.split('T')[0].split('-'); // "2025-11-03" -> ["2025", "11", "03"]
+      const year = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1; // JS months are 0-indexed
+      const day = parseInt(dateParts[2], 10);
+
+      // Create date in LOCAL timezone (not UTC)
+      const txDate = new Date(year, month, day);
+
       const dateKey = txDate.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -208,24 +211,13 @@ export default function TransactionsFeedScreen() {
     });
 
     // Sort groups by date (most recent first)
-    const result = Object.values(groups)
+    return Object.values(groups)
       .sort((a, b) => b.timestamp - a.timestamp)
       .map(({ dateKey, transactions }) => ({
         date: dateKey,
         // Sort transactions within each group (most recent first)
         transactions: transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       }));
-
-    console.log(`[DEBUG] Created ${result.length} date groups:`);
-    result.forEach((group) => {
-      console.log(`[DEBUG]   ${group.date}: ${group.transactions.length} transactions`);
-      // Special logging for Nov 3rd
-      if (group.date.includes('November 3')) {
-        console.log(`[DEBUG]   Nov 3 transaction IDs:`, group.transactions.map(t => `${t.merchantName || t.name} (${t.transactionId.substring(0, 8)}...)`));
-      }
-    });
-
-    return result;
   };
 
   /**
@@ -552,21 +544,6 @@ export default function TransactionsFeedScreen() {
   }
 
   const groupedData = groupTransactionsByDate(transactions);
-
-  // Debug: Check for NewRez transaction in transactions array
-  const newRezTransaction = transactions.find(t =>
-    (t.merchantName || t.name)?.toLowerCase().includes('newrez')
-  );
-  if (newRezTransaction) {
-    console.log(`[DEBUG] NewRez transaction found in transactions array:`, {
-      id: newRezTransaction.transactionId,
-      merchant: newRezTransaction.merchantName || newRezTransaction.name,
-      amount: newRezTransaction.amount,
-      date: newRezTransaction.date,
-    });
-  } else {
-    console.log(`[DEBUG] NewRez transaction NOT found in transactions array (${transactions.length} total transactions)`);
-  }
 
   return (
     <Surface style={styles.container}>
