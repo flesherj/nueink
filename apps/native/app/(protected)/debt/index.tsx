@@ -307,6 +307,14 @@ export default function DebtOverviewScreen() {
                   </Text>
                 </View>
               </View>
+
+              <Button
+                mode="outlined"
+                onPress={() => router.push('/debt/schedule/avalanche')}
+                style={styles.viewButton}
+              >
+                View Payment Schedule
+              </Button>
             </Card.Content>
           </Card>
 
