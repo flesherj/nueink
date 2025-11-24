@@ -90,7 +90,8 @@ export class DebtPayoffPlanningService {
 
     // Generate consumer debt plans (primary focus)
     if (consumerDebt.length > 0) {
-      const consumerPlans = this.payoffService.generatePayoffPlans(
+      // Scenario 1: Minimum payments only (current pace)
+      const consumerPlansMinimum = this.payoffService.generatePayoffPlans(
         consumerDebt,
         organizationId,
         accountId,
@@ -98,13 +99,40 @@ export class DebtPayoffPlanningService {
         monthlyPayment
       );
 
-      // Mark these as consumer debt scope
       plans.push(
-        ...consumerPlans.map((plan) => ({
+        ...consumerPlansMinimum.map((plan) => ({
           ...plan,
           scope: 'consumer' as const,
+          optimized: false,
         }))
       );
+
+      // Scenario 2: Budget optimized (estimated 2x minimum for motivation)
+      // This shows what's possible with budget optimization
+      if (!monthlyPayment) {
+        // Calculate optimized payment (2x minimum payments)
+        const totalMinimums = consumerDebt.reduce(
+          (sum, account) => sum + (account.minimumPayment || 0),
+          0
+        );
+        const optimizedPayment = Math.round(totalMinimums * 2.2); // 2x minimums + 10%
+
+        const consumerPlansOptimized = this.payoffService.generatePayoffPlans(
+          consumerDebt,
+          organizationId,
+          accountId,
+          profileOwner,
+          optimizedPayment
+        );
+
+        plans.push(
+          ...consumerPlansOptimized.map((plan) => ({
+            ...plan,
+            scope: 'consumer' as const,
+            optimized: true,
+          }))
+        );
+      }
     }
 
     // Generate total debt plans (including mortgages)

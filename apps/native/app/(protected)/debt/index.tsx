@@ -177,8 +177,18 @@ export default function DebtOverviewScreen() {
   const consumerPlans = plans.filter(p => p.scope === 'consumer');
   const totalPlans = plans.filter(p => p.scope === 'all');
 
+  // Separate minimum and optimized scenarios
+  const minimumPlans = consumerPlans.filter(p => p.optimized === false);
+  const optimizedPlans = consumerPlans.filter(p => p.optimized === true);
+
   // Use consumer plans if available, otherwise fall back to total
   const activePlans = consumerPlans.length > 0 ? consumerPlans : totalPlans;
+
+  // Get both scenarios for comparison (prefer consumer debt)
+  const minimumAvalanche = minimumPlans.find(p => p.strategy === 'avalanche');
+  const optimizedAvalanche = optimizedPlans.find(p => p.strategy === 'avalanche');
+
+  // For debt list and details, use the first available plan
   const avalanchePlan = activePlans.find(p => p.strategy === 'avalanche');
   const snowballPlan = activePlans.find(p => p.strategy === 'snowball');
   const debts = avalanchePlan?.debts || [];
@@ -244,6 +254,117 @@ export default function DebtOverviewScreen() {
       ))}
 
       <Divider style={styles.divider} />
+
+      {/* Payment Scenario Comparison */}
+      {minimumAvalanche && optimizedAvalanche && (
+        <>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                Payment Scenarios
+              </Text>
+              <Text variant="bodyMedium" style={styles.subtitle}>
+                See how budget optimization can dramatically accelerate your debt freedom
+              </Text>
+            </Card.Content>
+          </Card>
+
+          {/* Minimum Payments Scenario */}
+          <Card style={[styles.card, styles.minimumCard]}>
+            <Card.Content>
+              <View style={styles.scenarioHeader}>
+                <Text variant="titleMedium">Minimum Payments Only</Text>
+                <Chip icon="alert" style={styles.minimumChip}>
+                  Current Pace
+                </Chip>
+              </View>
+              <Text variant="bodySmall" style={styles.scenarioDescription}>
+                Paying only minimum payments on all debts
+              </Text>
+              <View style={styles.scenarioStats}>
+                <View style={styles.scenarioStat}>
+                  <Text variant="bodySmall" style={styles.statLabel}>
+                    Monthly Payment
+                  </Text>
+                  <Text variant="headlineSmall">
+                    {formatCurrency(minimumAvalanche.summary.monthlyPayment)}
+                  </Text>
+                </View>
+                <View style={styles.scenarioStat}>
+                  <Text variant="bodySmall" style={styles.statLabel}>
+                    Debt-Free Date
+                  </Text>
+                  <Text variant="headlineSmall">
+                    {formatDate(minimumAvalanche.summary.debtFreeDate)}
+                  </Text>
+                </View>
+                <View style={styles.scenarioStat}>
+                  <Text variant="bodySmall" style={styles.statLabel}>
+                    Total Interest
+                  </Text>
+                  <Text variant="headlineSmall">
+                    {formatCurrency(minimumAvalanche.summary.totalInterest)}
+                  </Text>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+
+          {/* Budget Optimized Scenario */}
+          <Card style={[styles.card, styles.optimizedCard]}>
+            <Card.Content>
+              <View style={styles.scenarioHeader}>
+                <Text variant="titleMedium">Budget Optimized</Text>
+                <Chip icon="rocket-launch" style={styles.optimizedChip}>
+                  Recommended
+                </Chip>
+              </View>
+              <Text variant="bodySmall" style={styles.scenarioDescription}>
+                Maximize payments based on available budget
+              </Text>
+              <View style={styles.scenarioStats}>
+                <View style={styles.scenarioStat}>
+                  <Text variant="bodySmall" style={styles.statLabel}>
+                    Monthly Payment
+                  </Text>
+                  <Text variant="headlineSmall" style={styles.optimizedText}>
+                    {formatCurrency(optimizedAvalanche.summary.monthlyPayment)}
+                  </Text>
+                </View>
+                <View style={styles.scenarioStat}>
+                  <Text variant="bodySmall" style={styles.statLabel}>
+                    Debt-Free Date
+                  </Text>
+                  <Text variant="headlineSmall" style={styles.optimizedText}>
+                    {formatDate(optimizedAvalanche.summary.debtFreeDate)}
+                  </Text>
+                </View>
+                <View style={styles.scenarioStat}>
+                  <Text variant="bodySmall" style={styles.statLabel}>
+                    Total Interest
+                  </Text>
+                  <Text variant="headlineSmall" style={styles.optimizedText}>
+                    {formatCurrency(optimizedAvalanche.summary.totalInterest)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Savings Highlight */}
+              <View style={styles.savingsHighlight}>
+                <Text variant="titleSmall" style={styles.savingsHighlightText}>
+                  Pay off debt {minimumAvalanche.summary.monthsToPayoff - optimizedAvalanche.summary.monthsToPayoff} months faster and save {formatCurrency(minimumAvalanche.summary.totalInterest - optimizedAvalanche.summary.totalInterest)} in interest!
+                </Text>
+              </View>
+
+              <Text variant="bodySmall" style={styles.budgetNote}>
+                Create a budget to track your actual surplus and unlock this timeline
+              </Text>
+            </Card.Content>
+          </Card>
+
+          <Divider style={styles.divider} />
+        </>
+      )}
 
       {/* Strategy Comparison */}
       <Card style={styles.card}>
@@ -489,5 +610,58 @@ const styles = StyleSheet.create({
   savingsText: {
     textAlign: 'center',
     color: '#2e7d32',
+  },
+  scenarioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  scenarioDescription: {
+    color: '#666',
+    marginBottom: 16,
+  },
+  scenarioStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  scenarioStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  minimumCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#ff9800',
+  },
+  minimumChip: {
+    backgroundColor: '#ff9800',
+  },
+  optimizedCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#4caf50',
+  },
+  optimizedChip: {
+    backgroundColor: '#4caf50',
+  },
+  optimizedText: {
+    color: '#2e7d32',
+    fontWeight: 'bold',
+  },
+  savingsHighlight: {
+    backgroundColor: '#fff9e6',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  savingsHighlightText: {
+    color: '#f57c00',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  budgetNote: {
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

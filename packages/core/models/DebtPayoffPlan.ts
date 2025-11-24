@@ -56,6 +56,7 @@ export interface DebtPayoffPlan {
   name: string;                   // e.g., "Avalanche Strategy", "Snowball Strategy"
   strategy: PayoffStrategy;
   scope?: PayoffScope;            // 'consumer' = consumer debt only, 'all' = includes mortgages
+  optimized?: boolean;            // true = budget-optimized scenario, false = minimum payments
 
   // Debt accounts included in plan
   debts: FinancialAccount[];
