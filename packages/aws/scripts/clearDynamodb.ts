@@ -10,7 +10,11 @@
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  ScanCommand,
+  BatchWriteCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { fromIni } from '@aws-sdk/credential-providers';
 
 const REGION = 'us-east-1';
@@ -26,12 +30,12 @@ const TABLES_TO_CLEAR = [
   // Financial Data - Commonly cleared for testing
   { name: 'Transaction', key: 'transactionId' },
   { name: 'TransactionSplit', key: 'splitId' },
-  { name: 'FinancialAccount', key: 'financialAccountId' },
-  { name: 'Institution', key: 'institutionId' },
+  // { name: 'FinancialAccount', key: 'financialAccountId' },
+  // { name: 'Institution', key: 'institutionId' },
 
   // Budgets and Debts
-  // { name: 'Budget', key: 'budgetId' },
-  // { name: 'Debt', key: 'debtId' },
+  { name: 'Budget', key: 'budgetId' },
+  { name: 'Debt', key: 'debtId' },
 
   // AI/ML Data
   // { name: 'UserCategorizationFeedback', key: 'feedbackId' },
@@ -42,7 +46,7 @@ const TABLES_TO_CLEAR = [
   // { name: 'Organization', key: 'orgId' },
   // { name: 'Membership', key: 'accountId', sortKey: 'orgId' }, // Composite key
   // { name: 'Person', key: 'personId' },
-  // { name: 'Comment', key: 'commentId' },
+  { name: 'Comment', key: 'commentId' },
 
   // Integration Configs - CAREFUL! Contains OAuth tokens
   // { name: 'IntegrationConfig', key: 'configId' },
@@ -76,22 +80,24 @@ const batchDelete = async (
   for (let i = 0; i < items.length; i += 25) {
     const batch = items.slice(i, i + 25);
 
-    const deleteRequests = batch.map(item => {
+    const deleteRequests = batch.map((item) => {
       const key: any = { [keyField]: item[keyField] };
       if (sortKeyField) {
         key[sortKeyField] = item[sortKeyField];
       }
       return {
-        DeleteRequest: { Key: key }
+        DeleteRequest: { Key: key },
       };
     });
 
     try {
-      await docClient.send(new BatchWriteCommand({
-        RequestItems: {
-          [tableName]: deleteRequests
-        }
-      }));
+      await docClient.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [tableName]: deleteRequests,
+          },
+        })
+      );
 
       deletedCount += batch.length;
       console.log(`  Deleted ${deletedCount}/${items.length} items...`);
@@ -122,10 +128,12 @@ const clearTable = async (
   // Scan all items
   try {
     do {
-      const response = await docClient.send(new ScanCommand({
-        TableName: fullTableName,
-        ExclusiveStartKey: lastEvaluatedKey
-      }));
+      const response = await docClient.send(
+        new ScanCommand({
+          TableName: fullTableName,
+          ExclusiveStartKey: lastEvaluatedKey,
+        })
+      );
 
       if (response.Items) {
         items.push(...response.Items);
@@ -149,7 +157,12 @@ const clearTable = async (
   }
 
   // Delete all items
-  const deletedCount = await batchDelete(fullTableName, items, keyField, sortKeyField);
+  const deletedCount = await batchDelete(
+    fullTableName,
+    items,
+    keyField,
+    sortKeyField
+  );
   console.log(`   ✅ Deleted: ${deletedCount} items`);
 
   return deletedCount;
@@ -171,7 +184,9 @@ const main = async () => {
     }
 
     console.log('\n✅ Complete!');
-    console.log(`Total deleted: ${totalDeleted} items across ${TABLES_TO_CLEAR.length} table(s)`);
+    console.log(
+      `Total deleted: ${totalDeleted} items across ${TABLES_TO_CLEAR.length} table(s)`
+    );
   } catch (error) {
     console.error('\n❌ Error:', error);
     process.exit(1);

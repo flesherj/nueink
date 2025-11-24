@@ -41,6 +41,7 @@ export class BedrockCategorizationProvider implements AICategorizationProvider {
       amount: tx.amount / 100, // Convert cents to dollars (preserve sign for income vs expense)
       name: tx.name,
       date: tx.date.toISOString().split('T')[0],
+      isTransfer: !!(tx.rawData as any)?.transfer_account_id, // Flag transfers between accounts
     }));
 
     const prompt = this.buildCategorizationPrompt(txData);
@@ -93,15 +94,21 @@ ${JSON.stringify(txData, null, 2)}
 
 CATEGORIZATION RULES:
 
-**CRITICAL FIRST RULE - INCOME DETECTION:**
-- **ANY positive amount (> $0) MUST be categorized as Income**
+**CRITICAL FIRST RULE - TRANSFERS:**
+- **If isTransfer is true, ALWAYS categorize as "Transfer: Between Accounts" (100% confidence)**
+- Transfers are money moving between accounts (not income or expense)
+- Do NOT categorize transfers as income, even if positive amount
+- Example: {amount: +500, isTransfer: true} → 100% "Transfer: Between Accounts"
+
+**SECOND RULE - INCOME DETECTION:**
+- **ANY positive amount (> $0) that is NOT a transfer MUST be categorized as Income**
 - Positive amounts are NEVER expenses - they are income deposits
 - Merchant names like "Check #", "Payroll", "Direct Deposit", "Deposit" → "Income: Salary" (95-100% confidence)
 - Other positive amounts → "Income: Other" (90-95% confidence)
 - Examples:
-  * Target Check #9100001 +$675.41 → 100% "Income: Salary"
-  * PAYROLL DEPOSIT +$2,500 → 100% "Income: Salary"
-  * Refund +$25.50 → 100% "Income: Other"
+  * {amount: +675.41, merchant: "Target Check #9100001"} → 100% "Income: Salary"
+  * {amount: +2500, merchant: "PAYROLL DEPOSIT"} → 100% "Income: Salary"
+  * {amount: +25.50, merchant: "Refund"} → 100% "Income: Other"
 - **DO NOT categorize positive amounts as Shopping, Food, or any expense category**
 
 1. **Single Category (Most Common)**
@@ -138,8 +145,7 @@ CATEGORIZATION RULES:
    - Credit card/loan payments → "Bills: Credit Card Payment" or "Bills: Loan Payment"
    - Utilities (Electric, Gas companies) → "Housing: Utilities"
    - Phone/Internet providers → "Bills: Phone" or "Bills: Internet"
-   - Transfers between accounts → "Transfer: Between Accounts" (100% confidence)
-   - "Starting Balance", "Transfer to/from" → "Transfer: Between Accounts"
+   - Note: Transfers are handled by isTransfer flag (see FIRST RULE above)
 
 IMPORTANT:
 - Return ONLY valid JSON, no markdown, no explanations
