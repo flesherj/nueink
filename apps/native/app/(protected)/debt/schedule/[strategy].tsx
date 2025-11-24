@@ -39,7 +39,15 @@ export default function PaymentScheduleScreen() {
         accountId: account.accountId,
       });
 
-      const selectedPlan = result.plans.find(p => p.strategy === strategy);
+      // Handle "optimized-avalanche" and "optimized-snowball" strategies
+      const isOptimized = strategy?.startsWith('optimized-');
+      const baseStrategy = isOptimized ? strategy?.replace('optimized-', '') : strategy;
+
+      const selectedPlan = result.plans.find(p =>
+        p.strategy === baseStrategy &&
+        (!isOptimized || p.optimized === true)
+      );
+
       if (!selectedPlan) {
         setError('Plan not found');
         return;

@@ -188,9 +188,9 @@ export default function DebtOverviewScreen() {
   const minimumAvalanche = minimumPlans.find(p => p.strategy === 'avalanche');
   const optimizedAvalanche = optimizedPlans.find(p => p.strategy === 'avalanche');
 
-  // For debt list and details, use the first available plan
-  const avalanchePlan = activePlans.find(p => p.strategy === 'avalanche');
-  const snowballPlan = activePlans.find(p => p.strategy === 'snowball');
+  // For debt list and details, prefer optimized plans if available
+  const avalanchePlan = optimizedPlans.find(p => p.strategy === 'avalanche') || minimumPlans.find(p => p.strategy === 'avalanche');
+  const snowballPlan = optimizedPlans.find(p => p.strategy === 'snowball') || minimumPlans.find(p => p.strategy === 'snowball');
   const debts = avalanchePlan?.debts || [];
   const isConsumerDebt = consumerPlans.length > 0;
 
@@ -383,8 +383,16 @@ export default function DebtOverviewScreen() {
               <Text variant="bodySmall" style={styles.budgetNote}>
                 {minimumAvalanche.summary.monthlyPayment === optimizedAvalanche.summary.monthlyPayment
                   ? 'Using estimated payment. Create a budget to see timeline with your actual surplus.'
-                  : 'This scenario uses your budget surplus for maximum debt payoff. Create a budget to track your actual available funds.'}
+                  : 'This scenario uses your budget surplus for maximum debt payoff.'}
               </Text>
+
+              <Button
+                mode="contained"
+                onPress={() => router.push('/debt/schedule/optimized-avalanche')}
+                style={styles.viewButton}
+              >
+                View Payment Schedule
+              </Button>
             </Card.Content>
           </Card>
 
