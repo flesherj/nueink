@@ -264,7 +264,19 @@ export class FinancialAnalysisService {
       // Filter to transactions in period
       const periodTransactions = result.items.filter((t) => {
         const txDate = new Date(t.date);
-        return txDate >= periodStart && txDate <= periodEnd;
+        if (txDate < periodStart || txDate > periodEnd) {
+          return false;
+        }
+
+        // Exclude YNAB "Starting Balance" accounting adjustments
+        // These are not real transactions, just balance initialization entries
+        const name = (t.name || '').toLowerCase();
+        const merchantName = (t.merchantName || '').toLowerCase();
+        if (name === 'starting balance' || merchantName === 'starting balance') {
+          return false;
+        }
+
+        return true;
       });
 
       allTransactions.push(...periodTransactions);
