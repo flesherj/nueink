@@ -57,6 +57,15 @@ export interface Budget {
   /** Total monthly budget (sum of all categories, in cents) */
   totalBudget: number;
 
+  /** Monthly income (in cents) */
+  monthlyIncome: number;
+
+  /** Monthly surplus (income - total budget, in cents) */
+  surplus: number;
+
+  /** Available for extra debt payments (surplus - debt minimums, in cents) */
+  availableForDebt?: number;
+
   /** Budget status/stage */
   status: BudgetStatus;
 

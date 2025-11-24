@@ -2,10 +2,12 @@ import {
   FinancialAccount,
   FinancialAccountType,
   DebtPayoffPlan,
+  Budget,
 } from '../models';
 import type { AIInterestRateEstimator } from '../providers';
 import { DebtPayoffService } from './DebtPayoffService';
 import { FinancialAccountService } from './FinancialAccountService';
+import { BudgetService } from './BudgetService';
 
 /**
  * Debt Payoff Planning Service
@@ -19,6 +21,7 @@ export class DebtPayoffPlanningService {
 
   constructor(
     private accountService: FinancialAccountService,
+    private budgetService: BudgetService,
     private aiEstimator?: AIInterestRateEstimator
   ) {
     this.payoffService = new DebtPayoffService();
@@ -107,15 +110,29 @@ export class DebtPayoffPlanningService {
         }))
       );
 
-      // Scenario 2: Budget optimized (estimated 2x minimum for motivation)
+      // Scenario 2: Budget optimized (use actual budget surplus if available)
       // This shows what's possible with budget optimization
       if (!monthlyPayment) {
-        // Calculate optimized payment (2x minimum payments)
+        // Calculate total minimum payments
         const totalMinimums = consumerDebt.reduce(
           (sum, account) => sum + (account.minimumPayment || 0),
           0
         );
-        const optimizedPayment = Math.round(totalMinimums * 2.2); // 2x minimums + 10%
+
+        // Try to get active budget for organization
+        const activeBudget = await this.budgetService.findActiveBudget(organizationId);
+
+        let optimizedPayment: number;
+
+        if (activeBudget && activeBudget.surplus > 0) {
+          // Use actual budget surplus for optimized payment
+          // Payment = minimums + budget surplus
+          optimizedPayment = Math.round(totalMinimums + activeBudget.surplus);
+        } else {
+          // Fall back to estimated optimized payment (2x minimums + 10%)
+          // This provides motivation even without a budget
+          optimizedPayment = Math.round(totalMinimums * 2.2);
+        }
 
         const consumerPlansOptimized = this.payoffService.generatePayoffPlans(
           consumerDebt,

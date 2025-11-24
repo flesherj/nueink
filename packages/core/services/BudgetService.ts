@@ -87,6 +87,10 @@ export class BudgetService {
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1); // First of month
     const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last of month
 
+    // Calculate surplus (income - spending)
+    const monthlyIncome = analysis.monthlyAverageIncome;
+    const surplus = monthlyIncome - analysis.monthlyAverageSpending;
+
     // Create baseline monthly budget
     const budget: Budget = {
       budgetId: this.generateBudgetId(),
@@ -97,6 +101,8 @@ export class BudgetService {
       periodEnd, // Current month end
       categoryBudgets,
       totalBudget: analysis.monthlyAverageSpending, // Monthly average, not period total
+      monthlyIncome, // Average monthly income from analysis
+      surplus, // Income - spending
       status: 'baseline',
       sourceAnalysisId: analysis.analysisId,
       createdAt: new Date(),

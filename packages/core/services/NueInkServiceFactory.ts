@@ -110,6 +110,7 @@ export class NueInkServiceFactory {
   public debtPayoffPlanning = (aiEstimator?: AIInterestRateEstimator): DebtPayoffPlanningService =>
     new DebtPayoffPlanningService(
       this.financialAccount(),
+      this.budget(),
       aiEstimator
     );
 }

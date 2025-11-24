@@ -53,6 +53,14 @@ export interface FinancialAnalysis {
   monthlyAverageSpending: number; // Average per month (cents)
   spendingByCategory: CategorySpending[];
 
+  // Income breakdown
+  totalIncome: number;            // Total income in period (cents)
+  monthlyAverageIncome: number;   // Average income per month (cents)
+
+  // Surplus calculation
+  surplus: number;                // Total income - Total spending (cents)
+  monthlySurplus: number;         // Average monthly income - Average monthly spending (cents)
+
   // Needs vs Wants classification (optional - requires AI)
   needsVsWants?: NeedsVsWants;
 

@@ -84,6 +84,17 @@ export class FinancialAnalysisService {
     const monthlyAverageSpending =
       actualMonthsAnalyzed > 0 ? Math.round(totalSpending / actualMonthsAnalyzed) : 0;
 
+    // Analyze income using splits
+    const totalIncome = this.analyzeIncome(splits);
+
+    // Calculate monthly average income
+    const monthlyAverageIncome =
+      actualMonthsAnalyzed > 0 ? Math.round(totalIncome / actualMonthsAnalyzed) : 0;
+
+    // Calculate surplus (income - spending)
+    const surplus = totalIncome - totalSpending;
+    const monthlySurplus = monthlyAverageIncome - monthlyAverageSpending;
+
     // Generate analysis
     const analysis: FinancialAnalysis = {
       analysisId: this.generateAnalysisId(),
@@ -95,6 +106,10 @@ export class FinancialAnalysisService {
       totalSpending,
       monthlyAverageSpending,
       spendingByCategory,
+      totalIncome,
+      monthlyAverageIncome,
+      surplus,
+      monthlySurplus,
       createdAt: new Date(),
       profileOwner,
     };
@@ -177,6 +192,31 @@ export class FinancialAnalysisService {
     categorySpending.sort((a, b) => b.amount - a.amount);
 
     return categorySpending;
+  };
+
+  /**
+   * Analyze income from transaction splits
+   * Sums up all income category transactions
+   */
+  private analyzeIncome = (splits: TransactionSplit[]): number => {
+    // Filter to income splits only (positive amounts in income categories)
+    const incomeSplits = splits.filter((s) => {
+      const category = (s.category || '').toLowerCase();
+
+      // Include income categories
+      if (category.includes('income')) return true;
+      if (category.includes('inflow')) return true;
+
+      return false;
+    });
+
+    // Calculate total income (sum of positive amounts)
+    const totalIncome = incomeSplits.reduce(
+      (sum, s) => sum + Math.abs(s.amount),
+      0
+    );
+
+    return totalIncome;
   };
 
   /**

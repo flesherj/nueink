@@ -24,6 +24,9 @@ export type BudgetEntity = {
   periodEnd: string; // ISO date string
   categoryBudgets: CategoryBudgetEntity[]; // DynamoDB List of Maps
   totalBudget: number;
+  monthlyIncome: number;
+  surplus: number;
+  availableForDebt?: number;
   status: BudgetStatus;
   createdAt: string;
   updatedAt: string;
