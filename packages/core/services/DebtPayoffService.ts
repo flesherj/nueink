@@ -174,12 +174,17 @@ export class DebtPayoffService {
   ): MonthlyPaymentSchedule[] => {
     const schedule: MonthlyPaymentSchedule[] = [];
 
-    // Create working copy of accounts with balances
+    // Create working copy of accounts with balances and promotional info
     const workingAccounts = orderedAccounts.map((account) => ({
       account,
       balance: account.currentBalance || 0,
       minimumPayment: estimateMinimumPayment(account),
       interestRate: estimateInterestRate(account),
+      promotionalRate: account.promotionalRate,
+      promotionalEndDate: account.promotionalEndDate,
+      deferredInterest: account.deferredInterest || false,
+      accruedDeferredInterest: 0, // Track deferred interest during promo period
+      initialBalance: account.currentBalance || 0, // For deferred interest calculation
     }));
 
     let month = 1;
@@ -197,9 +202,32 @@ export class DebtPayoffService {
       for (const wa of workingAccounts) {
         if (wa.balance <= 0) continue;
 
+        // Determine if in promotional period
+        const inPromoPeriod = wa.promotionalEndDate && monthDate < wa.promotionalEndDate;
+        const currentRate = inPromoPeriod && wa.promotionalRate !== undefined
+          ? wa.promotionalRate
+          : wa.interestRate;
+
         // Calculate interest for this month
-        const monthlyInterestRate = wa.interestRate / 12;
-        const interestCharge = Math.round(wa.balance * monthlyInterestRate);
+        const monthlyInterestRate = currentRate / 12;
+        let interestCharge = Math.round(wa.balance * monthlyInterestRate);
+
+        // Track deferred interest during promotional period
+        if (inPromoPeriod && wa.deferredInterest) {
+          const deferredMonthlyRate = wa.interestRate / 12;
+          const deferredInterest = Math.round(wa.balance * deferredMonthlyRate);
+          wa.accruedDeferredInterest += deferredInterest;
+        }
+
+        // If promotional period just ended and deferred interest applies, add it now
+        const wasInPromo = wa.promotionalEndDate &&
+          new Date(monthDate.getTime() - 30 * 24 * 60 * 60 * 1000) < wa.promotionalEndDate;
+        if (wasInPromo && !inPromoPeriod && wa.deferredInterest && wa.balance > 0) {
+          // Add all accrued deferred interest to balance
+          wa.balance += wa.accruedDeferredInterest;
+          interestCharge += wa.accruedDeferredInterest;
+          wa.accruedDeferredInterest = 0;
+        }
 
         // Pay minimum or remaining balance (whichever is less)
         const payment = Math.min(wa.minimumPayment, wa.balance + interestCharge, remainingPayment);

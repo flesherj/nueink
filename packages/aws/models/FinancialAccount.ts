@@ -32,6 +32,11 @@ export type FinancialAccountEntity = {
   minimumPayment?: number; // Minimum monthly payment in cents
   dueDate?: number; // Day of month (1-31) payment is due
 
+  // Promotional period tracking (e.g., CareCredit, store cards with 0% intro APR)
+  promotionalRate?: number; // Promotional APR as decimal (0 for interest-free)
+  promotionalEndDate?: string; // When promotional period ends (ISO string)
+  deferredInterest?: boolean; // If true, unpaid balance accrues retroactive interest from purchase date
+
   rawData?: string; // Complete provider response as JSON string (AWSJSON type)
   syncedAt?: string; // Last sync timestamp from provider (ISO string)
   createdAt: string; // ISO string

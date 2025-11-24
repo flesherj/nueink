@@ -35,6 +35,11 @@ export interface FinancialAccount {
   minimumPayment?: number;         // Minimum monthly payment in cents
   dueDate?: number;                // Day of month (1-31) payment is due
 
+  // Promotional period tracking (e.g., CareCredit, store cards with 0% intro APR)
+  promotionalRate?: number;        // Promotional APR as decimal (0 for interest-free)
+  promotionalEndDate?: Date;       // When promotional period ends
+  deferredInterest?: boolean;      // If true, unpaid balance accrues retroactive interest from purchase date
+
   rawData?: Record<string, any>;   // Complete provider response (for debugging, backfill, advanced features)
   syncedAt?: Date;                 // Last sync timestamp from provider
   createdAt: Date;

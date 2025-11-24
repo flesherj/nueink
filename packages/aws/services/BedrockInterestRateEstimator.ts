@@ -70,21 +70,30 @@ export class BedrockInterestRateEstimator implements AIInterestRateEstimator {
       day: 'numeric',
     });
 
-    const accountsJson = accounts.map((account) => ({
-      id: account.financialAccountId,
-      type: account.type,
-      balance: account.currentBalance ? account.currentBalance / 100 : 0,
-      name: account.name,
-      provider: account.provider,
-    }));
+    const accountsJson = accounts.map((account) => {
+      // Extract institution name from rawData if available
+      const institutionName = account.rawData?.institution?.name;
+
+      return {
+        id: account.financialAccountId,
+        type: account.type,
+        balance: account.currentBalance ? account.currentBalance / 100 : 0,
+        name: account.name,
+        officialName: account.officialName,
+        institutionName,
+        provider: account.provider,
+      };
+    });
 
     return `You are a financial analyst estimating current market interest rates for debt accounts as of ${dateStr}.
 
 For each account below, estimate the most likely current APR (Annual Percentage Rate) based on:
 1. Current market conditions and Federal Reserve rates as of ${dateStr}
 2. Account type (credit cards typically have higher rates than mortgages)
-3. Account balance (higher balances might indicate different risk profiles)
-4. Whether it's a synced account (Plaid/YNAB) or manual entry
+3. Specific institution and account name (e.g., "Chase Sapphire" vs "Amazon Store Card" have different typical rates)
+4. Account balance (higher balances might indicate different risk profiles)
+5. Whether it's a synced account (Plaid/YNAB) or manual entry
+6. Known promotional periods (e.g., CareCredit often has 6-24 month interest-free periods, store cards may have 0% intro APR)
 
 Accounts to analyze:
 ${JSON.stringify(accountsJson, null, 2)}
@@ -97,19 +106,35 @@ Provide your estimates in the following JSON format ONLY (no other text):
       "estimatedRate": 0.1599,
       "confidence": "high|medium|low",
       "reasoning": "Brief explanation of why this rate",
-      "marketContext": "Current market conditions affecting this rate"
+      "marketContext": "Current market conditions affecting this rate",
+      "hasPromotionalPeriod": false,
+      "promotionalRate": null,
+      "promotionalMonths": null,
+      "hasDeferredInterest": false
     }
   ]
 }
 
 Guidelines:
-- Credit cards: typically 15-25% APR
+- Credit cards: typically 15-25% APR (store cards often higher, premium cards often lower)
 - Lines of credit: typically 10-18% APR
 - Mortgages: typically 6-8% APR (as of late 2024)
 - Auto loans: typically 5-9% APR
 - Student loans: typically 4-7% APR
 - Personal loans: typically 8-15% APR
-- Medical debt: often 0% on payment plans
+- Medical debt: often 0% on payment plans (especially CareCredit, which commonly offers 6-24 month interest-free periods)
+
+Special cases to detect:
+- CareCredit: Usually 0% for 6, 12, 18, or 24 months, then ~26.99% APR with deferred interest
+- Store cards (Amazon, Target, etc.): Often 0% intro APR for 6-12 months, then 20-28% APR
+- Premium credit cards (Chase Sapphire, Amex Platinum): Often 18-21% APR
+- Balance transfer cards: Often 0% intro APR for 12-21 months, then 15-25% APR
+
+If you detect a likely promotional period based on the account name/institution:
+- Set hasPromotionalPeriod to true
+- Set promotionalRate (0 for interest-free)
+- Set promotionalMonths (estimated duration)
+- Set hasDeferredInterest to true if unpaid balance would accrue retroactive interest (common with CareCredit, store cards)
 
 Consider the current economic environment, Federal Reserve rates, and typical lending practices.`;
   };
@@ -135,6 +160,10 @@ Consider the current economic environment, Federal Reserve rates, and typical le
           confidence: estimate.confidence,
           reasoning: estimate.reasoning,
           marketContext: estimate.marketContext,
+          hasPromotionalPeriod: estimate.hasPromotionalPeriod,
+          promotionalRate: estimate.promotionalRate,
+          promotionalMonths: estimate.promotionalMonths,
+          hasDeferredInterest: estimate.hasDeferredInterest,
         });
       }
 

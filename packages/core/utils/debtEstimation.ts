@@ -200,10 +200,22 @@ export const getDebtAccountsWithAI = async (
 
       return debtAccounts.map((account) => {
         const estimate = estimates.get(account.financialAccountId);
+
+        // Calculate promotional end date if promotional period detected
+        let promotionalEndDate: Date | undefined;
+        if (estimate?.hasPromotionalPeriod && estimate.promotionalMonths) {
+          promotionalEndDate = new Date();
+          promotionalEndDate.setMonth(promotionalEndDate.getMonth() + estimate.promotionalMonths);
+        }
+
         return {
           ...account,
           interestRate: estimate?.estimatedRate || estimateInterestRate(account),
           minimumPayment: estimateMinimumPayment(account),
+          // Apply promotional period information from AI
+          promotionalRate: estimate?.hasPromotionalPeriod ? estimate.promotionalRate : undefined,
+          promotionalEndDate,
+          deferredInterest: estimate?.hasDeferredInterest,
         };
       });
     } catch (error) {

@@ -133,6 +133,11 @@ const schema = a.schema({
             minimumPayment: a.float(),                  // Minimum monthly payment in cents
             dueDate: a.integer(),                       // Day of month (1-31) payment is due
 
+            // Promotional period tracking (e.g., CareCredit, store cards with 0% intro APR)
+            promotionalRate: a.float(),                 // Promotional APR as decimal (0 for interest-free)
+            promotionalEndDate: a.datetime(),           // When promotional period ends
+            deferredInterest: a.boolean(),              // If true, unpaid balance accrues retroactive interest
+
             rawData: a.json(),                          // Complete provider response (YNAB/Plaid/etc)
             syncedAt: a.datetime(),                     // Last sync timestamp from provider
             createdAt: a.datetime().required(),

@@ -8,6 +8,12 @@ export interface InterestRateEstimate {
   confidence: 'high' | 'medium' | 'low';
   reasoning?: string;           // AI explanation of the estimate
   marketContext?: string;       // Current market conditions
+
+  // Promotional period information (e.g., CareCredit, store cards)
+  hasPromotionalPeriod?: boolean;     // True if account likely has a promotional rate
+  promotionalRate?: number;           // Promotional APR (often 0 for interest-free)
+  promotionalMonths?: number;         // Estimated duration of promotional period
+  hasDeferredInterest?: boolean;      // True if unpaid balance accrues retroactive interest
 }
 
 /**
