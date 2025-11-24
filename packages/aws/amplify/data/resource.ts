@@ -299,6 +299,9 @@ const schema = a.schema({
             periodEnd: a.datetime().required(),         // Budget period end
             categoryBudgets: a.ref('CategoryBudget').array().required(),  // All category budgets
             totalBudget: a.float().required(),          // Total budget amount (cents)
+            monthlyIncome: a.float().required(),        // Monthly income (cents)
+            surplus: a.float().required(),              // Monthly surplus: income - totalBudget (cents)
+            availableForDebt: a.float(),                // Surplus available for debt after minimums (cents)
             status: a.string().required(),              // baseline|optimized|active|archived
             sourceAnalysisId: a.string(),               // FK to analysis if created from analysis
             createdAt: a.datetime().required(),
