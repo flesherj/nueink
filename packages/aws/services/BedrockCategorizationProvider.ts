@@ -38,7 +38,7 @@ export class BedrockCategorizationProvider implements AICategorizationProvider {
       index,
       id: tx.transactionId,
       merchant: tx.merchantName || tx.name,
-      amount: Math.abs(tx.amount) / 100, // Convert cents to dollars for readability
+      amount: tx.amount / 100, // Convert cents to dollars (preserve sign for income vs expense)
       name: tx.name,
       date: tx.date.toISOString().split('T')[0],
     }));
