@@ -322,6 +322,30 @@ export default function DebtOverviewScreen() {
               <Text variant="bodySmall" style={styles.scenarioDescription}>
                 Maximize payments based on available budget
               </Text>
+
+              {/* Payment Breakdown */}
+              <View style={styles.paymentBreakdown}>
+                <Text variant="bodySmall" style={styles.breakdownLabel}>
+                  Payment Breakdown:
+                </Text>
+                <View style={styles.breakdownRow}>
+                  <Text variant="bodySmall" style={styles.breakdownText}>
+                    Minimum payments
+                  </Text>
+                  <Text variant="bodySmall" style={styles.breakdownAmount}>
+                    {formatCurrency(minimumAvalanche.summary.monthlyPayment)}
+                  </Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text variant="bodySmall" style={styles.breakdownText}>
+                    + Budget surplus
+                  </Text>
+                  <Text variant="bodySmall" style={[styles.breakdownAmount, styles.surplusText]}>
+                    {formatCurrency(optimizedAvalanche.summary.monthlyPayment - minimumAvalanche.summary.monthlyPayment)}
+                  </Text>
+                </View>
+              </View>
+
               <View style={styles.scenarioStats}>
                 <View style={styles.scenarioStat}>
                   <Text variant="bodySmall" style={styles.statLabel}>
@@ -357,7 +381,9 @@ export default function DebtOverviewScreen() {
               </View>
 
               <Text variant="bodySmall" style={styles.budgetNote}>
-                Create a budget to track your actual surplus and unlock this timeline
+                {minimumAvalanche.summary.monthlyPayment === optimizedAvalanche.summary.monthlyPayment
+                  ? 'Using estimated payment. Create a budget to see timeline with your actual surplus.'
+                  : 'This scenario uses your budget surplus for maximum debt payoff. Create a budget to track your actual available funds.'}
               </Text>
             </Card.Content>
           </Card>
@@ -663,5 +689,31 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  paymentBreakdown: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  breakdownLabel: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#2e7d32',
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  breakdownText: {
+    color: '#666',
+  },
+  breakdownAmount: {
+    fontWeight: '500',
+  },
+  surplusText: {
+    color: '#4caf50',
+    fontWeight: '600',
   },
 });

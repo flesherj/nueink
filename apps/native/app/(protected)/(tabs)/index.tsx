@@ -271,15 +271,40 @@ export default function DashboardScreen() {
                   Analysis of last {(analysis as any).monthsAnalyzed || 3} months
                 </Text>
 
-                <Text variant="displaySmall" style={styles.balanceAmount}>
-                  {formatBalance((analysis as any).monthlyAverageSpending || analysis.totalSpending)}
-                </Text>
-                <Text variant="bodySmall" style={styles.subtitle}>
-                  Average monthly spending
-                </Text>
+                {/* Income & Surplus Summary */}
+                <View style={styles.financialSummary}>
+                  <View style={styles.summaryRow}>
+                    <Text variant="bodyMedium" style={styles.summaryLabel}>
+                      Monthly Income
+                    </Text>
+                    <Text variant="titleLarge" style={styles.incomeAmount}>
+                      {formatBalance((analysis as any).monthlyAverageIncome || 0)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text variant="bodyMedium" style={styles.summaryLabel}>
+                      Monthly Expenses
+                    </Text>
+                    <Text variant="titleLarge" style={styles.expenseAmount}>
+                      {formatBalance((analysis as any).monthlyAverageSpending || 0)}
+                    </Text>
+                  </View>
+                  <View style={[styles.summaryRow, styles.surplusRow]}>
+                    <Text variant="bodyMedium" style={styles.summaryLabelBold}>
+                      Monthly Surplus
+                    </Text>
+                    <Text variant="titleLarge" style={[
+                      styles.surplusAmount,
+                      (analysis as any).monthlySurplus < 0 && styles.negativeAmount
+                    ]}>
+                      {formatBalance((analysis as any).monthlySurplus || 0)}
+                    </Text>
+                  </View>
+                </View>
 
                 <Text variant="bodySmall" style={styles.subtitle}>
-                  Total: {formatBalance(analysis.totalSpending)} over {(analysis as any).monthsAnalyzed || 3} months
+                  Total income: {formatBalance((analysis as any).totalIncome || 0)} •
+                  Total spending: {formatBalance(analysis.totalSpending)} over {(analysis as any).monthsAnalyzed || 3} months
                 </Text>
 
                 {/* Pie Chart */}
@@ -653,5 +678,45 @@ const styles = StyleSheet.create({
   },
   viewDebtButton: {
     marginTop: 12,
+  },
+  financialSummary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 16,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  surplusRow: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    marginTop: 8,
+    paddingTop: 16,
+  },
+  summaryLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  summaryLabelBold: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+  },
+  incomeAmount: {
+    color: '#4caf50',
+    fontWeight: 'bold',
+  },
+  expenseAmount: {
+    color: '#ff9800',
+    fontWeight: 'bold',
+  },
+  surplusAmount: {
+    color: '#2196F3',
+    fontWeight: 'bold',
+  },
+  negativeAmount: {
+    color: '#f44336',
   },
 });
