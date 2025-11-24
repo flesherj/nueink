@@ -2,16 +2,19 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Surface, Text, Card, ActivityIndicator, Button } from 'react-native-paper';
 import { useAccountProvider, CategoryPieChart } from '@nueink/ui';
-import { FinancialAccountApi, FinancialAnalysisApi, BudgetApi } from '@nueink/sdk';
-import type { FinancialAccount, FinancialAnalysis, Budget } from '@nueink/core';
+import { useRouter } from 'expo-router';
+import { FinancialAccountApi, FinancialAnalysisApi, BudgetApi, DebtApi } from '@nueink/sdk';
+import type { FinancialAccount, FinancialAnalysis, Budget, DebtPayoffPlan } from '@nueink/core';
 
 // Create API clients
 const financialAccountApi = FinancialAccountApi.create();
 const financialAnalysisApi = FinancialAnalysisApi.create();
 const budgetApi = BudgetApi.create();
+const debtApi = DebtApi.create();
 
 export default function DashboardScreen() {
   const { account } = useAccountProvider();
+  const router = useRouter();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,6 +29,11 @@ export default function DashboardScreen() {
   const [createdBudget, setCreatedBudget] = useState<Budget | null>(null);
   const [creatingBudget, setCreatingBudget] = useState(false);
   const [budgetError, setBudgetError] = useState<string | null>(null);
+
+  // Debt payoff state
+  const [debtPlans, setDebtPlans] = useState<DebtPayoffPlan[]>([]);
+  const [loadingDebt, setLoadingDebt] = useState(false);
+  const [debtError, setDebtError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -104,6 +112,9 @@ export default function DashboardScreen() {
 
       setAnalysis(result);
       console.log('Analysis complete:', result);
+
+      // Also load debt plans for comprehensive financial picture
+      await loadDebtPlans();
     } catch (err) {
       console.error('Error analyzing spending:', err);
       setAnalysisError(err instanceof Error ? err.message : 'Failed to analyze spending');
@@ -136,6 +147,35 @@ export default function DashboardScreen() {
       setBudgetError(err instanceof Error ? err.message : 'Failed to create budget');
     } finally {
       setCreatingBudget(false);
+    }
+  };
+
+  /**
+   * Load debt payoff plans
+   */
+  const loadDebtPlans = async () => {
+    if (!account?.defaultOrgId || !account?.accountId) return;
+
+    try {
+      setLoadingDebt(true);
+      setDebtError(null);
+      console.log('Loading debt payoff plans...');
+
+      const result = await debtApi.generatePayoffPlans({
+        organizationId: account.defaultOrgId,
+        accountId: account.accountId,
+      });
+
+      setDebtPlans(result.plans || []);
+      console.log('Debt plans loaded:', result.plans);
+    } catch (err) {
+      console.error('Error loading debt plans:', err);
+      // Don't show error if no debts found - that's expected for many users
+      if (err instanceof Error && !err.message.includes('No debt accounts found')) {
+        setDebtError(err.message);
+      }
+    } finally {
+      setLoadingDebt(false);
     }
   };
 
@@ -311,6 +351,66 @@ export default function DashboardScreen() {
                     </Text>
                     <Text variant="bodySmall" style={styles.subtitle}>
                       {createdBudget.categoryBudgets.length} categories • Status: {createdBudget.status}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Debt Payoff Summary */}
+                {!loadingDebt && debtPlans.length > 0 && (
+                  <View style={styles.debtSection}>
+                    <Text variant="titleSmall" style={styles.sectionTitle}>
+                      💳 Debt Payoff Planning
+                    </Text>
+                    {(() => {
+                      const avalanchePlan = debtPlans.find(p => p.strategy === 'avalanche');
+                      const snowballPlan = debtPlans.find(p => p.strategy === 'snowball');
+                      const totalDebts = avalanchePlan?.debts.length || 0;
+                      const totalDebt = avalanchePlan?.summary.totalDebt || 0;
+                      const savings = snowballPlan && avalanchePlan
+                        ? snowballPlan.summary.totalInterest - avalanchePlan.summary.totalInterest
+                        : 0;
+
+                      return (
+                        <>
+                          <Text variant="bodyMedium" style={styles.debtSummaryText}>
+                            Found {totalDebts} debt{totalDebts !== 1 ? 's' : ''} totaling {formatBalance(totalDebt)}
+                          </Text>
+                          {avalanchePlan && (
+                            <Text variant="bodySmall" style={styles.subtitle}>
+                              Debt-free in {avalanchePlan.summary.monthsToPayoff} months with {formatBalance(avalanchePlan.summary.monthlyPayment)}/month
+                            </Text>
+                          )}
+                          {savings > 0 && (
+                            <Text variant="bodySmall" style={styles.savingsHighlight}>
+                              Save {formatBalance(savings)} in interest with the Avalanche strategy
+                            </Text>
+                          )}
+                          <Button
+                            mode="contained"
+                            onPress={() => router.push('/(protected)/debt')}
+                            style={styles.viewDebtButton}
+                          >
+                            View Debt Payoff Plans
+                          </Button>
+                        </>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {loadingDebt && (
+                  <View style={styles.debtSection}>
+                    <ActivityIndicator size="small" />
+                    <Text variant="bodySmall" style={styles.subtitle}>
+                      Analyzing your debts...
+                    </Text>
+                  </View>
+                )}
+
+                {debtError && (
+                  <View style={styles.debtSection}>
+                    <Text variant="bodySmall" style={styles.errorText}>
+                      {debtError}
                     </Text>
                   </View>
                 )}
@@ -519,5 +619,23 @@ const styles = StyleSheet.create({
   budgetName: {
     fontWeight: '600',
     marginBottom: 4,
+  },
+  debtSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  debtSummaryText: {
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  savingsHighlight: {
+    color: '#4caf50',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  viewDebtButton: {
+    marginTop: 12,
   },
 });
