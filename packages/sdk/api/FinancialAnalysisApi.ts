@@ -14,12 +14,14 @@ export class FinancialAnalysisApi {
 
   /**
    * Analyze spending for an organization
-   * GET /financial-analysis/analyze/:organizationId/:accountId?periodMonths=3
+   * GET /financial-analysis/analyze/:organizationId/:accountId?periodMonths=12
+   *
+   * Returns monthly averages based on up to 12 months of data
    */
   public analyzeSpending = async (
     organizationId: string,
     accountId: string,
-    periodMonths: number = 3
+    periodMonths: number = 12
   ): Promise<FinancialAnalysis & { insights: string[] }> => {
     const params = new URLSearchParams();
     params.append('periodMonths', periodMonths.toString());

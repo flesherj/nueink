@@ -8,19 +8,21 @@ import { BedrockAIInsightProvider } from '@nueink/aws/services';
  */
 class FinancialAnalysisController {
   /**
-   * Analyze spending for an organization
-   * GET /financial-analysis/analyze/:organizationId/:accountId?periodMonths=3
+   * Analyze spending for an organization with monthly averages
+   * GET /financial-analysis/analyze/:organizationId/:accountId?periodMonths=12
    *
    * Query params:
-   * - periodMonths (optional): Number of months to analyze (default: 3)
+   * - periodMonths (optional): Number of months to analyze (default: 12, max: 12)
+   *
+   * Returns analysis with monthly average spending across categories
    */
   public analyzeSpending = async (req: Request, res: Response): Promise<void> => {
     try {
       const { organizationId, accountId } = req.params;
       const { periodMonths } = req.query;
 
-      // Parse period
-      const months = periodMonths ? parseInt(periodMonths as string, 10) : 3;
+      // Parse period - default to 12 months for optimal financial planning
+      const months = periodMonths ? parseInt(periodMonths as string, 10) : 12;
 
       // Validate period
       if (isNaN(months) || months < 1 || months > 12) {

@@ -8,8 +8,9 @@
  */
 export interface CategorySpending {
   category: string;
-  amount: number;        // Total spent in cents
-  percentage: number;    // Percentage of total spending
+  amount: number;              // Total spent in period (cents)
+  monthlyAverage: number;      // Average per month (cents)
+  percentage: number;          // Percentage of total spending
   transactionCount: number;
   trend?: 'up' | 'down' | 'stable';  // Compared to previous period
 }
@@ -45,9 +46,11 @@ export interface FinancialAnalysis {
   // Analysis period
   periodStart: Date;
   periodEnd: Date;
+  monthsAnalyzed: number;  // Actual months of data analyzed
 
   // Spending breakdown
-  totalSpending: number;  // Total spent in period (cents)
+  totalSpending: number;          // Total spent in period (cents)
+  monthlyAverageSpending: number; // Average per month (cents)
   spendingByCategory: CategorySpending[];
 
   // Needs vs Wants classification (optional - requires AI)

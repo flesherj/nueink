@@ -25,26 +25,38 @@ export class FinancialAnalysisService {
    * @param organizationId Organization to analyze
    * @param accountId Account requesting analysis
    * @param profileOwner User requesting analysis
-   * @param periodMonths Number of months to analyze (default: 3)
-   * @returns Financial analysis with spending breakdown
+   * @param periodMonths Number of months to analyze (default: 12, max: 12)
+   * @returns Financial analysis with spending breakdown and monthly averages
    */
   public analyzeSpending = async (
     organizationId: string,
     accountId: string,
     profileOwner: string,
-    periodMonths: number = 3
+    periodMonths: number = 12
   ): Promise<FinancialAnalysis> => {
+    // Cap at 12 months maximum for optimal financial planning
+    // 12 months captures seasonal patterns and annual expenses
+    const monthsToAnalyze = Math.min(periodMonths, 12);
+
     // Calculate date range - setMonth handles year rollover automatically
     const periodEnd = new Date();
     const periodStart = new Date();
 
     // Subtract months - JavaScript automatically handles year changes
-    // Example: Jan 2025 - 3 months = Oct 2024
-    periodStart.setMonth(periodStart.getMonth() - periodMonths);
+    // Example: Jan 2025 - 12 months = Jan 2024
+    periodStart.setMonth(periodStart.getMonth() - monthsToAnalyze);
 
     // Fetch all transactions for the period
     const transactions = await this.fetchTransactionsForPeriod(
       organizationId,
+      periodStart,
+      periodEnd
+    );
+
+    // Calculate actual months analyzed based on transaction data
+    // This handles cases where we have less data than requested
+    const actualMonthsAnalyzed = this.calculateActualMonths(
+      transactions,
       periodStart,
       periodEnd
     );
@@ -55,7 +67,11 @@ export class FinancialAnalysisService {
     );
 
     // Analyze spending by category using splits
-    const spendingByCategory = this.analyzeByCategory(transactions, splits);
+    const spendingByCategory = this.analyzeByCategory(
+      transactions,
+      splits,
+      actualMonthsAnalyzed
+    );
 
     // Calculate total spending from filtered categories
     // This ensures total matches the filtered expense splits
@@ -64,6 +80,10 @@ export class FinancialAnalysisService {
       0
     );
 
+    // Calculate monthly average spending
+    const monthlyAverageSpending =
+      actualMonthsAnalyzed > 0 ? Math.round(totalSpending / actualMonthsAnalyzed) : 0;
+
     // Generate analysis
     const analysis: FinancialAnalysis = {
       analysisId: this.generateAnalysisId(),
@@ -71,7 +91,9 @@ export class FinancialAnalysisService {
       organizationId,
       periodStart,
       periodEnd,
+      monthsAnalyzed: actualMonthsAnalyzed,
       totalSpending,
+      monthlyAverageSpending,
       spendingByCategory,
       createdAt: new Date(),
       profileOwner,
@@ -82,11 +104,12 @@ export class FinancialAnalysisService {
 
   /**
    * Analyze spending by category
-   * Groups transaction splits by category and calculates totals
+   * Groups transaction splits by category and calculates totals and monthly averages
    */
   private analyzeByCategory = (
     transactions: Transaction[],
-    splits: TransactionSplit[]
+    splits: TransactionSplit[],
+    monthsAnalyzed: number
   ): CategorySpending[] => {
     // Filter to expense splits only (negative amounts)
     // Exclude transfers, inflows, income, and debt payments (not actual spending)
@@ -134,12 +157,17 @@ export class FinancialAnalysisService {
       const amount = categorySplits.reduce((sum, s) => sum + Math.abs(s.amount), 0);
       const percentage = totalSpending > 0 ? (amount / totalSpending) * 100 : 0;
 
+      // Calculate monthly average
+      const monthlyAverage =
+        monthsAnalyzed > 0 ? Math.round(amount / monthsAnalyzed) : amount;
+
       // Count unique transactions for this category
       const uniqueTransactionIds = new Set(categorySplits.map((s) => s.transactionId));
 
       categorySpending.push({
         category,
         amount,
+        monthlyAverage,
         percentage,
         transactionCount: uniqueTransactionIds.size,
       });
@@ -219,6 +247,38 @@ export class FinancialAnalysisService {
   };
 
   /**
+   * Calculate actual months of data analyzed
+   * Uses transaction dates to determine real coverage
+   * Falls back to requested period if no transactions
+   */
+  private calculateActualMonths = (
+    transactions: Transaction[],
+    periodStart: Date,
+    periodEnd: Date
+  ): number => {
+    if (transactions.length === 0) {
+      // No transactions - calculate months from requested period
+      const months =
+        (periodEnd.getFullYear() - periodStart.getFullYear()) * 12 +
+        (periodEnd.getMonth() - periodStart.getMonth());
+      return Math.max(1, months);
+    }
+
+    // Find earliest and latest transaction dates
+    const dates = transactions.map((t) => new Date(t.date));
+    const earliest = new Date(Math.min(...dates.map((d) => d.getTime())));
+    const latest = new Date(Math.max(...dates.map((d) => d.getTime())));
+
+    // Calculate months between earliest and latest transaction
+    const months =
+      (latest.getFullYear() - earliest.getFullYear()) * 12 +
+      (latest.getMonth() - earliest.getMonth()) +
+      1; // Add 1 to include both start and end months
+
+    return Math.max(1, months);
+  };
+
+  /**
    * Generate unique analysis ID
    */
   private generateAnalysisId = (): string => {
@@ -260,9 +320,8 @@ export class FinancialAnalysisService {
     // Insight 1: Top spending category
     if (topCategories.length > 0) {
       const top = topCategories[0];
-      const monthlyAvg = top.amount / 3; // 3 months
       insights.push(
-        `You spend an average of $${(monthlyAvg / 100).toFixed(2)}/month on ${top.category} (${top.percentage.toFixed(1)}% of spending)`
+        `You spend an average of $${(top.monthlyAverage / 100).toFixed(2)}/month on ${top.category} (${top.percentage.toFixed(1)}% of spending)`
       );
     }
 
@@ -274,9 +333,9 @@ export class FinancialAnalysisService {
     }
 
     // Insight 3: Total spending
-    const monthlyAvg = analysis.totalSpending / 3; // 3 months
+    const monthsText = analysis.monthsAnalyzed === 1 ? 'month' : 'months';
     insights.push(
-      `Total spending: $${(analysis.totalSpending / 100).toFixed(2)} over 3 months (avg $${(monthlyAvg / 100).toFixed(2)}/month)`
+      `Total spending: $${(analysis.totalSpending / 100).toFixed(2)} over ${analysis.monthsAnalyzed} ${monthsText} (avg $${(analysis.monthlyAverageSpending / 100).toFixed(2)}/month)`
     );
 
     return insights;

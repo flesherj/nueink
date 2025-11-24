@@ -50,40 +50,53 @@ export class BudgetService {
   };
 
   /**
-   * Create a baseline budget from a financial analysis
-   * Uses current spending patterns as the budget baseline
+   * Create a baseline monthly budget from a financial analysis
+   * Uses monthly averages from historical spending patterns
    *
-   * @param analysis Financial analysis to convert
-   * @param name Optional budget name (defaults to period-based name)
-   * @returns Created baseline budget
+   * @param analysis Financial analysis with monthly averages
+   * @param name Optional budget name (defaults to "Monthly Budget")
+   * @returns Created baseline monthly budget
    */
   public createBaselineFromAnalysis = async (
     analysis: FinancialAnalysis,
     name?: string
   ): Promise<Budget> => {
-    // Generate budget name if not provided
-    const budgetName = name || this.generateBudgetName(analysis.periodStart, analysis.periodEnd);
+    // Generate budget name - emphasize it's a monthly budget
+    const budgetName =
+      name ||
+      this.generateMonthlyBudgetName(
+        analysis.periodStart,
+        analysis.periodEnd,
+        analysis.monthsAnalyzed
+      );
 
-    // Convert spending categories to budget categories
+    // Convert spending categories to monthly budget categories
+    // Use monthly averages instead of period totals
     const categoryBudgets: CategoryBudget[] = analysis.spendingByCategory.map((spending) => ({
       category: spending.category,
-      budgetAmount: spending.amount,          // Use current spending as baseline
-      currentSpending: spending.amount,       // Same as budgetAmount for baseline
+      budgetAmount: spending.monthlyAverage, // Monthly average, not period total
+      currentSpending: 0, // Reset for new budget period
       percentage: spending.percentage,
       trend: spending.trend,
-      notes: `Based on ${spending.transactionCount} transactions`,
+      notes: `Based on ${spending.transactionCount} transactions over ${analysis.monthsAnalyzed} months`,
     }));
 
-    // Create baseline budget
+    // Calculate current month period for the budget
+    // Budget is for the current/upcoming month
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1); // First of month
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last of month
+
+    // Create baseline monthly budget
     const budget: Budget = {
       budgetId: this.generateBudgetId(),
       accountId: analysis.accountId,
       organizationId: analysis.organizationId,
       name: budgetName,
-      periodStart: analysis.periodStart,
-      periodEnd: analysis.periodEnd,
+      periodStart, // Current month start
+      periodEnd, // Current month end
       categoryBudgets,
-      totalBudget: analysis.totalSpending,
+      totalBudget: analysis.monthlyAverageSpending, // Monthly average, not period total
       status: 'baseline',
       sourceAnalysisId: analysis.analysisId,
       createdAt: new Date(),
@@ -100,6 +113,35 @@ export class BudgetService {
    */
   private generateBudgetId = (): string => {
     return `budget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  /**
+   * Generate a monthly budget name based on analysis period
+   * Examples:
+   *   - "Monthly Budget (Based on 12 months)"
+   *   - "Monthly Budget (Based on Jan-Dec 2024)"
+   */
+  private generateMonthlyBudgetName = (
+    analysisStart: Date,
+    analysisEnd: Date,
+    monthsAnalyzed: number
+  ): string => {
+    const startMonth = analysisStart.toLocaleDateString('en-US', { month: 'short' });
+    const startYear = analysisStart.getFullYear();
+    const endMonth = analysisEnd.toLocaleDateString('en-US', { month: 'short' });
+    const endYear = analysisEnd.getFullYear();
+
+    // Simple format: "Monthly Budget (Based on X months)"
+    if (monthsAnalyzed <= 3) {
+      return `Monthly Budget (Based on ${monthsAnalyzed} months)`;
+    }
+
+    // Include date range for longer periods
+    if (startYear === endYear) {
+      return `Monthly Budget (Based on ${startMonth}-${endMonth} ${startYear})`;
+    }
+
+    return `Monthly Budget (Based on ${startMonth} ${startYear}-${endMonth} ${endYear})`;
   };
 
   /**

@@ -99,7 +99,7 @@ export default function DashboardScreen() {
       const result = await financialAnalysisApi.analyzeSpending(
         account.defaultOrgId,
         account.accountId,
-        3 // Last 3 months
+        12 // Last 12 months for optimal financial planning
       );
 
       setAnalysis(result);
@@ -113,7 +113,7 @@ export default function DashboardScreen() {
   };
 
   /**
-   * Create baseline budget from current analysis
+   * Create baseline monthly budget from current analysis
    */
   const handleCreateBudget = async () => {
     if (!account?.defaultOrgId || !account?.accountId) return;
@@ -121,16 +121,16 @@ export default function DashboardScreen() {
     try {
       setCreatingBudget(true);
       setBudgetError(null);
-      console.log('Creating budget from analysis...');
+      console.log('Creating monthly budget from analysis...');
 
       const result = await budgetApi.createFromAnalysis({
         organizationId: account.defaultOrgId,
         accountId: account.accountId,
-        periodMonths: 3, // Same as analysis
+        periodMonths: 12, // Same as analysis - 12 months for optimal planning
       });
 
       setCreatedBudget(result.budget);
-      console.log('Budget created:', result.budget);
+      console.log('Monthly budget created:', result.budget);
     } catch (err) {
       console.error('Error creating budget:', err);
       setBudgetError(err instanceof Error ? err.message : 'Failed to create budget');
@@ -212,14 +212,18 @@ export default function DashboardScreen() {
             {analysis && !analyzing && (
               <View>
                 <Text variant="bodyMedium" style={styles.subtitle}>
-                  Analysis of last 3 months
+                  Analysis of last {(analysis as any).monthsAnalyzed || 3} months
                 </Text>
 
                 <Text variant="displaySmall" style={styles.balanceAmount}>
-                  {formatBalance(analysis.totalSpending)}
+                  {formatBalance((analysis as any).monthlyAverageSpending || analysis.totalSpending)}
                 </Text>
                 <Text variant="bodySmall" style={styles.subtitle}>
-                  Total spending
+                  Average monthly spending
+                </Text>
+
+                <Text variant="bodySmall" style={styles.subtitle}>
+                  Total: {formatBalance(analysis.totalSpending)} over {(analysis as any).monthsAnalyzed || 3} months
                 </Text>
 
                 {/* Pie Chart */}
@@ -227,13 +231,14 @@ export default function DashboardScreen() {
                   <CategoryPieChart
                     data={analysis.spendingByCategory}
                     topN={7}
+                    valueField="monthlyAverage"
                   />
                 )}
 
                 {/* All Categories */}
                 <View style={styles.categorySection}>
                   <Text variant="titleSmall" style={styles.sectionTitle}>
-                    All Spending Categories ({analysis.spendingByCategory.length})
+                    Monthly Budget by Category ({analysis.spendingByCategory.length})
                   </Text>
                   {analysis.spendingByCategory.map((cat) => (
                     <View key={cat.category} style={styles.categoryRow}>
@@ -242,7 +247,7 @@ export default function DashboardScreen() {
                       </Text>
                       <View style={styles.categoryAmounts}>
                         <Text variant="bodyMedium" style={styles.categoryAmount}>
-                          {formatBalance(cat.amount)}
+                          {formatBalance((cat as any).monthlyAverage || cat.amount)}/mo
                         </Text>
                         <Text variant="bodySmall" style={styles.categoryPercent}>
                           {cat.percentage.toFixed(1)}%
@@ -270,10 +275,10 @@ export default function DashboardScreen() {
                 {!createdBudget && (
                   <View style={styles.budgetSection}>
                     <Text variant="titleSmall" style={styles.sectionTitle}>
-                      💰 Ready to Create Your Budget?
+                      💰 Ready to Create Your Monthly Budget?
                     </Text>
                     <Text variant="bodySmall" style={styles.subtitle}>
-                      We'll create a baseline budget based on your current spending patterns
+                      We'll create a monthly budget based on your average spending over {(analysis as any).monthsAnalyzed || 3} months
                     </Text>
                     <Button
                       mode="contained"
@@ -282,7 +287,7 @@ export default function DashboardScreen() {
                       loading={creatingBudget}
                       disabled={creatingBudget}
                     >
-                      {creatingBudget ? 'Creating Budget...' : 'Create Baseline Budget'}
+                      {creatingBudget ? 'Creating Budget...' : 'Create Monthly Budget'}
                     </Button>
                     {budgetError && (
                       <Text variant="bodySmall" style={styles.errorText}>
@@ -296,13 +301,13 @@ export default function DashboardScreen() {
                 {createdBudget && (
                   <View style={styles.budgetSuccessSection}>
                     <Text variant="titleSmall" style={styles.successTitle}>
-                      ✅ Budget Created!
+                      ✅ Monthly Budget Created!
                     </Text>
                     <Text variant="bodyMedium" style={styles.budgetName}>
                       {createdBudget.name}
                     </Text>
                     <Text variant="bodySmall" style={styles.subtitle}>
-                      Total Budget: {formatBalance(createdBudget.totalBudget)}
+                      Monthly Budget: {formatBalance(createdBudget.totalBudget)}/month
                     </Text>
                     <Text variant="bodySmall" style={styles.subtitle}>
                       {createdBudget.categoryBudgets.length} categories • Status: {createdBudget.status}

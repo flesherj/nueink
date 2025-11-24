@@ -30,6 +30,8 @@ export interface CategoryPieChartProps {
   height?: number;
   /** Number of top categories to show (rest grouped as "Other") */
   topN?: number;
+  /** Which value field to use: 'amount' for period total or 'monthlyAverage' for monthly average */
+  valueField?: 'amount' | 'monthlyAverage';
 }
 
 /**
@@ -53,6 +55,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
   data,
   height = chartHeight,
   topN = 7,
+  valueField = 'amount',
 }) => {
   const theme = useTheme();
   const chartRef = useRef<any>(null);
@@ -81,12 +84,12 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
     if (data.length > topN) {
       const topCategories = data.slice(0, topN);
       const otherCategories = data.slice(topN);
-      const otherTotal = otherCategories.reduce((sum, cat) => sum + cat.amount, 0);
+      const otherTotal = otherCategories.reduce((sum, cat) => sum + cat[valueField], 0);
 
       chartData = [
         ...topCategories.map(cat => ({
           name: cat.category,
-          value: cat.amount / 100, // Convert cents to dollars
+          value: cat[valueField] / 100, // Convert cents to dollars
         })),
         {
           name: 'Other',
@@ -96,7 +99,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
     } else {
       chartData = data.map(cat => ({
         name: cat.category,
-        value: cat.amount / 100,
+        value: cat[valueField] / 100,
       }));
     }
 
@@ -175,7 +178,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
     };
 
     return option;
-  }, [data, theme, topN]);
+  }, [data, theme, topN, valueField]);
 
   // Initialize chart
   useEffect(() => {

@@ -7,7 +7,7 @@ import type { Budget } from '@nueink/core';
 export interface CreateBudgetFromAnalysisRequest {
   organizationId: string;
   accountId: string;
-  periodMonths?: number;  // default: 3
+  periodMonths?: number;  // default: 12, max: 12
   budgetName?: string;    // optional custom name
 }
 
@@ -20,7 +20,9 @@ export interface CreateBudgetFromAnalysisResponse {
     analysisId: string;
     periodStart: Date;
     periodEnd: Date;
+    monthsAnalyzed: number;
     totalSpending: number;
+    monthlyAverageSpending: number;
     categoryCount: number;
   };
 }

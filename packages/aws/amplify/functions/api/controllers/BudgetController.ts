@@ -8,14 +8,17 @@ import { BedrockAIInsightProvider } from '@nueink/aws/services';
  */
 class BudgetController {
   /**
-   * Create a baseline budget from financial analysis
+   * Create a baseline monthly budget from financial analysis
    * POST /budget/from-analysis
    *
    * Body:
    * - organizationId: string (required)
    * - accountId: string (required)
-   * - periodMonths: number (optional, default: 3) - months to analyze
+   * - periodMonths: number (optional, default: 12) - months to analyze (max: 12)
    * - budgetName: string (optional) - custom budget name
+   *
+   * Creates a monthly budget based on average spending over the analysis period.
+   * Uses up to 12 months of data for optimal financial planning.
    */
   public createFromAnalysis = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -29,8 +32,8 @@ class BudgetController {
         return;
       }
 
-      // Parse period
-      const months = periodMonths ? parseInt(periodMonths as string, 10) : 3;
+      // Parse period - default to 12 months for optimal financial planning
+      const months = periodMonths ? parseInt(periodMonths as string, 10) : 12;
 
       // Validate period
       if (isNaN(months) || months < 1 || months > 12) {
@@ -44,7 +47,7 @@ class BudgetController {
       // For now, using accountId as profileOwner (should be cognito user ID)
       const profileOwner = accountId;
 
-      // Step 1: Run financial analysis
+      // Step 1: Run financial analysis with monthly averages
       const aiProvider = new BedrockAIInsightProvider(awsFactory.bedrock());
       const analysisService = serviceFactory.financialAnalysis(aiProvider);
 
@@ -55,7 +58,7 @@ class BudgetController {
         months
       );
 
-      // Step 2: Create baseline budget from analysis
+      // Step 2: Create baseline monthly budget from analysis
       const budgetService = serviceFactory.budget();
       const budget = await budgetService.createBaselineFromAnalysis(analysis, budgetName);
 
@@ -66,7 +69,9 @@ class BudgetController {
           analysisId: analysis.analysisId,
           periodStart: analysis.periodStart,
           periodEnd: analysis.periodEnd,
+          monthsAnalyzed: analysis.monthsAnalyzed,
           totalSpending: analysis.totalSpending,
+          monthlyAverageSpending: analysis.monthlyAverageSpending,
           categoryCount: analysis.spendingByCategory.length,
         }
       });
