@@ -16,3 +16,6 @@ export * from './AnalyticsApi';
 export * from './FinancialAnalysisApi';
 export * from './BudgetApi';
 export * from './DebtApi';
+
+// Converters
+export * from './TransactionConverter';

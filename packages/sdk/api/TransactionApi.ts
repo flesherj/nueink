@@ -1,6 +1,7 @@
 import { AwsAmplifyApiFactory } from './AwsAmplifyApiFactory';
 import type { Transaction } from '@nueink/core';
 import type { PaginationResult } from './types';
+import { convertTransactionsFromResponse, convertTransactionFromResponse, type TransactionResponse } from './TransactionConverter';
 
 /**
  * Transaction API Client
@@ -27,7 +28,13 @@ export class TransactionApi {
 
     const url = `/transaction/organization/${organizationId}${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await this.api.get(url).response;
-    return (await response.body.json()) as unknown as PaginationResult<Transaction>;
+    const apiResult = (await response.body.json()) as unknown as PaginationResult<TransactionResponse>;
+
+    // Convert API responses to domain models with properly parsed dates
+    return {
+      ...apiResult,
+      items: convertTransactionsFromResponse(apiResult.items),
+    };
   };
 
   /**
@@ -44,7 +51,13 @@ export class TransactionApi {
 
     const url = `/transaction/account/${financialAccountId}${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await this.api.get(url).response;
-    return (await response.body.json()) as unknown as PaginationResult<Transaction>;
+    const apiResult = (await response.body.json()) as unknown as PaginationResult<TransactionResponse>;
+
+    // Convert API responses to domain models with properly parsed dates
+    return {
+      ...apiResult,
+      items: convertTransactionsFromResponse(apiResult.items),
+    };
   };
 
   /**
@@ -53,6 +66,9 @@ export class TransactionApi {
    */
   public getTransaction = async (transactionId: string): Promise<Transaction> => {
     const response = await this.api.get(`/transaction/${transactionId}`).response;
-    return (await response.body.json()) as unknown as Transaction;
+    const apiResponse = (await response.body.json()) as unknown as TransactionResponse;
+
+    // Convert API response to domain model with properly parsed dates
+    return convertTransactionFromResponse(apiResponse);
   };
 }

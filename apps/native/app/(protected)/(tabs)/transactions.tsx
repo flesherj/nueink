@@ -182,16 +182,8 @@ export default function TransactionsFeedScreen() {
     const groups: Record<string, { dateKey: string; timestamp: number; transactions: Transaction[] }> = {};
 
     txs.forEach((tx) => {
-      // Parse date in local timezone to avoid UTC conversion issues
-      // Transaction dates are YYYY-MM-DD at midnight UTC, but we want to group by local date
-      const dateStr = typeof tx.date === 'string' ? tx.date : tx.date.toISOString();
-      const dateParts = dateStr.split('T')[0].split('-'); // "2025-11-03" -> ["2025", "11", "03"]
-      const year = parseInt(dateParts[0], 10);
-      const month = parseInt(dateParts[1], 10) - 1; // JS months are 0-indexed
-      const day = parseInt(dateParts[2], 10);
-
-      // Create date in LOCAL timezone (not UTC)
-      const txDate = new Date(year, month, day);
+      // Transaction dates are now properly parsed as Date objects by the API layer
+      const txDate = tx.date;
 
       const dateKey = txDate.toLocaleDateString('en-US', {
         weekday: 'long',
@@ -216,7 +208,8 @@ export default function TransactionsFeedScreen() {
       .map(({ dateKey, transactions }) => ({
         date: dateKey,
         // Sort transactions within each group (most recent first)
-        transactions: transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        // Dates are already Date objects from the API layer
+        transactions: transactions.sort((a, b) => b.date.getTime() - a.date.getTime()),
       }));
   };
 
