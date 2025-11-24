@@ -160,6 +160,8 @@ export default function DashboardScreen() {
       setLoadingDebt(true);
       setDebtError(null);
       console.log('Loading debt payoff plans...');
+      console.log('Financial accounts available:', accounts.length);
+      console.log('Account types:', accounts.map(a => ({ name: a.name, type: a.type, status: a.status, balance: a.currentBalance })));
 
       const result = await debtApi.generatePayoffPlans({
         organizationId: account.defaultOrgId,
@@ -170,6 +172,7 @@ export default function DashboardScreen() {
       console.log('Debt plans loaded:', result.plans);
     } catch (err) {
       console.error('Error loading debt plans:', err);
+      console.error('Error details:', err instanceof Error ? err.message : err);
       // Don't show error if no debts found - that's expected for many users
       if (err instanceof Error && !err.message.includes('No debt accounts found')) {
         setDebtError(err.message);

@@ -34,7 +34,7 @@ export class BedrockInterestRateEstimator implements AIInterestRateEstimator {
 
     try {
       const content = await this.bedrockService.invokeSimple(prompt, {
-        modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+        modelId: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', // Cross-region inference profile
         temperature: 0.3, // Lower temperature for more consistent estimates
         maxTokens: 2000,
       });
