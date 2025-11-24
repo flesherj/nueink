@@ -28,6 +28,9 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
       periodEnd: entity.periodEnd,
       categoryBudgets: entity.categoryBudgets,
       totalBudget: entity.totalBudget,
+      monthlyIncome: entity.monthlyIncome,
+      surplus: entity.surplus,
+      availableForDebt: entity.availableForDebt,
       status: entity.status,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -51,6 +54,9 @@ export class AmplifyBudgetRepository implements BudgetRepository<BudgetEntity> {
     if (entity.periodEnd !== undefined) updates.periodEnd = entity.periodEnd;
     if (entity.categoryBudgets !== undefined) updates.categoryBudgets = entity.categoryBudgets;
     if (entity.totalBudget !== undefined) updates.totalBudget = entity.totalBudget;
+    if (entity.monthlyIncome !== undefined) updates.monthlyIncome = entity.monthlyIncome;
+    if (entity.surplus !== undefined) updates.surplus = entity.surplus;
+    if (entity.availableForDebt !== undefined) updates.availableForDebt = entity.availableForDebt;
     if (entity.status !== undefined) updates.status = entity.status;
     if (entity.updatedAt !== undefined) updates.updatedAt = entity.updatedAt;
     if (entity.sourceAnalysisId !== undefined) updates.sourceAnalysisId = entity.sourceAnalysisId;
