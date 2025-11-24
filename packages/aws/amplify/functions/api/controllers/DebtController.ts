@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { serviceFactory } from '../handler';
 import { DebtPayoffService } from '@nueink/core';
+import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockInterestRateEstimator } from '../../../../services';
+import { getDebtAccountsWithAI } from '@nueink/core';
 
 /**
  * Debt Controller
@@ -219,7 +222,7 @@ class DebtController {
   };
 
   /**
-   * Generate debt payoff plans
+   * Generate debt payoff plans from synced accounts
    * POST /debt/payoff-plans
    *
    * Body:
@@ -227,6 +230,8 @@ class DebtController {
    * - accountId: string (required)
    * - monthlyPayment?: number (optional) - defaults to minimums + 10%
    *
+   * Automatically discovers debt accounts from synced FinancialAccounts
+   * Uses AI to estimate interest rates based on current market conditions
    * Returns multiple payoff strategies (avalanche, snowball)
    */
   public generatePayoffPlans = async (req: Request, res: Response): Promise<void> => {
@@ -244,27 +249,49 @@ class DebtController {
       // TODO: Get profileOwner from Cognito auth context
       const profileOwner = accountId;
 
-      // Get all active debts for the organization
-      const debtService = serviceFactory.debt();
-      const debts = await debtService.findActiveDebts(organizationId);
+      // Get all financial accounts for the organization
+      const financialAccountService = serviceFactory.financialAccount();
+      const result = await financialAccountService.findByOrganization(organizationId);
+      const accounts = result.items;
 
-      if (debts.length === 0) {
+      if (accounts.length === 0) {
         res.status(404).json({
-          error: 'No active debts found',
-          message: 'Add some debts before generating payoff plans'
+          error: 'No financial accounts found',
+          message: 'Connect a bank account or credit card first'
         });
         return;
       }
 
-      // Generate payoff plans
+      // Use AI to enrich debt accounts with estimated interest rates
+      const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const aiEstimator = new BedrockInterestRateEstimator(bedrockClient);
+      const enrichedDebtAccounts = await getDebtAccountsWithAI(accounts, aiEstimator);
+
+      if (enrichedDebtAccounts.length === 0) {
+        res.status(404).json({
+          error: 'No debt accounts found',
+          message: 'No credit cards, loans, or mortgages detected in your accounts'
+        });
+        return;
+      }
+
+      // Generate payoff plans with AI-enriched accounts
       const payoffService = new DebtPayoffService();
       const plans = payoffService.generatePayoffPlans(
-        debts,
+        enrichedDebtAccounts,
         organizationId,
         accountId,
         profileOwner,
         monthlyPayment
       );
+
+      if (plans.length === 0) {
+        res.status(404).json({
+          error: 'No debt accounts found',
+          message: 'No credit cards, loans, or mortgages detected in your accounts'
+        });
+        return;
+      }
 
       res.json({ plans, count: plans.length });
     } catch (error) {

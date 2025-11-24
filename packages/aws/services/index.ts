@@ -7,6 +7,7 @@
  * CloudWatchMetricsService: Uses CloudWatch EMF (Embedded Metric Format)
  * SecretsManagerService: Manages OAuth tokens in AWS Secrets Manager
  * BedrockAIInsightProvider: AWS Bedrock implementation of AIInsightProvider
+ * BedrockInterestRateEstimator: AWS Bedrock implementation of AIInterestRateEstimator
  *
  * For mobile/web: Create platform-specific implementations
  */
@@ -14,3 +15,4 @@ export * from './AwsServiceFactory';
 export * from './CloudWatchMetricsService';
 export * from './SecretsManagerService';
 export * from './BedrockAIInsightProvider';
+export * from './BedrockInterestRateEstimator';

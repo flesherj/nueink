@@ -29,6 +29,12 @@ export interface FinancialAccount {
   currency: Currency;
   personId?: string;               // For auto-assignment
   status: FinancialAccountStatus;
+
+  // Debt-specific fields (for liability accounts)
+  interestRate?: number;           // APR as decimal (0.1599 = 15.99%)
+  minimumPayment?: number;         // Minimum monthly payment in cents
+  dueDate?: number;                // Day of month (1-31) payment is due
+
   rawData?: Record<string, any>;   // Complete provider response (for debugging, backfill, advanced features)
   syncedAt?: Date;                 // Last sync timestamp from provider
   createdAt: Date;

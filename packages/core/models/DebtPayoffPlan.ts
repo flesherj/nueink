@@ -1,4 +1,4 @@
-import { Debt } from './Debt';
+import { FinancialAccount } from './FinancialAccount';
 
 /**
  * Debt payoff strategy type
@@ -51,8 +51,8 @@ export interface DebtPayoffPlan {
   name: string;                   // e.g., "Avalanche Strategy", "Snowball Strategy"
   strategy: PayoffStrategy;
 
-  // Debts included in plan
-  debts: Debt[];
+  // Debt accounts included in plan
+  debts: FinancialAccount[];
 
   // Payment configuration
   monthlyPayment: number;         // Total monthly payment across all debts

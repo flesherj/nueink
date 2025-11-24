@@ -7,3 +7,4 @@
 
 export * from './AIInsightProvider';
 export * from './SimpleAIInsightProvider';
+export * from './AIInterestRateEstimator';

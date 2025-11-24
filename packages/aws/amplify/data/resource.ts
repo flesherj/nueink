@@ -127,6 +127,12 @@ const schema = a.schema({
             currency: a.string().required(),            // USD|EUR|etc
             personId: a.string(),                       // FK to Person (for auto-assignment)
             status: a.string().required(),              // active|inactive|closed
+
+            // Debt-specific fields (for liability accounts)
+            interestRate: a.float(),                    // APR as decimal (0.1599 = 15.99%)
+            minimumPayment: a.float(),                  // Minimum monthly payment in cents
+            dueDate: a.integer(),                       // Day of month (1-31) payment is due
+
             rawData: a.json(),                          // Complete provider response (YNAB/Plaid/etc)
             syncedAt: a.datetime(),                     // Last sync timestamp from provider
             createdAt: a.datetime().required(),

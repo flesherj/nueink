@@ -1,11 +1,12 @@
 import {
-  Debt,
+  FinancialAccount,
   DebtPayoffPlan,
   PayoffPlanOptions,
   PayoffPlanSummary,
   MonthlyPaymentSchedule,
   DebtPayment,
 } from '../models';
+import { getDebtAccounts, estimateInterestRate, estimateMinimumPayment } from '../utils/debtEstimation';
 
 /**
  * Debt Payoff Service
@@ -15,33 +16,38 @@ export class DebtPayoffService {
   /**
    * Generate multiple payoff plans for comparison
    * Returns avalanche, snowball, and custom strategies
+   *
+   * Automatically filters to debt accounts and enriches with estimated rates/payments
    */
   public generatePayoffPlans = (
-    debts: Debt[],
+    accounts: FinancialAccount[],
     organizationId: string,
     accountId: string,
     profileOwner: string,
     monthlyPayment?: number
   ): DebtPayoffPlan[] => {
-    // Filter to active debts only
-    const activeDebts = debts.filter((d) => d.status === 'active');
+    // Filter to debt accounts and enrich with estimates
+    const debtAccounts = getDebtAccounts(accounts);
 
-    if (activeDebts.length === 0) {
+    if (debtAccounts.length === 0) {
       return [];
     }
 
     // Calculate default monthly payment (sum of minimums + 10%)
-    const totalMinimums = activeDebts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
+    const totalMinimums = debtAccounts.reduce(
+      (sum, account) => sum + estimateMinimumPayment(account),
+      0
+    );
     const defaultMonthlyPayment = monthlyPayment || Math.round(totalMinimums * 1.1);
 
     // Generate avalanche strategy (highest interest rate first)
-    const avalanche = this.generatePlan(activeDebts, organizationId, accountId, profileOwner, {
+    const avalanche = this.generatePlan(debtAccounts, organizationId, accountId, profileOwner, {
       strategy: 'avalanche',
       monthlyPayment: defaultMonthlyPayment,
     });
 
     // Generate snowball strategy (smallest balance first)
-    const snowball = this.generatePlan(activeDebts, organizationId, accountId, profileOwner, {
+    const snowball = this.generatePlan(debtAccounts, organizationId, accountId, profileOwner, {
       strategy: 'snowball',
       monthlyPayment: defaultMonthlyPayment,
     });
@@ -53,21 +59,24 @@ export class DebtPayoffService {
    * Generate a single payoff plan with specified strategy
    */
   public generatePlan = (
-    debts: Debt[],
+    accounts: FinancialAccount[],
     organizationId: string,
     accountId: string,
     profileOwner: string,
     options: PayoffPlanOptions
   ): DebtPayoffPlan => {
-    // Filter to active debts only
-    const activeDebts = debts.filter((d) => d.status === 'active');
+    // Filter to debt accounts and enrich
+    const debtAccounts = getDebtAccounts(accounts);
 
-    if (activeDebts.length === 0) {
-      throw new Error('No active debts to create payoff plan');
+    if (debtAccounts.length === 0) {
+      throw new Error('No active debt accounts to create payoff plan');
     }
 
     // Calculate monthly payment
-    const totalMinimums = activeDebts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
+    const totalMinimums = debtAccounts.reduce(
+      (sum, account) => sum + estimateMinimumPayment(account),
+      0
+    );
     const monthlyPayment = options.monthlyPayment || totalMinimums;
     const extraPayment = options.extraPayment || monthlyPayment - totalMinimums;
 
@@ -80,13 +89,17 @@ export class DebtPayoffService {
     }
 
     // Order debts based on strategy
-    const orderedDebts = this.orderDebtsByStrategy(activeDebts, options.strategy, options.customOrder);
+    const orderedAccounts = this.orderDebtsByStrategy(
+      debtAccounts,
+      options.strategy,
+      options.customOrder
+    );
 
     // Calculate payment schedule
-    const schedule = this.calculatePaymentSchedule(orderedDebts, monthlyPayment);
+    const schedule = this.calculatePaymentSchedule(orderedAccounts, monthlyPayment);
 
     // Calculate summary
-    const summary = this.calculateSummary(activeDebts, schedule);
+    const summary = this.calculateSummary(debtAccounts, schedule);
 
     // Generate plan name
     const name = this.generatePlanName(options.strategy);
@@ -97,7 +110,7 @@ export class DebtPayoffService {
       accountId,
       name,
       strategy: options.strategy,
-      debts: activeDebts,
+      debts: debtAccounts,
       monthlyPayment,
       extraPayment,
       summary,
@@ -110,41 +123,45 @@ export class DebtPayoffService {
   };
 
   /**
-   * Order debts based on payoff strategy
+   * Order debt accounts based on payoff strategy
    */
   private orderDebtsByStrategy = (
-    debts: Debt[],
+    accounts: FinancialAccount[],
     strategy: string,
     customOrder?: string[]
-  ): Debt[] => {
+  ): FinancialAccount[] => {
     switch (strategy) {
       case 'avalanche':
         // Highest interest rate first
-        return [...debts].sort((a, b) => {
-          const rateA = a.interestRate || 0;
-          const rateB = b.interestRate || 0;
+        return [...accounts].sort((a, b) => {
+          const rateA = estimateInterestRate(a);
+          const rateB = estimateInterestRate(b);
           return rateB - rateA; // Descending order
         });
 
       case 'snowball':
         // Smallest balance first
-        return [...debts].sort((a, b) => a.currentBalance - b.currentBalance);
+        return [...accounts].sort((a, b) => {
+          const balanceA = a.currentBalance || 0;
+          const balanceB = b.currentBalance || 0;
+          return balanceA - balanceB;
+        });
 
       case 'custom':
         // Custom order specified by user
         if (!customOrder || customOrder.length === 0) {
-          return debts;
+          return accounts;
         }
-        return [...debts].sort((a, b) => {
-          const indexA = customOrder.indexOf(a.debtId);
-          const indexB = customOrder.indexOf(b.debtId);
+        return [...accounts].sort((a, b) => {
+          const indexA = customOrder.indexOf(a.financialAccountId);
+          const indexB = customOrder.indexOf(b.financialAccountId);
           if (indexA === -1) return 1;
           if (indexB === -1) return -1;
           return indexA - indexB;
         });
 
       default:
-        return debts;
+        return accounts;
     }
   };
 
@@ -152,24 +169,24 @@ export class DebtPayoffService {
    * Calculate payment schedule month by month
    */
   private calculatePaymentSchedule = (
-    orderedDebts: Debt[],
+    orderedAccounts: FinancialAccount[],
     monthlyPayment: number
   ): MonthlyPaymentSchedule[] => {
     const schedule: MonthlyPaymentSchedule[] = [];
 
-    // Create working copy of debts with balances
-    const workingDebts = orderedDebts.map((d) => ({
-      debt: d,
-      balance: d.currentBalance,
-      minimumPayment: d.minimumPayment || 0,
-      interestRate: d.interestRate || 0,
+    // Create working copy of accounts with balances
+    const workingAccounts = orderedAccounts.map((account) => ({
+      account,
+      balance: account.currentBalance || 0,
+      minimumPayment: estimateMinimumPayment(account),
+      interestRate: estimateInterestRate(account),
     }));
 
     let month = 1;
     const now = new Date();
 
     // Continue until all debts are paid off (max 600 months = 50 years)
-    while (workingDebts.some((d) => d.balance > 0) && month <= 600) {
+    while (workingAccounts.some((a) => a.balance > 0) && month <= 600) {
       const monthDate = new Date(now);
       monthDate.setMonth(monthDate.getMonth() + month);
 
@@ -177,49 +194,51 @@ export class DebtPayoffService {
       const payments: DebtPayment[] = [];
 
       // First, pay minimums on all debts
-      for (const wd of workingDebts) {
-        if (wd.balance <= 0) continue;
+      for (const wa of workingAccounts) {
+        if (wa.balance <= 0) continue;
 
         // Calculate interest for this month
-        const monthlyInterestRate = wd.interestRate / 12;
-        const interestCharge = Math.round(wd.balance * monthlyInterestRate);
+        const monthlyInterestRate = wa.interestRate / 12;
+        const interestCharge = Math.round(wa.balance * monthlyInterestRate);
 
         // Pay minimum or remaining balance (whichever is less)
-        const payment = Math.min(wd.minimumPayment, wd.balance + interestCharge, remainingPayment);
+        const payment = Math.min(wa.minimumPayment, wa.balance + interestCharge, remainingPayment);
         const interest = Math.min(interestCharge, payment);
         const principal = payment - interest;
 
-        wd.balance = wd.balance + interestCharge - payment;
+        wa.balance = wa.balance + interestCharge - payment;
         remainingPayment -= payment;
 
         payments.push({
-          debtId: wd.debt.debtId,
-          debtName: wd.debt.name,
+          debtId: wa.account.financialAccountId,
+          debtName: wa.account.name,
           payment,
           principal,
           interest,
-          remainingBalance: Math.max(0, wd.balance),
+          remainingBalance: Math.max(0, wa.balance),
         });
       }
 
       // Apply extra payment to first non-zero debt (avalanche/snowball target)
       if (remainingPayment > 0) {
-        const targetDebt = workingDebts.find((d) => d.balance > 0);
-        if (targetDebt) {
-          const extraPayment = Math.min(remainingPayment, targetDebt.balance);
-          targetDebt.balance -= extraPayment;
+        const targetAccount = workingAccounts.find((a) => a.balance > 0);
+        if (targetAccount) {
+          const extraPayment = Math.min(remainingPayment, targetAccount.balance);
+          targetAccount.balance -= extraPayment;
 
           // Update the payment record
-          const paymentIndex = payments.findIndex((p) => p.debtId === targetDebt.debt.debtId);
+          const paymentIndex = payments.findIndex(
+            (p) => p.debtId === targetAccount.account.financialAccountId
+          );
           if (paymentIndex >= 0) {
             payments[paymentIndex].payment += extraPayment;
             payments[paymentIndex].principal += extraPayment;
-            payments[paymentIndex].remainingBalance = Math.max(0, targetDebt.balance);
+            payments[paymentIndex].remainingBalance = Math.max(0, targetAccount.balance);
           }
         }
       }
 
-      const debtsRemaining = workingDebts.filter((d) => d.balance > 0).length;
+      const debtsRemaining = workingAccounts.filter((a) => a.balance > 0).length;
 
       schedule.push({
         month,
@@ -239,10 +258,10 @@ export class DebtPayoffService {
    * Calculate plan summary from schedule
    */
   private calculateSummary = (
-    debts: Debt[],
+    accounts: FinancialAccount[],
     schedule: MonthlyPaymentSchedule[]
   ): PayoffPlanSummary => {
-    const totalDebt = debts.reduce((sum, d) => sum + d.currentBalance, 0);
+    const totalDebt = accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
 
     let totalInterest = 0;
     for (const month of schedule) {
