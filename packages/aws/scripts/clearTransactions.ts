@@ -1,10 +1,12 @@
 /**
- * Clear Transactions Script
+ * Clear Tables Script
  *
- * Deletes all transactions and transaction splits from the database.
- * Useful for testing AI categorization from scratch.
+ * Deletes data from specified tables in the database.
+ * Useful for testing and development.
  *
  * Usage: yarn clear-transactions
+ *
+ * To skip clearing a table, comment it out in the TABLES_TO_CLEAR array.
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -13,10 +15,38 @@ import { fromIni } from '@aws-sdk/credential-providers';
 
 const REGION = 'us-east-1';
 const PROFILE = 'solotech';
+const SANDBOX_ID = 'mf62wubvgrdnxhhqstqlaqtpsy';
+const STAGE = 'NONE';
 
-// Table names - update these to match your sandbox
-const TRANSACTION_TABLE = process.env.TRANSACTION_TABLE || 'Transaction-mf62wubvgrdnxhhqstqlaqtpsy-NONE';
-const SPLIT_TABLE = process.env.SPLIT_TABLE || 'TransactionSplit-mf62wubvgrdnxhhqstqlaqtpsy-NONE';
+/**
+ * Table configuration
+ * Comment out any tables you don't want to clear
+ */
+const TABLES_TO_CLEAR = [
+  // Financial Data - Commonly cleared for testing
+  { name: 'Transaction', key: 'transactionId' },
+  { name: 'TransactionSplit', key: 'splitId' },
+  { name: 'FinancialAccount', key: 'financialAccountId' },
+  { name: 'Institution', key: 'institutionId' },
+
+  // Budgets and Debts
+  // { name: 'Budget', key: 'budgetId' },
+  // { name: 'Debt', key: 'debtId' },
+
+  // AI/ML Data
+  // { name: 'UserCategorizationFeedback', key: 'feedbackId' },
+  // { name: 'Insight', key: 'insightId' },
+
+  // User/Organization Data - CAREFUL! Uncomment only if you want to reset everything
+  // { name: 'Account', key: 'accountId' },
+  // { name: 'Organization', key: 'orgId' },
+  // { name: 'Membership', key: 'accountId', sortKey: 'orgId' }, // Composite key
+  // { name: 'Person', key: 'personId' },
+  // { name: 'Comment', key: 'commentId' },
+
+  // Integration Configs - CAREFUL! Contains OAuth tokens
+  // { name: 'IntegrationConfig', key: 'configId' },
+];
 
 const client = new DynamoDBClient({
   region: REGION,
@@ -26,19 +56,35 @@ const client = new DynamoDBClient({
 const docClient = DynamoDBDocumentClient.from(client);
 
 /**
+ * Build full table name with sandbox ID and stage
+ */
+const getFullTableName = (tableName: string): string => {
+  return `${tableName}-${SANDBOX_ID}-${STAGE}`;
+};
+
+/**
  * Delete items in batches of 25 (DynamoDB limit)
  */
-const batchDelete = async (tableName: string, items: any[], keyField: string): Promise<number> => {
+const batchDelete = async (
+  tableName: string,
+  items: any[],
+  keyField: string,
+  sortKeyField?: string
+): Promise<number> => {
   let deletedCount = 0;
 
   for (let i = 0; i < items.length; i += 25) {
     const batch = items.slice(i, i + 25);
 
-    const deleteRequests = batch.map(item => ({
-      DeleteRequest: {
-        Key: { [keyField]: item[keyField] }
+    const deleteRequests = batch.map(item => {
+      const key: any = { [keyField]: item[keyField] };
+      if (sortKeyField) {
+        key[sortKeyField] = item[sortKeyField];
       }
-    }));
+      return {
+        DeleteRequest: { Key: key }
+      };
+    });
 
     try {
       await docClient.send(new BatchWriteCommand({
@@ -48,9 +94,9 @@ const batchDelete = async (tableName: string, items: any[], keyField: string): P
       }));
 
       deletedCount += batch.length;
-      console.log(`Deleted ${deletedCount} items from ${tableName}...`);
+      console.log(`  Deleted ${deletedCount}/${items.length} items...`);
     } catch (error) {
-      console.error(`Failed to delete batch from ${tableName}:`, error);
+      console.error(`  Failed to delete batch:`, error);
       throw error;
     }
   }
@@ -61,56 +107,71 @@ const batchDelete = async (tableName: string, items: any[], keyField: string): P
 /**
  * Scan and delete all items from a table
  */
-const clearTable = async (tableName: string, keyField: string): Promise<number> => {
-  console.log(`\nScanning ${tableName}...`);
+const clearTable = async (
+  tableName: string,
+  keyField: string,
+  sortKeyField?: string
+): Promise<number> => {
+  const fullTableName = getFullTableName(tableName);
+  console.log(`\n📋 ${tableName}`);
+  console.log(`   Table: ${fullTableName}`);
 
   let items: any[] = [];
   let lastEvaluatedKey: any = undefined;
 
   // Scan all items
-  do {
-    const response = await docClient.send(new ScanCommand({
-      TableName: tableName,
-      ExclusiveStartKey: lastEvaluatedKey
-    }));
+  try {
+    do {
+      const response = await docClient.send(new ScanCommand({
+        TableName: fullTableName,
+        ExclusiveStartKey: lastEvaluatedKey
+      }));
 
-    if (response.Items) {
-      items.push(...response.Items);
+      if (response.Items) {
+        items.push(...response.Items);
+      }
+
+      lastEvaluatedKey = response.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+  } catch (error: any) {
+    if (error.name === 'ResourceNotFoundException') {
+      console.log(`   ⚠️  Table not found - skipping`);
+      return 0;
     }
+    throw error;
+  }
 
-    lastEvaluatedKey = response.LastEvaluatedKey;
-  } while (lastEvaluatedKey);
-
-  console.log(`Found ${items.length} items in ${tableName}`);
+  console.log(`   Found: ${items.length} items`);
 
   if (items.length === 0) {
-    console.log('No items to delete');
+    console.log(`   ✓ Already empty`);
     return 0;
   }
 
   // Delete all items
-  const deletedCount = await batchDelete(tableName, items, keyField);
-  console.log(`✅ Deleted ${deletedCount} items from ${tableName}`);
+  const deletedCount = await batchDelete(fullTableName, items, keyField, sortKeyField);
+  console.log(`   ✅ Deleted: ${deletedCount} items`);
 
   return deletedCount;
 };
 
 const main = async () => {
-  console.log('🗑️  Clear Transactions and Splits\n');
+  console.log('🗑️  Clear Database Tables\n');
   console.log(`Region: ${REGION}`);
   console.log(`Profile: ${PROFILE}`);
-  console.log(`Transaction Table: ${TRANSACTION_TABLE}`);
-  console.log(`Split Table: ${SPLIT_TABLE}`);
+  console.log(`Sandbox: ${SANDBOX_ID}`);
+  console.log(`\nClearing ${TABLES_TO_CLEAR.length} table(s)...`);
 
   try {
-    // Clear splits first (foreign key dependency)
-    const splitsDeleted = await clearTable(SPLIT_TABLE, 'splitId');
+    let totalDeleted = 0;
 
-    // Then clear transactions
-    const transactionsDeleted = await clearTable(TRANSACTION_TABLE, 'transactionId');
+    for (const table of TABLES_TO_CLEAR) {
+      const deleted = await clearTable(table.name, table.key, table.sortKey);
+      totalDeleted += deleted;
+    }
 
     console.log('\n✅ Complete!');
-    console.log(`Total deleted: ${transactionsDeleted} transactions, ${splitsDeleted} splits`);
+    console.log(`Total deleted: ${totalDeleted} items across ${TABLES_TO_CLEAR.length} table(s)`);
   } catch (error) {
     console.error('\n❌ Error:', error);
     process.exit(1);
