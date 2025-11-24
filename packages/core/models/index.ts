@@ -5,6 +5,7 @@ export * from './Membership';
 export * from './Institution';
 export * from './FinancialAccount';
 export * from './Transaction';
+export * from './TransactionLocation';
 export * from './TransactionCategory';
 export * from './Comment';
 export * from './Person';

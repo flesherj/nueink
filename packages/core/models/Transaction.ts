@@ -1,4 +1,5 @@
 import { FinancialProvider, Currency } from './types';
+import { TransactionLocation } from './TransactionLocation';
 
 /**
  * Transaction Status
@@ -42,6 +43,15 @@ export interface Transaction {
   pending: boolean;                // Convenience field: true if status === 'pending'
   personId?: string;               // Auto-assigned person
   receiptUrls?: Array<string>;     // S3 keys for receipts (Phase 2)
+
+  // Enriched fields (optional - only populated by providers that support them)
+  // Plaid provides these, YNAB does not
+  merchantLogoUrl?: string;        // Merchant logo URL for UI
+  merchantWebsite?: string;        // Merchant website
+  location?: TransactionLocation;  // Geographic location where transaction occurred
+  paymentChannel?: 'online' | 'in store' | 'other';  // How payment was made
+  personalFinanceCategory?: string;  // Provider's ML-based category (e.g., Plaid's category)
+
   rawData?: Record<string, any>;   // Complete provider response (for debugging, backfill, advanced features)
   syncedAt?: Date;                 // Last sync timestamp from provider
   createdAt: Date;
