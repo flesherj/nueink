@@ -10,6 +10,7 @@ export * from './Comment';
 export * from './Person';
 export * from './Budget';
 export * from './Debt';
+export * from './DebtPayoffPlan';
 export * from './FinancialIntegration';
 export * from './IntegrationConfig';
 export * from './IntegrationTokens';
