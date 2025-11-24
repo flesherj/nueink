@@ -461,7 +461,7 @@ export default function DebtOverviewScreen() {
             </View>
             <Button
               mode="contained"
-              onPress={() => router.push('/debt/schedule/avalanche')}
+              onPress={() => router.push(avalanchePlan.optimized ? '/debt/schedule/optimized-avalanche' : '/debt/schedule/avalanche')}
               style={styles.viewButton}
             >
               View Payment Schedule
@@ -513,7 +513,7 @@ export default function DebtOverviewScreen() {
             </View>
             <Button
               mode="outlined"
-              onPress={() => router.push('/debt/schedule/snowball')}
+              onPress={() => router.push(snowballPlan.optimized ? '/debt/schedule/optimized-snowball' : '/debt/schedule/snowball')}
               style={styles.viewButton}
             >
               View Payment Schedule
