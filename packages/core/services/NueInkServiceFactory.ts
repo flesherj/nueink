@@ -11,12 +11,13 @@ import { CommentService } from './CommentService';
 import { PersonService } from './PersonService';
 import { BudgetService } from './BudgetService';
 import { DebtService } from './DebtService';
+import { DebtPayoffPlanningService } from './DebtPayoffPlanningService';
 import { IntegrationService } from './IntegrationService';
 import { AnalyticsService } from './AnalyticsService';
 import { FinancialAnalysisService } from './FinancialAnalysisService';
 import type { SecretManager } from './SecretManager';
 import type { EventPublisher } from '../events';
-import type { AIInsightProvider } from '../providers';
+import type { AIInsightProvider, AIInterestRateEstimator } from '../providers';
 import { SimpleAIInsightProvider } from '../providers';
 
 /**
@@ -105,5 +106,10 @@ export class NueInkServiceFactory {
       this.transaction(),
       this.transactionSplit(),
       aiProvider || new SimpleAIInsightProvider()
+    );
+  public debtPayoffPlanning = (aiEstimator?: AIInterestRateEstimator): DebtPayoffPlanningService =>
+    new DebtPayoffPlanningService(
+      this.financialAccount(),
+      aiEstimator
     );
 }

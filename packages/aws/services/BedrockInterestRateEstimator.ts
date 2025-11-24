@@ -1,12 +1,12 @@
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { AIInterestRateEstimator, InterestRateEstimate, FinancialAccount } from '@nueink/core';
+import { BedrockService } from './BedrockService';
 
 /**
  * Bedrock-powered interest rate estimator
  * Uses Claude to estimate current market rates for debt accounts
  */
 export class BedrockInterestRateEstimator implements AIInterestRateEstimator {
-  constructor(private bedrock: BedrockRuntimeClient) {}
+  constructor(private bedrockService: BedrockService) {}
 
   public estimateInterestRate = async (
     account: FinancialAccount,
@@ -33,27 +33,11 @@ export class BedrockInterestRateEstimator implements AIInterestRateEstimator {
     const prompt = this.buildPrompt(accounts, currentDate);
 
     try {
-      const response = await this.bedrock.send(
-        new InvokeModelCommand({
-          modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
-          contentType: 'application/json',
-          accept: 'application/json',
-          body: JSON.stringify({
-            anthropic_version: 'bedrock-2023-05-31',
-            max_tokens: 2000,
-            temperature: 0.3, // Lower temperature for more consistent estimates
-            messages: [
-              {
-                role: 'user',
-                content: prompt,
-              },
-            ],
-          }),
-        })
-      );
-
-      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-      const content = responseBody.content[0].text;
+      const content = await this.bedrockService.invokeSimple(prompt, {
+        modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+        temperature: 0.3, // Lower temperature for more consistent estimates
+        maxTokens: 2000,
+      });
 
       return this.parseResponse(content, accounts);
     } catch (error) {

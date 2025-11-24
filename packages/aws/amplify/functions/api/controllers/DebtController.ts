@@ -1,9 +1,5 @@
 import { Request, Response } from 'express';
-import { serviceFactory } from '../handler';
-import { DebtPayoffService } from '@nueink/core';
-import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
-import { BedrockInterestRateEstimator } from '../../../../services';
-import { getDebtAccountsWithAI } from '@nueink/core';
+import { serviceFactory, awsFactory } from '../handler';
 
 /**
  * Debt Controller
@@ -249,49 +245,16 @@ class DebtController {
       // TODO: Get profileOwner from Cognito auth context
       const profileOwner = accountId;
 
-      // Get all financial accounts for the organization
-      const financialAccountService = serviceFactory.financialAccount();
-      const result = await financialAccountService.findByOrganization(organizationId);
-      const accounts = result.items;
+      // Use service layer to handle debt discovery and plan generation
+      const aiEstimator = awsFactory.bedrockInterestRateEstimator();
+      const payoffPlanningService = serviceFactory.debtPayoffPlanning(aiEstimator);
 
-      if (accounts.length === 0) {
-        res.status(404).json({
-          error: 'No financial accounts found',
-          message: 'Connect a bank account or credit card first'
-        });
-        return;
-      }
-
-      // Use AI to enrich debt accounts with estimated interest rates
-      const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
-      const aiEstimator = new BedrockInterestRateEstimator(bedrockClient);
-      const enrichedDebtAccounts = await getDebtAccountsWithAI(accounts, aiEstimator);
-
-      if (enrichedDebtAccounts.length === 0) {
-        res.status(404).json({
-          error: 'No debt accounts found',
-          message: 'No credit cards, loans, or mortgages detected in your accounts'
-        });
-        return;
-      }
-
-      // Generate payoff plans with AI-enriched accounts
-      const payoffService = new DebtPayoffService();
-      const plans = payoffService.generatePayoffPlans(
-        enrichedDebtAccounts,
+      const plans = await payoffPlanningService.generatePayoffPlans(
         organizationId,
         accountId,
         profileOwner,
         monthlyPayment
       );
-
-      if (plans.length === 0) {
-        res.status(404).json({
-          error: 'No debt accounts found',
-          message: 'No credit cards, loans, or mortgages detected in your accounts'
-        });
-        return;
-      }
 
       res.json({ plans, count: plans.length });
     } catch (error) {

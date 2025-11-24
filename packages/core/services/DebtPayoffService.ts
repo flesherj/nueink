@@ -6,7 +6,6 @@ import {
   MonthlyPaymentSchedule,
   DebtPayment,
 } from '../models';
-import { getDebtAccounts, estimateInterestRate, estimateMinimumPayment } from '../utils/debtEstimation';
 
 /**
  * Debt Payoff Service
@@ -26,8 +25,8 @@ export class DebtPayoffService {
     profileOwner: string,
     monthlyPayment?: number
   ): DebtPayoffPlan[] => {
-    // Filter to debt accounts and enrich with estimates
-    const debtAccounts = getDebtAccounts(accounts);
+    // Accounts should already be enriched by DebtPayoffPlanningService
+    const debtAccounts = accounts;
 
     if (debtAccounts.length === 0) {
       return [];
@@ -35,7 +34,7 @@ export class DebtPayoffService {
 
     // Calculate default monthly payment (sum of minimums + 10%)
     const totalMinimums = debtAccounts.reduce(
-      (sum, account) => sum + estimateMinimumPayment(account),
+      (sum, account) => sum + this.estimateMinimumPayment(account),
       0
     );
     const defaultMonthlyPayment = monthlyPayment || Math.round(totalMinimums * 1.1);
@@ -65,8 +64,8 @@ export class DebtPayoffService {
     profileOwner: string,
     options: PayoffPlanOptions
   ): DebtPayoffPlan => {
-    // Filter to debt accounts and enrich
-    const debtAccounts = getDebtAccounts(accounts);
+    // Accounts should already be enriched by DebtPayoffPlanningService
+    const debtAccounts = accounts;
 
     if (debtAccounts.length === 0) {
       throw new Error('No active debt accounts to create payoff plan');
@@ -74,7 +73,7 @@ export class DebtPayoffService {
 
     // Calculate monthly payment
     const totalMinimums = debtAccounts.reduce(
-      (sum, account) => sum + estimateMinimumPayment(account),
+      (sum, account) => sum + this.estimateMinimumPayment(account),
       0
     );
     const monthlyPayment = options.monthlyPayment || totalMinimums;
@@ -134,8 +133,8 @@ export class DebtPayoffService {
       case 'avalanche':
         // Highest interest rate first
         return [...accounts].sort((a, b) => {
-          const rateA = estimateInterestRate(a);
-          const rateB = estimateInterestRate(b);
+          const rateA = this.estimateInterestRate(a);
+          const rateB = this.estimateInterestRate(b);
           return rateB - rateA; // Descending order
         });
 
@@ -178,8 +177,8 @@ export class DebtPayoffService {
     const workingAccounts = orderedAccounts.map((account) => ({
       account,
       balance: account.currentBalance || 0,
-      minimumPayment: estimateMinimumPayment(account),
-      interestRate: estimateInterestRate(account),
+      minimumPayment: this.estimateMinimumPayment(account),
+      interestRate: this.estimateInterestRate(account),
       promotionalRate: account.promotionalRate,
       promotionalEndDate: account.promotionalEndDate,
       deferredInterest: account.deferredInterest || false,
@@ -337,5 +336,29 @@ export class DebtPayoffService {
    */
   private generatePlanId = (): string => {
     return `plan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // ==================== Private Estimation Helper Methods ====================
+
+  /**
+   * Estimate interest rate for an account (reads from account or falls back to defaults)
+   */
+  private estimateInterestRate = (account: FinancialAccount): number => {
+    if (account.interestRate !== undefined && account.interestRate !== null) {
+      return account.interestRate;
+    }
+    return 0.1099; // Default fallback if somehow not enriched
+  };
+
+  /**
+   * Estimate minimum payment for an account (reads from account or falls back to calculation)
+   */
+  private estimateMinimumPayment = (account: FinancialAccount): number => {
+    if (account.minimumPayment !== undefined && account.minimumPayment !== null) {
+      return account.minimumPayment;
+    }
+    // Simple fallback - accounts should be enriched before reaching this service
+    const balance = account.currentBalance || 0;
+    return Math.max(Math.round(balance * 0.02), 2500);
   };
 }

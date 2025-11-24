@@ -13,6 +13,7 @@ export * from './PersonService';
 export * from './BudgetService';
 export * from './DebtService';
 export * from './DebtPayoffService';
+export * from './DebtPayoffPlanningService';
 export * from './IntegrationService';
 export * from './SecretManager';
 export * from './NueInkServiceFactory';

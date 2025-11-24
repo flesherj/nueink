@@ -3,6 +3,7 @@ import { SecretsManagerService } from './SecretsManagerService';
 import { EventBridgePublisher } from '../events/EventBridgePublisher';
 import { BedrockService } from './BedrockService';
 import { BedrockCategorizationProvider } from './BedrockCategorizationProvider';
+import { BedrockInterestRateEstimator } from './BedrockInterestRateEstimator';
 
 /**
  * Factory for creating AWS infrastructure service instances
@@ -54,4 +55,12 @@ export class AwsServiceFactory {
    */
   public bedrockCategorization = (): BedrockCategorizationProvider =>
     new BedrockCategorizationProvider();
+
+  /**
+   * Create Bedrock AI interest rate estimator
+   * Uses AI to estimate current market interest rates for debt accounts
+   */
+  public bedrockInterestRateEstimator = (): BedrockInterestRateEstimator => {
+    return new BedrockInterestRateEstimator(this.bedrock());
+  };
 }

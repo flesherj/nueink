@@ -1,0 +1,267 @@
+import {
+  FinancialAccount,
+  FinancialAccountType,
+  DebtPayoffPlan,
+} from '../models';
+import type { AIInterestRateEstimator } from '../providers';
+import { DebtPayoffService } from './DebtPayoffService';
+import { FinancialAccountService } from './FinancialAccountService';
+
+/**
+ * Debt Payoff Planning Service
+ * Orchestrates debt discovery, AI enrichment, and payoff plan generation
+ *
+ * This service layer abstracts the business logic from the controller,
+ * handling the coordination between account fetching, AI estimation, and plan generation.
+ */
+export class DebtPayoffPlanningService {
+  private payoffService: DebtPayoffService;
+
+  constructor(
+    private accountService: FinancialAccountService,
+    private aiEstimator?: AIInterestRateEstimator
+  ) {
+    this.payoffService = new DebtPayoffService();
+  }
+
+  /**
+   * Get debt accounts enriched with AI-estimated interest rates
+   *
+   * @param organizationId Organization to fetch debts for
+   * @returns Enriched debt accounts with estimated rates and minimum payments
+   */
+  public getEnrichedDebtAccounts = async (
+    organizationId: string
+  ): Promise<FinancialAccount[]> => {
+    // Fetch all financial accounts for the organization
+    const result = await this.accountService.findByOrganization(organizationId);
+    const accounts = result.items;
+
+    if (accounts.length === 0) {
+      return [];
+    }
+
+    // Use AI to enrich debt accounts if estimator available
+    if (this.aiEstimator) {
+      return await this.getDebtAccountsWithAI(accounts);
+    }
+
+    // Fall back to static estimation
+    return this.getDebtAccounts(accounts);
+  };
+
+  /**
+   * Generate debt payoff plans for an organization
+   *
+   * Automatically discovers debt accounts from synced financial accounts,
+   * enriches them with AI-estimated interest rates and promotional periods,
+   * and generates multiple payoff strategies (avalanche, snowball).
+   *
+   * @param organizationId Organization to generate plans for
+   * @param accountId Account requesting the plans
+   * @param profileOwner User requesting the plans
+   * @param monthlyPayment Optional total monthly payment (defaults to minimums + 10%)
+   * @returns Array of debt payoff plans with different strategies
+   * @throws Error if no financial accounts or debt accounts found
+   */
+  public generatePayoffPlans = async (
+    organizationId: string,
+    accountId: string,
+    profileOwner: string,
+    monthlyPayment?: number
+  ): Promise<DebtPayoffPlan[]> => {
+    // Get enriched debt accounts (with AI estimation if available)
+    const enrichedDebtAccounts = await this.getEnrichedDebtAccounts(organizationId);
+
+    if (enrichedDebtAccounts.length === 0) {
+      throw new Error('No debt accounts found');
+    }
+
+    // Generate payoff plans with AI-enriched accounts
+    const plans = this.payoffService.generatePayoffPlans(
+      enrichedDebtAccounts,
+      organizationId,
+      accountId,
+      profileOwner,
+      monthlyPayment
+    );
+
+    return plans;
+  };
+
+  // ==================== Private Debt Estimation Methods ====================
+
+  /**
+   * Fallback interest rates by account type (as decimal)
+   * Used when AI estimation is unavailable or fails
+   */
+  private static readonly FALLBACK_INTEREST_RATES: Record<string, number> = {
+    credit_card: 0.2099,        // 20.99% average credit card APR
+    line_of_credit: 0.1249,     // 12.49% average line of credit
+    mortgage: 0.0699,           // 6.99% average mortgage rate
+    auto_loan: 0.0699,          // 6.99% average auto loan
+    student_loan: 0.0549,       // 5.49% average student loan
+    personal_loan: 0.1149,      // 11.49% average personal loan
+    medical_debt: 0.0000,       // Typically 0% if payment plan
+    liability: 0.0999,          // 9.99% default for unknown liability
+  };
+
+  /**
+   * Estimate interest rate for an account if not provided
+   */
+  private estimateInterestRate = (account: FinancialAccount): number => {
+    // If account already has rate, use it
+    if (account.interestRate !== undefined && account.interestRate !== null) {
+      return account.interestRate;
+    }
+
+    // Try to extract from rawData (Plaid might provide this)
+    if (account.rawData && typeof account.rawData === 'object') {
+      const raw = account.rawData as any;
+      if (raw.aprs && Array.isArray(raw.aprs) && raw.aprs.length > 0) {
+        return raw.aprs[0].apr_percentage / 100;
+      }
+      if (raw.apr_percentage) {
+        return raw.apr_percentage / 100;
+      }
+    }
+
+    // Fall back to typical rate for account type
+    return DebtPayoffPlanningService.FALLBACK_INTEREST_RATES[account.type] || 0.1099;
+  };
+
+  /**
+   * Estimate minimum payment for an account if not provided
+   */
+  private estimateMinimumPayment = (account: FinancialAccount): number => {
+    // If account already has minimum payment, use it
+    if (account.minimumPayment !== undefined && account.minimumPayment !== null) {
+      return account.minimumPayment;
+    }
+
+    // Try to extract from rawData
+    if (account.rawData && typeof account.rawData === 'object') {
+      const raw = account.rawData as any;
+      if (raw.minimum_payment) {
+        return raw.minimum_payment;
+      }
+    }
+
+    const balance = account.currentBalance || 0;
+
+    // Estimate based on account type
+    switch (account.type) {
+      case 'credit_card':
+        return Math.max(Math.round(balance * 0.02), 2500);
+
+      case 'line_of_credit':
+        const interestRate = this.estimateInterestRate(account);
+        const monthlyInterestRate = interestRate / 12;
+        return Math.round(balance * monthlyInterestRate);
+
+      case 'mortgage':
+      case 'auto_loan':
+      case 'student_loan':
+      case 'personal_loan':
+        const rate = this.estimateInterestRate(account);
+        const monthlyRate = rate / 12;
+        const numPayments = 120; // 10 years
+        if (monthlyRate === 0) {
+          return Math.round(balance / numPayments);
+        }
+        return Math.round(
+          (balance * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+            (Math.pow(1 + monthlyRate, numPayments) - 1)
+        );
+
+      case 'medical_debt':
+        return Math.max(Math.round(balance * 0.01), 5000);
+
+      default:
+        return Math.max(Math.round(balance * 0.02), 2500);
+    }
+  };
+
+  /**
+   * Check if an account is a debt/liability account
+   */
+  private isDebtAccount = (account: FinancialAccount): boolean => {
+    const debtTypes: FinancialAccountType[] = [
+      'credit_card',
+      'line_of_credit',
+      'mortgage',
+      'auto_loan',
+      'student_loan',
+      'personal_loan',
+      'medical_debt',
+      'liability',
+    ];
+
+    return debtTypes.includes(account.type);
+  };
+
+  /**
+   * Get all debt accounts from a list of financial accounts
+   * Enriches accounts with estimated interest rates and minimum payments
+   */
+  private getDebtAccounts = (accounts: FinancialAccount[]): FinancialAccount[] => {
+    return accounts
+      .filter(this.isDebtAccount)
+      .filter((account) => account.status === 'active')
+      .filter((account) => (account.currentBalance || 0) > 0)
+      .map((account) => ({
+        ...account,
+        interestRate: this.estimateInterestRate(account),
+        minimumPayment: this.estimateMinimumPayment(account),
+      }));
+  };
+
+  /**
+   * Get all debt accounts with AI-powered interest rate estimation
+   */
+  private getDebtAccountsWithAI = async (
+    accounts: FinancialAccount[]
+  ): Promise<FinancialAccount[]> => {
+    const debtAccounts = accounts
+      .filter(this.isDebtAccount)
+      .filter((account) => account.status === 'active')
+      .filter((account) => (account.currentBalance || 0) > 0);
+
+    if (debtAccounts.length === 0) {
+      return [];
+    }
+
+    // Use AI batch estimation if available
+    if (this.aiEstimator) {
+      try {
+        const estimates = await this.aiEstimator.estimateInterestRates(debtAccounts);
+
+        return debtAccounts.map((account) => {
+          const estimate = estimates.get(account.financialAccountId);
+
+          // Calculate promotional end date if promotional period detected
+          let promotionalEndDate: Date | undefined;
+          if (estimate?.hasPromotionalPeriod && estimate.promotionalMonths) {
+            promotionalEndDate = new Date();
+            promotionalEndDate.setMonth(promotionalEndDate.getMonth() + estimate.promotionalMonths);
+          }
+
+          return {
+            ...account,
+            interestRate: estimate?.estimatedRate || this.estimateInterestRate(account),
+            minimumPayment: this.estimateMinimumPayment(account),
+            // Apply promotional period information from AI
+            promotionalRate: estimate?.hasPromotionalPeriod ? estimate.promotionalRate : undefined,
+            promotionalEndDate,
+            deferredInterest: estimate?.hasDeferredInterest,
+          };
+        });
+      } catch (error) {
+        console.warn('AI batch estimation failed, using fallback:', error);
+      }
+    }
+
+    // Fall back to synchronous estimation
+    return this.getDebtAccounts(accounts);
+  };
+}
