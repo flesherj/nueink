@@ -172,9 +172,17 @@ export default function DebtOverviewScreen() {
     );
   }
 
-  const avalanchePlan = plans.find(p => p.strategy === 'avalanche');
-  const snowballPlan = plans.find(p => p.strategy === 'snowball');
+  // Show consumer debt only (credit cards, loans) - mortgages excluded
+  // This provides a more actionable timeline for users
+  const consumerPlans = plans.filter(p => p.scope === 'consumer');
+  const totalPlans = plans.filter(p => p.scope === 'all');
+
+  // Use consumer plans if available, otherwise fall back to total
+  const activePlans = consumerPlans.length > 0 ? consumerPlans : totalPlans;
+  const avalanchePlan = activePlans.find(p => p.strategy === 'avalanche');
+  const snowballPlan = activePlans.find(p => p.strategy === 'snowball');
   const debts = avalanchePlan?.debts || [];
+  const isConsumerDebt = consumerPlans.length > 0;
 
   return (
     <ScrollView
@@ -185,11 +193,16 @@ export default function DebtOverviewScreen() {
       <Card style={styles.card}>
         <Card.Content>
           <Text variant="titleLarge" style={styles.sectionTitle}>
-            Your Debts
+            {isConsumerDebt ? '💳 Consumer Debt Payoff' : '🏠 Total Debt Payoff'}
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
-            Found {debts.length} debt{debts.length !== 1 ? 's' : ''}{avalanchePlan ? ` totaling ${formatDebtBalance(avalanchePlan.summary.totalDebt)}` : ''}
+            {debts.length} {isConsumerDebt ? 'consumer debt' : 'debt'}{debts.length !== 1 ? 's' : ''}{avalanchePlan ? ` totaling ${formatDebtBalance(avalanchePlan.summary.totalDebt)}` : ''}
           </Text>
+          {isConsumerDebt && (
+            <Text variant="bodySmall" style={styles.subtitle}>
+              Mortgages excluded • Focus on eliminating consumer debt first
+            </Text>
+          )}
         </Card.Content>
       </Card>
 

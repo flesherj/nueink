@@ -57,11 +57,15 @@ export class DebtPayoffPlanningService {
    * enriches them with AI-estimated interest rates and promotional periods,
    * and generates multiple payoff strategies (avalanche, snowball).
    *
+   * Returns TWO sets of plans:
+   * 1. Consumer debt only (credit cards, personal loans, auto loans, medical debt)
+   * 2. Total debt including mortgages
+   *
    * @param organizationId Organization to generate plans for
    * @param accountId Account requesting the plans
    * @param profileOwner User requesting the plans
    * @param monthlyPayment Optional total monthly payment (defaults to minimums + 10%)
-   * @returns Array of debt payoff plans with different strategies
+   * @returns Array of debt payoff plans with different strategies and scopes
    * @throws Error if no financial accounts or debt accounts found
    */
   public generatePayoffPlans = async (
@@ -77,13 +81,47 @@ export class DebtPayoffPlanningService {
       throw new Error('No debt accounts found');
     }
 
-    // Generate payoff plans with AI-enriched accounts
-    const plans = this.payoffService.generatePayoffPlans(
+    // Separate consumer debt from mortgages
+    const consumerDebt = enrichedDebtAccounts.filter(
+      (account) => account.type !== 'mortgage'
+    );
+
+    const plans: DebtPayoffPlan[] = [];
+
+    // Generate consumer debt plans (primary focus)
+    if (consumerDebt.length > 0) {
+      const consumerPlans = this.payoffService.generatePayoffPlans(
+        consumerDebt,
+        organizationId,
+        accountId,
+        profileOwner,
+        monthlyPayment
+      );
+
+      // Mark these as consumer debt scope
+      plans.push(
+        ...consumerPlans.map((plan) => ({
+          ...plan,
+          scope: 'consumer' as const,
+        }))
+      );
+    }
+
+    // Generate total debt plans (including mortgages)
+    const totalPlans = this.payoffService.generatePayoffPlans(
       enrichedDebtAccounts,
       organizationId,
       accountId,
       profileOwner,
       monthlyPayment
+    );
+
+    // Mark these as total debt scope
+    plans.push(
+      ...totalPlans.map((plan) => ({
+        ...plan,
+        scope: 'all' as const,
+      }))
     );
 
     return plans;

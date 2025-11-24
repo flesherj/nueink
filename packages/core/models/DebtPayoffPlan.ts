@@ -6,6 +6,11 @@ import { FinancialAccount } from './FinancialAccount';
 export type PayoffStrategy = 'avalanche' | 'snowball' | 'custom';
 
 /**
+ * Debt payoff scope - which debts are included
+ */
+export type PayoffScope = 'consumer' | 'all';
+
+/**
  * Monthly payment allocation for a single debt
  */
 export interface DebtPayment {
@@ -50,6 +55,7 @@ export interface DebtPayoffPlan {
   accountId: string;
   name: string;                   // e.g., "Avalanche Strategy", "Snowball Strategy"
   strategy: PayoffStrategy;
+  scope?: PayoffScope;            // 'consumer' = consumer debt only, 'all' = includes mortgages
 
   // Debt accounts included in plan
   debts: FinancialAccount[];
