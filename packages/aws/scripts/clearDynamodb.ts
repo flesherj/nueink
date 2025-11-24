@@ -23,10 +23,19 @@ const SANDBOX_ID = 'mf62wubvgrdnxhhqstqlaqtpsy';
 const STAGE = 'NONE';
 
 /**
+ * Table configuration type
+ */
+type TableConfig = {
+  name: string;
+  key: string;
+  sortKey?: string;
+};
+
+/**
  * Table configuration
  * Comment out any tables you don't want to clear
  */
-const TABLES_TO_CLEAR = [
+const TABLES_TO_CLEAR: TableConfig[] = [
   // Financial Data - Commonly cleared for testing
   { name: 'Transaction', key: 'transactionId' },
   { name: 'TransactionSplit', key: 'splitId' },
