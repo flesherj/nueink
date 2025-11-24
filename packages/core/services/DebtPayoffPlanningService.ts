@@ -208,12 +208,24 @@ export class DebtPayoffPlanningService {
     return accounts
       .filter(this.isDebtAccount)
       .filter((account) => account.status === 'active')
-      .filter((account) => (account.currentBalance || 0) > 0)
-      .map((account) => ({
-        ...account,
-        interestRate: this.estimateInterestRate(account),
-        minimumPayment: this.estimateMinimumPayment(account),
-      }));
+      .filter((account) => {
+        const balance = account.currentBalance || 0;
+        // Credit cards and loans typically have NEGATIVE balances when you owe money (YNAB convention)
+        // Keep accounts with non-zero balance (either negative debt or positive for some loan types)
+        return Math.abs(balance) > 0;
+      })
+      .map((account) => {
+        const balance = account.currentBalance || 0;
+        // For debt accounts with negative balances, convert to positive for payoff calculations
+        const debtBalance = balance < 0 ? Math.abs(balance) : balance;
+
+        return {
+          ...account,
+          currentBalance: debtBalance, // Use absolute value for debt calculations
+          interestRate: this.estimateInterestRate(account),
+          minimumPayment: this.estimateMinimumPayment(account),
+        };
+      });
   };
 
   /**
@@ -225,7 +237,11 @@ export class DebtPayoffPlanningService {
     const debtAccounts = accounts
       .filter(this.isDebtAccount)
       .filter((account) => account.status === 'active')
-      .filter((account) => (account.currentBalance || 0) > 0);
+      .filter((account) => {
+        const balance = account.currentBalance || 0;
+        // Credit cards and loans typically have NEGATIVE balances when you owe money (YNAB convention)
+        return Math.abs(balance) > 0;
+      });
 
     if (debtAccounts.length === 0) {
       return [];
@@ -238,6 +254,8 @@ export class DebtPayoffPlanningService {
 
         return debtAccounts.map((account) => {
           const estimate = estimates.get(account.financialAccountId);
+          const balance = account.currentBalance || 0;
+          const debtBalance = balance < 0 ? Math.abs(balance) : balance;
 
           // Calculate promotional end date if promotional period detected
           let promotionalEndDate: Date | undefined;
@@ -248,6 +266,7 @@ export class DebtPayoffPlanningService {
 
           return {
             ...account,
+            currentBalance: debtBalance, // Use absolute value for debt calculations
             interestRate: estimate?.estimatedRate || this.estimateInterestRate(account),
             minimumPayment: this.estimateMinimumPayment(account),
             // Apply promotional period information from AI
